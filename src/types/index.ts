@@ -70,18 +70,6 @@ export interface Favorito {
   fecha_agregado: string;
 }
 
-export interface MovimientoInventario {
-  id: number;
-  mueble?: Mueble;
-  mueble_id?: number;
-  tipo_movimiento: 'ENTRADA' | 'SALIDA' | 'AJUSTE';
-  cantidad: number;
-  motivo: string;
-  usuario?: number;
-  usuario_username?: string;
-  fecha_movimiento: string;
-}
-
 export interface PaginatedResponse<T> {
   count: number;
   total_pages: number;
