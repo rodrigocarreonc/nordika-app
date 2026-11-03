@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -26,7 +26,19 @@ const ESTADO_BADGE = {
   PENDIENTE: { label: 'Pendiente', variant: 'warning' },
   ACEPTADO: { label: 'Aceptado', variant: 'success' },
   RECHAZADO: { label: 'Rechazado', variant: 'danger' },
+  CANCELADO: { label: 'Vencido', variant: 'neutral' },
 } as const;
+
+/** Tiempo restante legible: "4d 6h", "5h 20m", "12m". */
+const formatRestante = (ms: number) => {
+  const min = Math.floor(ms / 60000);
+  const d = Math.floor(min / 1440);
+  const h = Math.floor((min % 1440) / 60);
+  const m = min % 60;
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+};
 
 const formatPrice = (price: string | number) => {
   const num = typeof price === 'number' ? price : parseFloat(price);
@@ -45,6 +57,13 @@ export default function ApartadosScreen() {
   const [error, setError] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [vista, setVista] = useState<'activos' | 'historial'>('activos');
+  const [now, setNow] = useState(() => Date.now());
+
+  // Actualiza el countdown cada minuto.
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchApartados = useCallback(async (isRefresh = false) => {
     try {
@@ -135,6 +154,20 @@ export default function ApartadosScreen() {
         <Text style={[styles.cardDate, { color: colors.textMuted }]}>
           {new Date(item.creado_en).toLocaleString('es-MX')}
         </Text>
+
+        {item.estado === 'PENDIENTE' ? (() => {
+          const restante = new Date(item.expira_en).getTime() - now;
+          const urgente = restante < 24 * 3600 * 1000;
+          const color = urgente ? colors.danger : colors.warning;
+          return (
+            <View style={[styles.countdown, { backgroundColor: `${color}15` }]}>
+              <Ionicons name="time-outline" size={14} color={color} />
+              <Text style={[styles.countdownText, { color }]}>
+                {restante > 0 ? `Vence en ${formatRestante(restante)}` : 'Vencido, se cancelará al actualizar'}
+              </Text>
+            </View>
+          );
+        })() : null}
 
         {isStaff && item.estado === 'PENDIENTE' ? (
           <View style={styles.actionsRow}>
@@ -237,7 +270,7 @@ export default function ApartadosScreen() {
                   ? 'Cuando un cliente aparte un mueble aparecerá aquí para que lo revises.'
                   : vista === 'activos'
                     ? 'Abre un mueble del catálogo y apártalo para reservar tus piezas.'
-                    : 'Aquí verás tus apartados una vez que sean aceptados o rechazados.'
+                    : 'Aquí verás tus apartados aceptados, rechazados o vencidos.'
               }
               icon={vista === 'historial' && !isStaff ? 'time-outline' : 'bookmark-outline'}
               actionLabel={isStaff || vista === 'historial' ? undefined : 'Explorar catálogo'}
@@ -330,6 +363,20 @@ const styles = StyleSheet.create({
   cardDate: {
     fontSize: 11,
     marginTop: 6,
+  },
+  countdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  countdownText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   actionsRow: {
     flexDirection: 'row',
