@@ -5,12 +5,10 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
   useColorScheme,
 } from 'react-native';
@@ -23,7 +21,6 @@ import { Mueble } from '../../../types';
 import {
   apiDeleteMueble,
   apiGetMueble,
-  apiRegistrarMovimiento,
   apiToggleFavorito,
   resolveImageUrl,
 } from '../../../utils/api';
@@ -41,13 +38,6 @@ export default function MuebleDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favLoading, setFavLoading] = useState(false);
-
-  // Modal para registrar movimiento de inventario
-  const [showStockModal, setShowStockModal] = useState(false);
-  const [stockTipo, setStockTipo] = useState<'ENTRADA' | 'SALIDA' | 'AJUSTE'>('ENTRADA');
-  const [stockCantidad, setStockCantidad] = useState('1');
-  const [stockMotivo, setStockMotivo] = useState('Reabastecimiento de almacén');
-  const [stockSubmitting, setStockSubmitting] = useState(false);
 
   const fetchDetails = async () => {
     if (!muebleId) return;
@@ -111,35 +101,6 @@ export default function MuebleDetailsScreen() {
         },
       ]
     );
-  };
-
-  const handleRegistrarMovimiento = async () => {
-    if (!mueble) return;
-    const cant = parseInt(stockCantidad, 10);
-    if (isNaN(cant) || cant <= 0) {
-      Alert.alert('Cantidad inválida', 'La cantidad debe ser un número entero mayor que 0.');
-      return;
-    }
-    if (!stockMotivo.trim()) {
-      Alert.alert('Motivo requerido', 'Por favor ingresa un motivo para el movimiento.');
-      return;
-    }
-
-    try {
-      setStockSubmitting(true);
-      const res = await apiRegistrarMovimiento(mueble.id, {
-        tipo_movimiento: stockTipo,
-        cantidad: cant,
-        motivo: stockMotivo.trim(),
-      });
-      setMueble({ ...mueble, stock: res.stock_actual });
-      setShowStockModal(false);
-      Alert.alert('Inventario actualizado', `Nuevo stock disponible: ${res.stock_actual} unidades.`);
-    } catch (err: any) {
-      Alert.alert('Error en movimiento', err.message || 'No se pudo registrar el movimiento.');
-    } finally {
-      setStockSubmitting(false);
-    }
   };
 
   const formatPrice = (price: string | number) => {
@@ -270,23 +231,6 @@ export default function MuebleDetailsScreen() {
             </Text>
           </View>
 
-          {/* Gestión Rápida de Inventario */}
-          <View style={[styles.inventoryActionCard, { backgroundColor: colors.backgroundElement }]}>
-            <View>
-              <Text style={[styles.invTitle, { color: colors.text }]}>Gestión de Almacén</Text>
-              <Text style={[styles.invSubtitle, { color: colors.textMuted }]}>
-                Stock actual: <Text style={{ fontWeight: '800' }}>{mueble.stock} unidades</Text>
-              </Text>
-            </View>
-            <Pressable
-              style={[styles.invButton, { backgroundColor: colors.primary }]}
-              onPress={() => setShowStockModal(true)}
-            >
-              <Ionicons name="swap-vertical" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.invButtonText}>Ajustar Stock</Text>
-            </Pressable>
-          </View>
-
           {/* Datos de auditoría */}
           <View style={styles.auditRow}>
             <Text style={[styles.auditText, { color: colors.textMuted }]}>
@@ -299,81 +243,6 @@ export default function MuebleDetailsScreen() {
         </View>
       </ScrollView>
 
-      {/* Modal para Ajustar Stock de Inventario */}
-      <Modal visible={showStockModal} transparent animationType="slide">
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitleText, { color: colors.text }]}>Movimiento de Inventario</Text>
-              <Pressable onPress={() => setShowStockModal(false)} hitSlop={8}>
-                <Ionicons name="close" size={22} color={colors.textMuted} />
-              </Pressable>
-            </View>
-
-            <Text style={[styles.modalSubtitle, { color: colors.textMuted }]}>
-              {mueble.nombre} (Stock actual: {mueble.stock})
-            </Text>
-
-            {/* Selector de Tipo */}
-            <Text style={[styles.inputLabel, { color: colors.text }]}>Tipo de Movimiento</Text>
-            <View style={styles.tipoRow}>
-              {(['ENTRADA', 'SALIDA', 'AJUSTE'] as const).map((t) => (
-                <Pressable
-                  key={t}
-                  style={[
-                    styles.tipoChip,
-                    stockTipo === t
-                      ? { backgroundColor: colors.accent, borderColor: colors.accent }
-                      : { backgroundColor: colors.background, borderColor: colors.border },
-                  ]}
-                  onPress={() => setStockTipo(t)}
-                >
-                  <Text
-                    style={[
-                      styles.tipoChipText,
-                      stockTipo === t ? { color: '#FFFFFF' } : { color: colors.text },
-                    ]}
-                  >
-                    {t}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            {/* Cantidad */}
-            <Text style={[styles.inputLabel, { color: colors.text, marginTop: 12 }]}>Cantidad</Text>
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              keyboardType="number-pad"
-              value={stockCantidad}
-              onChangeText={setStockCantidad}
-            />
-
-            {/* Motivo */}
-            <Text style={[styles.inputLabel, { color: colors.text, marginTop: 12 }]}>Motivo</Text>
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              placeholder="Ej. Recepción de proveedor, Venta presencial"
-              placeholderTextColor={colors.textMuted}
-              value={stockMotivo}
-              onChangeText={setStockMotivo}
-            />
-
-            {/* Botón Confirmar */}
-            <Pressable
-              style={[styles.confirmButton, { backgroundColor: colors.accent }]}
-              onPress={handleRegistrarMovimiento}
-              disabled={stockSubmitting}
-            >
-              {stockSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.confirmButtonText}>Confirmar Movimiento</Text>
-              )}
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -513,34 +382,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
-  inventoryActionCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 16,
-  },
-  invTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  invSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  invButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 8,
-  },
-  invButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
-  },
   auditRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -550,69 +391,5 @@ const styles = StyleSheet.create({
   },
   auditText: {
     fontSize: 12,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 1,
-    padding: 24,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  modalTitleText: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  tipoRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  tipoChip: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  tipoChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 44,
-    fontSize: 14,
-  },
-  confirmButton: {
-    height: 48,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  confirmButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
   },
 });

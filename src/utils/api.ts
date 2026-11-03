@@ -1,4 +1,4 @@
-import { AuthResponse, Categoria, Favorito, MovimientoInventario, Mueble, MuebleFilterParams, PaginatedResponse, Proveedor, User } from '../types';
+import { AuthResponse, Categoria, Favorito, Mueble, MuebleFilterParams, PaginatedResponse, Proveedor, User } from '../types';
 import { deleteToken, getToken, saveToken, saveUser } from './tokenStorage';
 
 // Se fija en build desde EXPO_PUBLIC_API_URL (.env); quita '/' final
@@ -244,27 +244,6 @@ export async function apiGetCategorias(): Promise<Categoria[]> {
 export async function apiGetProveedores(): Promise<Proveedor[]> {
   const res = await request<any>('/proveedores/?page_size=100');
   return res.results || res;
-}
-
-// ==========================================
-// INVENTARIO Y MOVIMIENTOS
-// ==========================================
-
-export async function apiGetMovimientos(page = 1, pageSize = 20): Promise<PaginatedResponse<MovimientoInventario>> {
-  return await request<PaginatedResponse<MovimientoInventario>>(`/movimientos/?page=${page}&page_size=${pageSize}`);
-}
-
-export async function apiRegistrarMovimiento(
-  muebleId: number,
-  data: { tipo_movimiento: 'ENTRADA' | 'SALIDA' | 'AJUSTE'; cantidad: number; motivo: string }
-): Promise<{ movimiento: MovimientoInventario; stock_actual: number; detail: string }> {
-  return await request<{ movimiento: MovimientoInventario; stock_actual: number; detail: string }>(
-    `/muebles/${muebleId}/registrar_movimiento/`,
-    {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }
-  );
 }
 
 // ==========================================

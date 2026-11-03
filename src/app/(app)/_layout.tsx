@@ -79,15 +79,6 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="inventario"
-        options={{
-          title: 'Inventario',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'cube' : 'cube-outline'} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="settings"
         options={{
           title: 'Ajustes',
