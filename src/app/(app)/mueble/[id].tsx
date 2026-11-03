@@ -113,7 +113,7 @@ export default function MuebleDetailsScreen() {
       const apartado = await apiCrearApartado(mueble.id, cantidadApartar);
       setMueble({ ...mueble, stock: apartado.mueble.stock });
       setCantidadApartar(1);
-      Alert.alert('Mueble apartado', 'Tu apartado quedó pendiente de revisión.', [
+      Alert.alert('Mueble apartado', `Tu apartado ${apartado.codigo} quedó pendiente de revisión.`, [
         { text: 'Ver mis apartados', onPress: () => router.push('/(app)/apartados') },
         { text: 'OK' },
       ]);
