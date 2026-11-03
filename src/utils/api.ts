@@ -1,4 +1,4 @@
-import { AuthResponse, Categoria, Favorito, Mueble, MuebleFilterParams, PaginatedResponse, Proveedor, User } from '../types';
+import { Apartado, AuthResponse, Categoria, Favorito, Mueble, MuebleFilterParams, PaginatedResponse, Proveedor, User } from '../types';
 import { deleteToken, getToken, saveToken, saveUser } from './tokenStorage';
 
 // Se fija en build desde EXPO_PUBLIC_API_URL (.env); quita '/' final
@@ -230,6 +230,31 @@ export async function apiGetMisFavoritos(params: { page?: number; page_size?: nu
 
 export async function apiGetDestacados(): Promise<Mueble[]> {
   return await request<Mueble[]>('/muebles/destacados/');
+}
+
+// ==========================================
+// APARTADOS
+// ==========================================
+
+export async function apiGetApartados(params: { estado?: Apartado['estado'] } = {}): Promise<PaginatedResponse<Apartado>> {
+  const query = new URLSearchParams({ page_size: '100' });
+  if (params.estado) query.append('estado', params.estado);
+  return await request<PaginatedResponse<Apartado>>(`/apartados/?${query.toString()}`);
+}
+
+export async function apiCrearApartado(muebleId: number, cantidad: number): Promise<Apartado> {
+  return await request<Apartado>('/apartados/', {
+    method: 'POST',
+    body: JSON.stringify({ mueble_id: muebleId, cantidad }),
+  });
+}
+
+export async function apiAceptarApartado(id: number): Promise<Apartado> {
+  return await request<Apartado>(`/apartados/${id}/aceptar/`, { method: 'POST' });
+}
+
+export async function apiRechazarApartado(id: number): Promise<Apartado> {
+  return await request<Apartado>(`/apartados/${id}/rechazar/`, { method: 'POST' });
 }
 
 // ==========================================

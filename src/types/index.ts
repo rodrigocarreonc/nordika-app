@@ -70,6 +70,25 @@ export interface Favorito {
   fecha_agregado: string;
 }
 
+export interface Venta {
+  id: number;
+  precio_unitario: string;
+  total: string;
+  fecha_venta: string;
+}
+
+export interface Apartado {
+  id: number;
+  usuario: number;
+  usuario_username: string;
+  mueble: Mueble;
+  cantidad: number;
+  estado: 'PENDIENTE' | 'ACEPTADO' | 'RECHAZADO';
+  venta: Venta | null;
+  creado_en: string;
+  actualizado_en: string;
+}
+
 export interface PaginatedResponse<T> {
   count: number;
   total_pages: number;
