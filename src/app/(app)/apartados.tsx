@@ -79,8 +79,8 @@ export default function ApartadosScreen() {
     Alert.alert(
       aceptar ? 'Aceptar apartado' : 'Rechazar apartado',
       aceptar
-        ? `Se registrará la venta de ${apartado.cantidad} x "${apartado.mueble.nombre}".`
-        : `Se liberarán ${apartado.cantidad} unidades de "${apartado.mueble.nombre}" al stock.`,
+        ? `${apartado.codigo}: se registrará la venta de ${apartado.cantidad} x "${apartado.mueble.nombre}".`
+        : `${apartado.codigo}: se liberarán ${apartado.cantidad} unidades de "${apartado.mueble.nombre}" al stock.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -124,6 +124,7 @@ export default function ApartadosScreen() {
           </Text>
           <Badge label={badge.label} variant={badge.variant} size="small" />
         </View>
+        <Text style={[styles.cardCode, { color: colors.accent }]}>{item.codigo}</Text>
 
         <Text style={[styles.cardDetail, { color: colors.textMuted }]}>
           {item.cantidad} {item.cantidad === 1 ? 'pieza' : 'piezas'} · Total {formatPrice(total)}
@@ -315,6 +316,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     flex: 1,
+  },
+  cardCode: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   cardDetail: {
     fontSize: 13,

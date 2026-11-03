@@ -79,6 +79,7 @@ export interface Venta {
 
 export interface Apartado {
   id: number;
+  codigo: string;
   usuario: number;
   usuario_username: string;
   mueble: Mueble;
