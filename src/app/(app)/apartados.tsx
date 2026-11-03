@@ -44,6 +44,7 @@ export default function ApartadosScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
+  const [vista, setVista] = useState<'activos' | 'historial'>('activos');
 
   const fetchApartados = useCallback(async (isRefresh = false) => {
     try {
@@ -51,8 +52,8 @@ export default function ApartadosScreen() {
       setError(null);
       const staff = !!(await getUser())?.is_staff;
       setIsStaff(staff);
-      // Staff ve todos; el usuario normal solo sus apartados activos (pendientes).
-      const res = await apiGetApartados(staff ? {} : { estado: 'PENDIENTE' });
+      // El backend ya limita al usuario normal a sus propios apartados.
+      const res = await apiGetApartados();
       setApartados(res.results || []);
     } catch (err: any) {
       setError(err.message || 'Error al obtener los apartados.');
@@ -102,6 +103,10 @@ export default function ApartadosScreen() {
       ]
     );
   };
+
+  const lista = isStaff
+    ? apartados
+    : apartados.filter((a) => (vista === 'activos') === (a.estado === 'PENDIENTE'));
 
   const renderItem = ({ item }: { item: Apartado }) => {
     const badge = ESTADO_BADGE[item.estado];
@@ -168,7 +173,9 @@ export default function ApartadosScreen() {
           <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
             {isStaff
               ? `${apartados.filter((a) => a.estado === 'PENDIENTE').length} pendientes de revisión`
-              : `${apartados.length} ${apartados.length === 1 ? 'apartado activo' : 'apartados activos'}`}
+              : vista === 'activos'
+                ? `${lista.length} ${lista.length === 1 ? 'apartado activo' : 'apartados activos'}`
+                : `${lista.length} ${lista.length === 1 ? 'apartado resuelto' : 'apartados resueltos'}`}
           </Text>
         </View>
 
@@ -177,13 +184,36 @@ export default function ApartadosScreen() {
         </View>
       </View>
 
+      {!isStaff ? (
+        <View style={styles.tabsRow}>
+          {(['activos', 'historial'] as const).map((v) => (
+            <Pressable
+              key={v}
+              style={[
+                styles.tabChip,
+                vista === v
+                  ? { backgroundColor: colors.accent, borderColor: colors.accent }
+                  : { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+              onPress={() => setVista(v)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: vista === v }}
+            >
+              <Text style={[styles.tabChipText, { color: vista === v ? '#FFFFFF' : colors.text }]}>
+                {v === 'activos' ? 'Activos' : 'Historial'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
       {loading && !refreshing ? (
         <LoadingView message="Cargando apartados..." />
       ) : error ? (
         <ErrorView message={error} onRetry={() => fetchApartados()} />
       ) : (
         <FlatList
-          data={apartados}
+          data={lista}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
@@ -198,15 +228,19 @@ export default function ApartadosScreen() {
           }
           ListEmptyComponent={
             <EmptyView
-              title={isStaff ? 'No hay apartados' : 'No tienes apartados activos'}
+              title={
+                isStaff ? 'No hay apartados' : vista === 'activos' ? 'No tienes apartados activos' : 'Sin historial'
+              }
               description={
                 isStaff
                   ? 'Cuando un cliente aparte un mueble aparecerá aquí para que lo revises.'
-                  : 'Abre un mueble del catálogo y apártalo para reservar tus piezas.'
+                  : vista === 'activos'
+                    ? 'Abre un mueble del catálogo y apártalo para reservar tus piezas.'
+                    : 'Aquí verás tus apartados una vez que sean aceptados o rechazados.'
               }
-              icon="bookmark-outline"
-              actionLabel={isStaff ? undefined : 'Explorar catálogo'}
-              onAction={isStaff ? undefined : () => router.replace('/(app)')}
+              icon={vista === 'historial' && !isStaff ? 'time-outline' : 'bookmark-outline'}
+              actionLabel={isStaff || vista === 'historial' ? undefined : 'Explorar catálogo'}
+              onAction={isStaff || vista === 'historial' ? undefined : () => router.replace('/(app)')}
             />
           }
         />
@@ -241,6 +275,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+  },
+  tabChip: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  tabChipText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   listContent: {
     padding: 18,
