@@ -70,16 +70,25 @@ export interface Favorito {
   fecha_agregado: string;
 }
 
-export interface MovimientoInventario {
+export interface Venta {
   id: number;
-  mueble?: Mueble;
-  mueble_id?: number;
-  tipo_movimiento: 'ENTRADA' | 'SALIDA' | 'AJUSTE';
+  precio_unitario: string;
+  total: string;
+  fecha_venta: string;
+}
+
+export interface Apartado {
+  id: number;
+  codigo: string;
+  usuario: number;
+  usuario_username: string;
+  mueble: Mueble;
   cantidad: number;
-  motivo: string;
-  usuario?: number;
-  usuario_username?: string;
-  fecha_movimiento: string;
+  estado: 'PENDIENTE' | 'ACEPTADO' | 'RECHAZADO' | 'CANCELADO';
+  venta: Venta | null;
+  expira_en: string;
+  creado_en: string;
+  actualizado_en: string;
 }
 
 export interface PaginatedResponse<T> {

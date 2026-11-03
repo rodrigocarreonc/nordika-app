@@ -1,6 +1,9 @@
-import { AuthResponse, Categoria, Favorito, MovimientoInventario, Mueble, MuebleFilterParams, PaginatedResponse, Proveedor, User } from '../types';
-import { getStoredApiUrl } from './settingsStorage';
+import { Apartado, AuthResponse, Categoria, Favorito, Mueble, MuebleFilterParams, PaginatedResponse, Proveedor, User } from '../types';
 import { deleteToken, getToken, saveToken, saveUser } from './tokenStorage';
+
+// Se fija en build desde EXPO_PUBLIC_API_URL (.env); quita '/' final
+const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
+if (!API_URL) throw new Error('Falta EXPO_PUBLIC_API_URL en .env');
 
 export class ApiError extends Error {
   status: number;
@@ -18,7 +21,7 @@ export class ApiError extends Error {
  * Realiza una petición HTTP genérica al backend con token de autenticación.
  */
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const baseUrl = await getStoredApiUrl();
+  const baseUrl = API_URL;
   const token = await getToken();
 
   const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
@@ -45,7 +48,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     });
   } catch (err: any) {
     throw new ApiError(
-      `No se pudo conectar con el servidor en ${baseUrl}. Verifica tu conexión o cambia la URL en Ajustes.`,
+      `No se pudo conectar con el servidor en ${baseUrl}. Verifica tu conexión o EXPO_PUBLIC_API_URL en .env.`,
       0,
       err
     );
@@ -230,6 +233,31 @@ export async function apiGetDestacados(): Promise<Mueble[]> {
 }
 
 // ==========================================
+// APARTADOS
+// ==========================================
+
+export async function apiGetApartados(params: { estado?: Apartado['estado'] } = {}): Promise<PaginatedResponse<Apartado>> {
+  const query = new URLSearchParams({ page_size: '100' });
+  if (params.estado) query.append('estado', params.estado);
+  return await request<PaginatedResponse<Apartado>>(`/apartados/?${query.toString()}`);
+}
+
+export async function apiCrearApartado(muebleId: number, cantidad: number): Promise<Apartado> {
+  return await request<Apartado>('/apartados/', {
+    method: 'POST',
+    body: JSON.stringify({ mueble_id: muebleId, cantidad }),
+  });
+}
+
+export async function apiAceptarApartado(id: number): Promise<Apartado> {
+  return await request<Apartado>(`/apartados/${id}/aceptar/`, { method: 'POST' });
+}
+
+export async function apiRechazarApartado(id: number): Promise<Apartado> {
+  return await request<Apartado>(`/apartados/${id}/rechazar/`, { method: 'POST' });
+}
+
+// ==========================================
 // CATEGORÍAS Y PROVEEDORES
 // ==========================================
 
@@ -244,27 +272,6 @@ export async function apiGetProveedores(): Promise<Proveedor[]> {
 }
 
 // ==========================================
-// INVENTARIO Y MOVIMIENTOS
-// ==========================================
-
-export async function apiGetMovimientos(page = 1, pageSize = 20): Promise<PaginatedResponse<MovimientoInventario>> {
-  return await request<PaginatedResponse<MovimientoInventario>>(`/movimientos/?page=${page}&page_size=${pageSize}`);
-}
-
-export async function apiRegistrarMovimiento(
-  muebleId: number,
-  data: { tipo_movimiento: 'ENTRADA' | 'SALIDA' | 'AJUSTE'; cantidad: number; motivo: string }
-): Promise<{ movimiento: MovimientoInventario; stock_actual: number; detail: string }> {
-  return await request<{ movimiento: MovimientoInventario; stock_actual: number; detail: string }>(
-    `/muebles/${muebleId}/registrar_movimiento/`,
-    {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }
-  );
-}
-
-// ==========================================
 // HELPER PARA URLs DE IMÁGENES
 // ==========================================
 
@@ -273,6 +280,6 @@ export async function resolveImageUrl(imageUrl: string | null | undefined): Prom
   if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
     return imageUrl;
   }
-  const baseUrl = await getStoredApiUrl();
+  const baseUrl = API_URL;
   return `${baseUrl}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
 }

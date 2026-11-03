@@ -20,11 +20,8 @@ import { Colors } from '../../constants/theme';
 import { User } from '../../types';
 import { apiGetMe, apiLogout, apiUpdateMe } from '../../utils/api';
 import {
-  DEFAULT_API_URL,
-  getStoredApiUrl,
   getStoredPageSize,
   getStoredTheme,
-  saveStoredApiUrl,
   saveStoredPageSize,
   saveStoredTheme,
 } from '../../utils/settingsStorage';
@@ -42,10 +39,6 @@ export default function SettingsScreen() {
   // Ajustes de la app
   const [themePreference, setThemePreference] = useState<'light' | 'dark' | 'system'>('system');
   const [pageSize, setPageSize] = useState<number>(10);
-  const [apiUrl, setApiUrl] = useState<string>(DEFAULT_API_URL);
-  const [pingStatus, setPingStatus] = useState<string | null>(null);
-  const [testingPing, setTestingPing] = useState<boolean>(false);
-
   // Modal para editar perfil
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editFirstName, setEditFirstName] = useState('');
@@ -78,7 +71,6 @@ export default function SettingsScreen() {
     // Cargar ajustes guardados
     getStoredTheme().then(setThemePreference);
     getStoredPageSize().then(setPageSize);
-    getStoredApiUrl().then(setApiUrl);
   }, []);
 
   const handleSelectPageSize = async (size: number) => {
@@ -89,34 +81,6 @@ export default function SettingsScreen() {
   const handleSelectTheme = async (theme: 'light' | 'dark' | 'system') => {
     setThemePreference(theme);
     await saveStoredTheme(theme);
-  };
-
-  const handleSaveApiUrl = async (newUrl: string) => {
-    setApiUrl(newUrl);
-    await saveStoredApiUrl(newUrl);
-    setPingStatus(null);
-  };
-
-  const handleTestConnection = async () => {
-    setTestingPing(true);
-    setPingStatus(null);
-    try {
-      const start = Date.now();
-      const res = await fetch(`${apiUrl}/muebles/?page_size=1`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-      const elapsed = Date.now() - start;
-      if (res.ok) {
-        setPingStatus(`✅ Conectado exitosamente (${elapsed} ms)`);
-      } else {
-        setPingStatus(`⚠️ Servidor respondió con código ${res.status}`);
-      }
-    } catch (e: any) {
-      setPingStatus(`❌ No se pudo conectar: ${e.message}`);
-    } finally {
-      setTestingPing(false);
-    }
   };
 
   const handleSaveProfile = async () => {
@@ -283,71 +247,6 @@ export default function SettingsScreen() {
               );
             })}
           </View>
-        </View>
-
-        {/* Sección: Conexión Servidor / IP Local */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionHeaderText, { color: colors.textMuted }]}>
-            CONEXIÓN CON LA API (BACKEND)
-          </Text>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>URL del Servidor API</Text>
-          <Text style={[styles.cardSubtitle, { color: colors.textMuted }]}>
-            Cambia entre Localhost, tu IP de Wi-Fi local o Azure
-          </Text>
-
-          <TextInput
-            style={[styles.apiInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-            value={apiUrl}
-            onChangeText={handleSaveApiUrl}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-
-          {/* Atajos rápidos de IP */}
-          <View style={styles.ipQuickRow}>
-            <Pressable
-              style={[styles.ipQuickChip, { backgroundColor: colors.backgroundElement }]}
-              onPress={() => handleSaveApiUrl('http://127.0.0.1:8000')}
-            >
-              <Text style={[styles.ipQuickText, { color: colors.text }]}>Localhost</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.ipQuickChip, { backgroundColor: colors.backgroundElement }]}
-              onPress={() => handleSaveApiUrl('http://192.168.1.65:8000')}
-            >
-              <Text style={[styles.ipQuickText, { color: colors.text }]}>IP Wi-Fi (192.168.1.65)</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.ipQuickChip, { backgroundColor: colors.backgroundElement }]}
-              onPress={() =>
-                handleSaveApiUrl('https://topicos-epfmfpaxbadrghhj.mexicocentral-01.azurewebsites.net')
-              }
-            >
-              <Text style={[styles.ipQuickText, { color: colors.text }]}>Azure Web</Text>
-            </Pressable>
-          </View>
-
-          <Pressable
-            style={[styles.pingButton, { borderColor: colors.accent }]}
-            onPress={handleTestConnection}
-            disabled={testingPing}
-          >
-            {testingPing ? (
-              <ActivityIndicator size="small" color={colors.accent} />
-            ) : (
-              <>
-                <Ionicons name="pulse-outline" size={18} color={colors.accent} style={{ marginRight: 6 }} />
-                <Text style={[styles.pingButtonText, { color: colors.accent }]}>Probar Conexión</Text>
-              </>
-            )}
-          </Pressable>
-
-          {pingStatus ? (
-            <Text style={[styles.pingResultText, { color: colors.text }]}>{pingStatus}</Text>
-          ) : null}
         </View>
 
         {/* Botón de Logout */}
@@ -533,47 +432,6 @@ const styles = StyleSheet.create({
   themeChipText: {
     fontSize: 13,
     fontWeight: '600',
-  },
-  apiInput: {
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    marginBottom: 10,
-  },
-  ipQuickRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 12,
-  },
-  ipQuickChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  ipQuickText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  pingButton: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: 40,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  pingButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  pingResultText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 8,
-    textAlign: 'center',
   },
   logoutButton: {
     flexDirection: 'row',
