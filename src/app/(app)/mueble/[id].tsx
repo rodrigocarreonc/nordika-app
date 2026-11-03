@@ -113,10 +113,17 @@ export default function MuebleDetailsScreen() {
       const apartado = await apiCrearApartado(mueble.id, cantidadApartar);
       setMueble({ ...mueble, stock: apartado.mueble.stock });
       setCantidadApartar(1);
-      Alert.alert('Mueble apartado', `Tu apartado ${apartado.codigo} quedó pendiente de revisión.`, [
-        { text: 'Ver mis apartados', onPress: () => router.push('/(app)/apartados') },
-        { text: 'OK' },
-      ]);
+      const vence = new Date(apartado.expira_en).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+      Alert.alert(
+        'Mueble apartado',
+        `Tu apartado ${apartado.codigo} quedó pendiente de revisión.
+
+Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se cancelará automáticamente.`,
+        [
+          { text: 'Ver mis apartados', onPress: () => router.push('/(app)/apartados') },
+          { text: 'OK' },
+        ]
+      );
     } catch (err: any) {
       Alert.alert('No se pudo apartar', err.message || 'Intenta de nuevo.');
     } finally {
