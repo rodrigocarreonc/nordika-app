@@ -79,6 +79,15 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="apartados"
+        options={{
+          title: 'Apartados',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Ajustes',
