@@ -79,11 +79,11 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="inventario"
+        name="apartados"
         options={{
-          title: 'Inventario',
+          title: 'Apartados',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'cube' : 'cube-outline'} size={22} color={color} />
+            <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={22} color={color} />
           ),
         }}
       />
