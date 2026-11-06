@@ -185,7 +185,7 @@ export default function MuebleFormScreen() {
       Alert.alert(
         'Operación exitosa',
         isEditing ? 'Mueble actualizado con éxito.' : 'Mueble registrado exitosamente.',
-        [{ text: 'Aceptar', onPress: () => router.replace('/(app)') }]
+        [{ text: 'Aceptar', onPress: () => router.back() }]
       );
     } catch (err: any) {
       Alert.alert('Error', err.message || 'No se pudo guardar el mueble.');

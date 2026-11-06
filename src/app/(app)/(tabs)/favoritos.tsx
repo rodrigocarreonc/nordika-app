@@ -11,13 +11,13 @@ import {
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { EmptyView } from '../../components/EmptyView';
-import { ErrorView } from '../../components/ErrorView';
-import { LoadingView } from '../../components/LoadingView';
-import { MuebleCard } from '../../components/MuebleCard';
-import { Colors } from '../../constants/theme';
-import { Mueble } from '../../types';
-import { apiGetMisFavoritos, apiToggleFavorito } from '../../utils/api';
+import { EmptyView } from '../../../components/EmptyView';
+import { ErrorView } from '../../../components/ErrorView';
+import { LoadingView } from '../../../components/LoadingView';
+import { MuebleCard } from '../../../components/MuebleCard';
+import { Colors } from '../../../constants/theme';
+import { Mueble } from '../../../types';
+import { apiGetMisFavoritos, apiToggleFavorito } from '../../../utils/api';
 
 export default function FavoritosScreen() {
   const router = useRouter();
@@ -112,7 +112,7 @@ export default function FavoritosScreen() {
               description="Explora nuestro catálogo de diseño nórdico y toca el corazón para guardar lo que más te guste."
               icon="heart-outline"
               actionLabel="Explorar catálogo"
-              onAction={() => router.replace('/(app)')}
+              onAction={() => router.replace('/(app)/(tabs)')}
             />
           }
         />
