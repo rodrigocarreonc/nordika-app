@@ -32,8 +32,8 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
           ]}
           onPress={onRetry}
         >
-          <Ionicons name="refresh-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-          <Text style={styles.retryButtonText}>Reintentar</Text>
+          <Ionicons name="refresh-outline" size={18} color={colors.onPrimary} style={{ marginRight: 8 }} />
+          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>Reintentar</Text>
         </Pressable>
       ) : null}
     </View>
@@ -75,7 +75,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 15,
   },

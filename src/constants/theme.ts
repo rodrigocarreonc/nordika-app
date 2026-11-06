@@ -14,6 +14,7 @@ const light = {
   tabIconSelected: '#0F766E',
   border: '#E2E8F0',
   primary: '#1E293B',
+  onPrimary: '#FFFFFF', // texto e íconos sobre fondo primary
   secondary: '#D97706',
   accent: '#0F766E',
   success: '#16A34A',
@@ -36,6 +37,7 @@ const dark = {
   tabIconSelected: '#2DD4BF',
   border: '#334155',
   primary: '#F8FAFC',
+  onPrimary: '#0F172A', // primary es casi blanco en oscuro: texto oscuro
   secondary: '#F59E0B',
   accent: '#2DD4BF',
   success: '#22C55E',
