@@ -354,7 +354,7 @@ export default function CatalogScreen() {
                   <Ionicons name="chevron-forward" size={16} color={page >= totalPages ? colors.textMuted : colors.text} />
                 </Pressable>
               </View>
-            ) : null
+            ) : undefined
           }
         />
       )}
