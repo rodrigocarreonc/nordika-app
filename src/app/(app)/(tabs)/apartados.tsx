@@ -13,14 +13,14 @@ import {
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Badge } from '../../components/Badge';
-import { EmptyView } from '../../components/EmptyView';
-import { ErrorView } from '../../components/ErrorView';
-import { LoadingView } from '../../components/LoadingView';
-import { Colors } from '../../constants/theme';
-import { Apartado } from '../../types';
-import { apiAceptarApartado, apiGetApartados, apiRechazarApartado } from '../../utils/api';
-import { getUser } from '../../utils/tokenStorage';
+import { Badge } from '../../../components/Badge';
+import { EmptyView } from '../../../components/EmptyView';
+import { ErrorView } from '../../../components/ErrorView';
+import { LoadingView } from '../../../components/LoadingView';
+import { Colors } from '../../../constants/theme';
+import { Apartado } from '../../../types';
+import { apiAceptarApartado, apiGetApartados, apiRechazarApartado } from '../../../utils/api';
+import { getUser } from '../../../utils/tokenStorage';
 
 const ESTADO_BADGE = {
   PENDIENTE: { label: 'Pendiente', variant: 'warning' },
@@ -274,7 +274,7 @@ export default function ApartadosScreen() {
               }
               icon={vista === 'historial' && !isStaff ? 'time-outline' : 'bookmark-outline'}
               actionLabel={isStaff || vista === 'historial' ? undefined : 'Explorar catálogo'}
-              onAction={isStaff || vista === 'historial' ? undefined : () => router.replace('/(app)')}
+              onAction={isStaff || vista === 'historial' ? undefined : () => router.replace('/(app)/(tabs)')}
             />
           }
         />

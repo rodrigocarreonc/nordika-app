@@ -38,7 +38,7 @@ export default function LoginScreen() {
     try {
       setLoading(true);
       await apiLogin(trimmedUsername, password);
-      router.replace('/(app)');
+      router.replace('/(app)/(tabs)');
     } catch (error: any) {
       Alert.alert('Error al iniciar sesión', error.message || 'Credenciales inválidas.');
     } finally {
