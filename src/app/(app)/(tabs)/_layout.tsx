@@ -31,8 +31,8 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Catálogo',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={22} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
           ),
         }}
       />
@@ -40,8 +40,8 @@ export default function TabsLayout() {
         name="favoritos"
         options={{
           title: 'Favoritos',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'heart' : 'heart-outline'} size={22} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <Ionicons name={focused ? 'heart' : 'heart-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
           ),
         }}
       />
@@ -49,8 +49,8 @@ export default function TabsLayout() {
         name="apartados"
         options={{
           title: 'Apartados',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={22} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
           ),
         }}
       />
@@ -58,8 +58,8 @@ export default function TabsLayout() {
         name="settings"
         options={{
           title: 'Ajustes',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={22} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
           ),
         }}
       />
