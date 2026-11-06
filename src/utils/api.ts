@@ -258,17 +258,15 @@ export async function apiRechazarApartado(id: number): Promise<Apartado> {
 }
 
 // ==========================================
-// CATEGORÍAS Y PROVEEDORES
+// CATEGORÍAS Y PROVEEDORES (sin paginar: el backend devuelve la lista completa)
 // ==========================================
 
 export async function apiGetCategorias(): Promise<Categoria[]> {
-  const res = await request<any>('/categorias/?page_size=100');
-  return res.results || res;
+  return await request<Categoria[]>('/categorias/');
 }
 
 export async function apiGetProveedores(): Promise<Proveedor[]> {
-  const res = await request<any>('/proveedores/?page_size=100');
-  return res.results || res;
+  return await request<Proveedor[]>('/proveedores/');
 }
 
 // ==========================================
