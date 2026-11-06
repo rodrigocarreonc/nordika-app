@@ -318,7 +318,7 @@ export default function MuebleFormScreen() {
                       <Text
                         style={[
                           styles.chipText,
-                          isSelected ? { color: '#FFFFFF' } : { color: colors.text },
+                          isSelected ? { color: colors.onPrimary } : { color: colors.text },
                         ]}
                       >
                         {c.nombre}

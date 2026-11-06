@@ -135,7 +135,7 @@ export default function SettingsScreen() {
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.profileRow}>
             <View style={[styles.avatarCircle, { backgroundColor: colors.primary }]}>
-              <Text style={styles.avatarInitial}>
+              <Text style={[styles.avatarInitial, { color: colors.onPrimary }]}>
                 {(user?.first_name?.[0] || user?.username?.[0] || 'U').toUpperCase()}
               </Text>
             </View>
@@ -238,7 +238,7 @@ export default function SettingsScreen() {
                   <Text
                     style={[
                       styles.themeChipText,
-                      isSelected ? { color: '#FFFFFF' } : { color: colors.text },
+                      isSelected ? { color: colors.onPrimary } : { color: colors.text },
                     ]}
                   >
                     {labels[t]}
@@ -352,7 +352,6 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   avatarInitial: {
-    color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '800',
   },

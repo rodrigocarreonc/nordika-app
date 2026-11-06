@@ -65,7 +65,7 @@ export default function LoginScreen() {
           {/* Header Marca */}
           <View style={styles.brandContainer}>
             <View style={[styles.brandIconWrapper, { backgroundColor: colors.primary }]}>
-              <Ionicons name="bed-outline" size={36} color="#FFFFFF" />
+              <Ionicons name="bed-outline" size={36} color={colors.onPrimary} />
             </View>
             <Text style={[styles.brandTitle, { color: colors.text }]}>NORDIKA</Text>
             <Text style={[styles.brandSubtitle, { color: colors.textMuted }]}>

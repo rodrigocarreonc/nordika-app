@@ -212,7 +212,7 @@ export default function CatalogScreen() {
             <Text
               style={[
                 styles.categoryChipText,
-                selectedCategoria === null ? { color: '#FFFFFF' } : { color: colors.text },
+                selectedCategoria === null ? { color: colors.onPrimary } : { color: colors.text },
               ]}
             >
               Todas
@@ -238,7 +238,7 @@ export default function CatalogScreen() {
                 <Text
                   style={[
                     styles.categoryChipText,
-                    isSelected ? { color: '#FFFFFF' } : { color: colors.text },
+                    isSelected ? { color: colors.onPrimary } : { color: colors.text },
                   ]}
                 >
                   {cat.nombre}
