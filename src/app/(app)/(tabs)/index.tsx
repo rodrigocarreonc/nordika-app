@@ -14,15 +14,15 @@ import {
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { EmptyView } from '../../components/EmptyView';
-import { ErrorView } from '../../components/ErrorView';
-import { LoadingView } from '../../components/LoadingView';
-import { MuebleCard } from '../../components/MuebleCard';
-import { Colors } from '../../constants/theme';
-import { Categoria, Mueble } from '../../types';
-import { apiGetCategorias, apiGetMuebles, apiToggleFavorito } from '../../utils/api';
-import { getStoredPageSize } from '../../utils/settingsStorage';
-import { getUser } from '../../utils/tokenStorage';
+import { EmptyView } from '../../../components/EmptyView';
+import { ErrorView } from '../../../components/ErrorView';
+import { LoadingView } from '../../../components/LoadingView';
+import { MuebleCard } from '../../../components/MuebleCard';
+import { Colors } from '../../../constants/theme';
+import { Categoria, Mueble } from '../../../types';
+import { apiGetCategorias, apiGetMuebles, apiToggleFavorito } from '../../../utils/api';
+import { getStoredPageSize } from '../../../utils/settingsStorage';
+import { getUser } from '../../../utils/tokenStorage';
 
 export default function CatalogScreen() {
   const router = useRouter();

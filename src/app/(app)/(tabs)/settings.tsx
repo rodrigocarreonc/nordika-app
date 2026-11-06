@@ -15,17 +15,17 @@ import {
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Badge } from '../../components/Badge';
-import { Colors } from '../../constants/theme';
-import { User } from '../../types';
-import { apiGetMe, apiLogout, apiUpdateMe } from '../../utils/api';
+import { Badge } from '../../../components/Badge';
+import { Colors } from '../../../constants/theme';
+import { User } from '../../../types';
+import { apiGetMe, apiLogout, apiUpdateMe } from '../../../utils/api';
 import {
   getStoredPageSize,
   getStoredTheme,
   saveStoredPageSize,
   saveStoredTheme,
-} from '../../utils/settingsStorage';
-import { getUser, saveUser } from '../../utils/tokenStorage';
+} from '../../../utils/settingsStorage';
+import { getUser, saveUser } from '../../../utils/tokenStorage';
 
 export default function SettingsScreen() {
   const router = useRouter();
