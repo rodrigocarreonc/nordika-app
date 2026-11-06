@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -49,10 +49,7 @@ export default function MuebleDetailsScreen() {
       setError(null);
       const data = await apiGetMueble(muebleId);
       setMueble(data);
-      if (data.imagen) {
-        const fullUrl = await resolveImageUrl(data.imagen);
-        setImageUri(fullUrl);
-      }
+      setImageUri(await resolveImageUrl(data.imagen));
     } catch (err: any) {
       setError(err.message || 'Error al obtener detalles del mueble.');
     } finally {
@@ -60,9 +57,12 @@ export default function MuebleDetailsScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchDetails();
-  }, [muebleId]);
+  // Recarga al volver a la pantalla (p. ej. después de editar el mueble).
+  useFocusEffect(
+    useCallback(() => {
+      fetchDetails();
+    }, [muebleId])
+  );
 
   const handleToggleFav = async () => {
     if (!mueble) return;
@@ -95,7 +95,7 @@ export default function MuebleDetailsScreen() {
             try {
               await apiDeleteMueble(mueble.id);
               Alert.alert('Éxito', 'El mueble ha sido eliminado.', [
-                { text: 'OK', onPress: () => router.replace('/(app)') },
+                { text: 'OK', onPress: () => router.back() },
               ]);
             } catch (err: any) {
               Alert.alert('Error al eliminar', err.message || 'No se pudo eliminar el mueble.');
@@ -120,7 +120,7 @@ export default function MuebleDetailsScreen() {
 
 Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se cancelará automáticamente.`,
         [
-          { text: 'Ver mis apartados', onPress: () => router.push('/(app)/apartados') },
+          { text: 'Ver mis apartados', onPress: () => router.navigate('/(app)/(tabs)/apartados') },
           { text: 'OK' },
         ]
       );
@@ -136,7 +136,8 @@ Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se 
     return isNaN(num) ? '$0.00' : `$${num.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
   };
 
-  if (loading) {
+  // Solo pantalla de carga completa la primera vez; al recargar se mantiene el contenido visible.
+  if (loading && !mueble) {
     return <LoadingView message="Cargando detalles del mueble..." />;
   }
 

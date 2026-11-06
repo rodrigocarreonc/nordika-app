@@ -62,7 +62,7 @@ export default function RegisterScreen() {
         password_confirm: passwordConfirm,
       });
       Alert.alert('¡Bienvenido!', 'Tu cuenta ha sido creada exitosamente.', [
-        { text: 'Comenzar', onPress: () => router.replace('/(app)') },
+        { text: 'Comenzar', onPress: () => router.replace('/(app)/(tabs)') },
       ]);
     } catch (error: any) {
       Alert.alert('Error al registrarse', error.message || 'No se pudo crear la cuenta.');

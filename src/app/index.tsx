@@ -35,7 +35,7 @@ export default function RootIndex() {
     );
   }
 
-  return isLoggedIn ? <Redirect href="/(app)" /> : <Redirect href="/(auth)/login" />;
+  return isLoggedIn ? <Redirect href="/(app)/(tabs)" /> : <Redirect href="/(auth)/login" />;
 }
 
 const styles = StyleSheet.create({
