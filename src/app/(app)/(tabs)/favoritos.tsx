@@ -3,7 +3,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   FlatList,
-  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -15,9 +14,11 @@ import { EmptyView } from '../../../components/EmptyView';
 import { ErrorView } from '../../../components/ErrorView';
 import { LoadingView } from '../../../components/LoadingView';
 import { MuebleCard } from '../../../components/MuebleCard';
+import { Pagination } from '../../../components/Pagination';
 import { Colors } from '../../../constants/theme';
 import { Mueble } from '../../../types';
 import { apiGetMisFavoritos, apiToggleFavorito } from '../../../utils/api';
+import { getStoredPageSize } from '../../../utils/settingsStorage';
 
 export default function FavoritosScreen() {
   const router = useRouter();
@@ -29,12 +30,20 @@ export default function FavoritosScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchFavoritos = useCallback(async (isRefresh = false) => {
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchFavoritos = useCallback(async (targetPage = 1, isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
       setError(null);
-      const res = await apiGetMisFavoritos({ page_size: 50 });
+      const pageSize = await getStoredPageSize();
+      const res = await apiGetMisFavoritos({ page: targetPage, page_size: pageSize });
       setFavoritos(res.results || []);
+      setTotalPages(res.total_pages || 1);
+      setTotalCount(res.count ?? (res.results ? res.results.length : 0));
+      setPage(res.current_page || targetPage);
     } catch (err: any) {
       setError(err.message || 'Error al obtener tus muebles favoritos.');
     } finally {
@@ -45,20 +54,31 @@ export default function FavoritosScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchFavoritos();
-    }, [fetchFavoritos])
+      fetchFavoritos(page);
+    }, [fetchFavoritos, page])
   );
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchFavoritos(true);
+    fetchFavoritos(1, true);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    fetchFavoritos(newPage);
   };
 
   const handleRemoveFavorito = async (mueble: Mueble) => {
     try {
       await apiToggleFavorito(mueble.id);
-      // Quitar de la lista local
-      setFavoritos((prev) => prev.filter((m) => m.id !== mueble.id));
+      // Si la página actual solo tenía este elemento y estamos más allá de la pág 1, retroceder
+      if (favoritos.length === 1 && page > 1) {
+        const prevPage = page - 1;
+        setPage(prevPage);
+        fetchFavoritos(prevPage);
+      } else {
+        fetchFavoritos(page);
+      }
     } catch {
       // Ignorar error
     }
@@ -71,7 +91,7 @@ export default function FavoritosScreen() {
         <View>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Mis Favoritos</Text>
           <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-            {favoritos.length} {favoritos.length === 1 ? 'mueble guardado' : 'muebles guardados'}
+            {totalCount} {totalCount === 1 ? 'mueble guardado' : 'muebles guardados'}
           </Text>
         </View>
 
@@ -83,7 +103,7 @@ export default function FavoritosScreen() {
       {loading && !refreshing ? (
         <LoadingView message="Cargando tus favoritos..." />
       ) : error ? (
-        <ErrorView message={error} onRetry={() => fetchFavoritos()} />
+        <ErrorView message={error} onRetry={() => fetchFavoritos(page)} />
       ) : (
         <FlatList
           data={favoritos}
@@ -112,8 +132,17 @@ export default function FavoritosScreen() {
               description="Explora nuestro catálogo de diseño nórdico y toca el corazón para guardar lo que más te guste."
               icon="heart-outline"
               actionLabel="Explorar catálogo"
-              onAction={() => router.replace('/(app)/(tabs)')}
+              onAction={() => router.replace('/')}
             />
+          }
+          ListFooterComponent={
+            totalPages > 1 ? (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            ) : undefined
           }
         />
       )}

@@ -17,9 +17,11 @@ import { Badge } from '../../../components/Badge';
 import { EmptyView } from '../../../components/EmptyView';
 import { ErrorView } from '../../../components/ErrorView';
 import { LoadingView } from '../../../components/LoadingView';
+import { Pagination } from '../../../components/Pagination';
 import { Colors } from '../../../constants/theme';
 import { Apartado } from '../../../types';
 import { apiAceptarApartado, apiGetApartados, apiRechazarApartado } from '../../../utils/api';
+import { getStoredPageSize } from '../../../utils/settingsStorage';
 import { getUser } from '../../../utils/tokenStorage';
 
 const ESTADO_BADGE = {
@@ -58,6 +60,10 @@ export default function ApartadosScreen() {
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [vista, setVista] = useState<'activos' | 'historial'>('activos');
   const [now, setNow] = useState(() => Date.now());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Actualiza el countdown cada minuto.
   useEffect(() => {
@@ -65,32 +71,65 @@ export default function ApartadosScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchApartados = useCallback(async (isRefresh = false) => {
-    try {
-      if (!isRefresh) setLoading(true);
-      setError(null);
-      const staff = !!(await getUser())?.is_staff;
-      setIsStaff(staff);
-      // El backend ya limita al usuario normal a sus propios apartados.
-      const res = await apiGetApartados();
-      setApartados(res.results || []);
-    } catch (err: any) {
-      setError(err.message || 'Error al obtener los apartados.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const fetchApartados = useCallback(
+    async (targetPage = 1, size = pageSize, isRefresh = false, currentVista = vista) => {
+      try {
+        if (!isRefresh) setLoading(true);
+        setError(null);
+        const staff = !!(await getUser())?.is_staff;
+        setIsStaff(staff);
+
+        const params: Parameters<typeof apiGetApartados>[0] = {
+          page: targetPage,
+          page_size: size,
+        };
+        if (!staff) {
+          if (currentVista === 'activos') {
+            params.estado = 'PENDIENTE';
+          } else {
+            params.historial = true;
+          }
+        }
+
+        const res = await apiGetApartados(params);
+        setApartados(res.results || []);
+        setTotalCount(res.count);
+        setTotalPages(Math.max(1, Math.ceil(res.count / size)));
+        setPage(targetPage);
+      } catch (err: any) {
+        setError(err.message || 'Error al obtener los apartados.');
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [pageSize, vista]
+  );
 
   useFocusEffect(
     useCallback(() => {
-      fetchApartados();
-    }, [fetchApartados])
+      let isMounted = true;
+      getStoredPageSize().then((storedSize) => {
+        if (!isMounted) return;
+        setPageSize(storedSize);
+        fetchApartados(1, storedSize, false, vista);
+      });
+      return () => {
+        isMounted = false;
+      };
+    }, [fetchApartados, vista])
   );
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchApartados(true);
+    fetchApartados(page, pageSize, true, vista);
+  };
+
+  const handleSelectVista = (newVista: 'activos' | 'historial') => {
+    if (newVista === vista) return;
+    setVista(newVista);
+    setPage(1);
+    fetchApartados(1, pageSize, false, newVista);
   };
 
   const resolver = (apartado: Apartado, accion: 'aceptar' | 'rechazar') => {
@@ -108,10 +147,14 @@ export default function ApartadosScreen() {
           onPress: async () => {
             try {
               setResolvingId(apartado.id);
-              const actualizado = aceptar
-                ? await apiAceptarApartado(apartado.id)
-                : await apiRechazarApartado(apartado.id);
-              setApartados((prev) => prev.map((a) => (a.id === actualizado.id ? actualizado : a)));
+              if (aceptar) {
+                await apiAceptarApartado(apartado.id);
+              } else {
+                await apiRechazarApartado(apartado.id);
+              }
+              // Si la página actual queda vacía tras resolver un apartado, regresar a la página anterior si existe
+              const targetPage = apartados.length === 1 && page > 1 ? page - 1 : page;
+              await fetchApartados(targetPage, pageSize, false, vista);
             } catch (err: any) {
               Alert.alert('Error', err.message || 'No se pudo actualizar el apartado.');
             } finally {
@@ -123,9 +166,7 @@ export default function ApartadosScreen() {
     );
   };
 
-  const lista = isStaff
-    ? apartados
-    : apartados.filter((a) => (vista === 'activos') === (a.estado === 'PENDIENTE'));
+  const lista = apartados;
 
   const renderItem = ({ item }: { item: Apartado }) => {
     const badge = ESTADO_BADGE[item.estado];
@@ -206,10 +247,10 @@ export default function ApartadosScreen() {
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
             {isStaff
-              ? `${apartados.filter((a) => a.estado === 'PENDIENTE').length} pendientes de revisión`
+              ? `${totalCount} ${totalCount === 1 ? 'apartado registrado' : 'apartados registrados'}`
               : vista === 'activos'
-                ? `${lista.length} ${lista.length === 1 ? 'apartado activo' : 'apartados activos'}`
-                : `${lista.length} ${lista.length === 1 ? 'apartado resuelto' : 'apartados resueltos'}`}
+                ? `${totalCount} ${totalCount === 1 ? 'apartado activo' : 'apartados activos'}`
+                : `${totalCount} ${totalCount === 1 ? 'apartado resuelto' : 'apartados resueltos'}`}
           </Text>
         </View>
 
@@ -229,7 +270,7 @@ export default function ApartadosScreen() {
                   ? { backgroundColor: colors.accent, borderColor: colors.accent }
                   : { backgroundColor: colors.card, borderColor: colors.border },
               ]}
-              onPress={() => setVista(v)}
+              onPress={() => handleSelectVista(v)}
               accessibilityRole="tab"
               accessibilityState={{ selected: vista === v }}
             >
@@ -244,7 +285,7 @@ export default function ApartadosScreen() {
       {loading && !refreshing ? (
         <LoadingView message="Cargando apartados..." />
       ) : error ? (
-        <ErrorView message={error} onRetry={() => fetchApartados()} />
+        <ErrorView message={error} onRetry={() => fetchApartados(page, pageSize, false, vista)} />
       ) : (
         <FlatList
           data={lista}
@@ -260,6 +301,15 @@ export default function ApartadosScreen() {
               tintColor={colors.accent}
             />
           }
+          ListFooterComponent={
+            totalPages > 1 ? (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={(p) => fetchApartados(p, pageSize, false, vista)}
+              />
+            ) : undefined
+          }
           ListEmptyComponent={
             <EmptyView
               title={
@@ -274,7 +324,7 @@ export default function ApartadosScreen() {
               }
               icon={vista === 'historial' && !isStaff ? 'time-outline' : 'bookmark-outline'}
               actionLabel={isStaff || vista === 'historial' ? undefined : 'Explorar catálogo'}
-              onAction={isStaff || vista === 'historial' ? undefined : () => router.replace('/(app)/(tabs)')}
+              onAction={isStaff || vista === 'historial' ? undefined : () => router.replace('/')}
             />
           }
         />

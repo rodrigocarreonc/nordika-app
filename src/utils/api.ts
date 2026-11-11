@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { Apartado, AuthResponse, Categoria, Favorito, Mueble, MuebleFilterParams, PaginatedResponse, Proveedor, User } from '../types';
 import { deleteToken, getToken, saveToken, saveUser } from './tokenStorage';
 
@@ -71,6 +72,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 
   if (!response.ok) {
+    if (response.status === 401 && !endpoint.includes('/api-token-auth/')) {
+      await deleteToken();
+      router.replace('/(auth)/login');
+    }
+
     let errorMessage = `Error del servidor (${response.status})`;
     if (responseData) {
       if (typeof responseData === 'string') {
@@ -236,10 +242,19 @@ export async function apiGetDestacados(): Promise<Mueble[]> {
 // APARTADOS
 // ==========================================
 
-export async function apiGetApartados(params: { estado?: Apartado['estado'] } = {}): Promise<PaginatedResponse<Apartado>> {
-  const query = new URLSearchParams({ page_size: '100' });
+export async function apiGetApartados(params: {
+  page?: number;
+  page_size?: number;
+  estado?: Apartado['estado'];
+  historial?: boolean;
+} = {}): Promise<PaginatedResponse<Apartado>> {
+  const query = new URLSearchParams();
+  if (params.page) query.append('page', params.page.toString());
+  if (params.page_size) query.append('page_size', params.page_size.toString());
   if (params.estado) query.append('estado', params.estado);
-  return await request<PaginatedResponse<Apartado>>(`/apartados/?${query.toString()}`);
+  if (params.historial !== undefined) query.append('historial', params.historial.toString());
+  const qs = query.toString();
+  return await request<PaginatedResponse<Apartado>>(`/apartados/${qs ? `?${qs}` : ''}`);
 }
 
 export async function apiCrearApartado(muebleId: number, cantidad: number): Promise<Apartado> {
