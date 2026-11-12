@@ -1,10 +1,13 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, useColorScheme } from 'react-native';
 import { Colors } from '../constants/theme';
 import { getToken } from '../utils/tokenStorage';
 
 export default function RootIndex() {
+  const scheme = useColorScheme();
+  const colors = Colors[scheme ?? 'light'];
+
   const [checking, setChecking] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -29,13 +32,13 @@ export default function RootIndex() {
 
   if (checking) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.light.accent} />
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
 
-  return isLoggedIn ? <Redirect href="/(app)/(tabs)" /> : <Redirect href="/(auth)/login" />;
+  return isLoggedIn ? <Redirect href={"/(app)/(tabs)" as any} /> : <Redirect href="/(auth)/login" />;
 }
 
 const styles = StyleSheet.create({
@@ -43,6 +46,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
   },
 });

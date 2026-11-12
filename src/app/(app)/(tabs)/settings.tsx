@@ -26,6 +26,7 @@ import {
   saveStoredTheme,
 } from '../../../utils/settingsStorage';
 import { getUser, saveUser } from '../../../utils/tokenStorage';
+import { applyTheme } from '../../../utils/theme';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -81,6 +82,7 @@ export default function SettingsScreen() {
   const handleSelectTheme = async (theme: 'light' | 'dark' | 'system') => {
     setThemePreference(theme);
     await saveStoredTheme(theme);
+    applyTheme(theme);
   };
 
   const handleSaveProfile = async () => {
@@ -180,7 +182,7 @@ export default function SettingsScreen() {
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>Elementos por página</Text>
           <Text style={[styles.cardSubtitle, { color: colors.textMuted }]}>
-            Cantidad de muebles mostrados por página en el catálogo
+            Cantidad de muebles mostrados por página en el catálogo, favoritos y apartados
           </Text>
 
           <View style={styles.optionsRow}>

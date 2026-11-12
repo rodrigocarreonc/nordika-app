@@ -18,6 +18,7 @@ import { EmptyView } from '../../../components/EmptyView';
 import { ErrorView } from '../../../components/ErrorView';
 import { LoadingView } from '../../../components/LoadingView';
 import { MuebleCard } from '../../../components/MuebleCard';
+import { Pagination } from '../../../components/Pagination';
 import { Colors } from '../../../constants/theme';
 import { Categoria, Mueble } from '../../../types';
 import { apiGetCategorias, apiGetMuebles, apiToggleFavorito } from '../../../utils/api';
@@ -319,41 +320,7 @@ export default function CatalogScreen() {
           }
           ListFooterComponent={
             totalPages > 1 ? (
-              <View style={[styles.paginationRow, { borderTopColor: colors.border }]}>
-                <Pressable
-                  style={[
-                    styles.pageButton,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                    page <= 1 && styles.pageButtonDisabled,
-                  ]}
-                  disabled={page <= 1}
-                  onPress={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <Ionicons name="chevron-back" size={16} color={page <= 1 ? colors.textMuted : colors.text} />
-                  <Text style={[styles.pageButtonText, { color: page <= 1 ? colors.textMuted : colors.text }]}>
-                    Anterior
-                  </Text>
-                </Pressable>
-
-                <Text style={[styles.pageIndicator, { color: colors.text }]}>
-                  Pág. <Text style={{ fontWeight: '800' }}>{page}</Text> de {totalPages}
-                </Text>
-
-                <Pressable
-                  style={[
-                    styles.pageButton,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                    page >= totalPages && styles.pageButtonDisabled,
-                  ]}
-                  disabled={page >= totalPages}
-                  onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  <Text style={[styles.pageButtonText, { color: page >= totalPages ? colors.textMuted : colors.text }]}>
-                    Siguiente
-                  </Text>
-                  <Ionicons name="chevron-forward" size={16} color={page >= totalPages ? colors.textMuted : colors.text} />
-                </Pressable>
-              </View>
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
             ) : undefined
           }
         />
