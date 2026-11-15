@@ -101,6 +101,9 @@ export default function CatalogScreen() {
   // Refrescar al enfocar pantalla
   useFocusEffect(
     useCallback(() => {
+      getUser().then((u) => {
+        if (u) setCurrentUser(u);
+      });
       fetchMuebles(page);
     }, [fetchMuebles, page])
   );
@@ -163,14 +166,16 @@ export default function CatalogScreen() {
             <Ionicons name="filter-outline" size={20} color={colors.text} />
           </Pressable>
 
-          {/* Botón Nuevo Mueble (CRUD) */}
-          <Pressable
-            style={[styles.headerCreateButton, { backgroundColor: colors.accent }]}
-            onPress={() => router.push('/(app)/mueble/form')}
-          >
-            <Ionicons name="add" size={18} color="#FFFFFF" />
-            <Text style={styles.headerCreateButtonText}>Nuevo</Text>
-          </Pressable>
+          {/* Botón Nuevo Mueble (Solo Staff) */}
+          {currentUser?.is_staff ? (
+            <Pressable
+              style={[styles.headerCreateButton, { backgroundColor: colors.accent }]}
+              onPress={() => router.push('/(app)/mueble/form')}
+            >
+              <Ionicons name="add" size={18} color="#FFFFFF" />
+              <Text style={styles.headerCreateButtonText}>Nuevo</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 

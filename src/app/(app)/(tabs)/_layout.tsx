@@ -1,12 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { Colors } from '../../../constants/theme';
+import { getUser } from '../../../utils/tokenStorage';
 
 export default function TabsLayout() {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
+  const [isStaff, setIsStaff] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    getUser().then((u) => {
+      if (isMounted) {
+        setIsStaff(!!u?.is_staff);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <Tabs
@@ -51,6 +65,16 @@ export default function TabsLayout() {
           title: 'Apartados',
           tabBarIcon: ({ focused }) => (
             <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Administración',
+          href: isStaff ? undefined : null,
+          tabBarIcon: ({ focused }) => (
+            <Ionicons name={focused ? 'shield' : 'shield-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
           ),
         }}
       />

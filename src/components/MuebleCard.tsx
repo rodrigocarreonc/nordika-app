@@ -23,11 +23,9 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [favState, setFavState] = useState<boolean>(isFavorito || !!mueble.is_favorito);
-
-  useEffect(() => {
-    setFavState(isFavorito || !!mueble.is_favorito);
-  }, [isFavorito, mueble.is_favorito]);
+  const computedFav = isFavorito || !!mueble.is_favorito;
+  const [localFav, setLocalFav] = useState<{ id: number; val: boolean } | null>(null);
+  const favState = localFav && localFav.id === mueble.id ? localFav.val : computedFav;
 
   useEffect(() => {
     let isMounted = true;
@@ -41,7 +39,7 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
 
   const handleHeartPress = (e: any) => {
     e.stopPropagation?.();
-    setFavState((prev) => !prev);
+    setLocalFav({ id: mueble.id, val: !favState });
     if (onToggleFavorito) {
       onToggleFavorito(mueble);
     }
