@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Apartado, AuthResponse, Categoria, Favorito, Mueble, MuebleFilterParams, PaginatedResponse, Proveedor, User } from '../types';
+import { Apartado, AuthResponse, Categoria, Mueble, MuebleFilterParams, PaginatedResponse, Proveedor, User } from '../types';
 import { deleteToken, getToken, saveToken, saveUser } from './tokenStorage';
 
 // Se fija en build desde EXPO_PUBLIC_API_URL (.env); quita '/' final
@@ -165,7 +165,7 @@ export async function apiUpdateMe(profileData: Partial<User>): Promise<User> {
 export async function apiLogout(): Promise<void> {
   try {
     await request('/logout/', { method: 'POST' });
-  } catch (e) {
+  } catch {
     // Si falla en backend, de todas formas limpiar token local
   } finally {
     await deleteToken();
@@ -280,8 +280,61 @@ export async function apiGetCategorias(): Promise<Categoria[]> {
   return await request<Categoria[]>('/categorias/');
 }
 
+export async function apiCreateCategoria(data: { nombre: string; descripcion?: string }): Promise<Categoria> {
+  return await request<Categoria>('/categorias/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiUpdateCategoria(id: number, data: Partial<{ nombre: string; descripcion: string }>): Promise<Categoria> {
+  return await request<Categoria>(`/categorias/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiDeleteCategoria(id: number): Promise<void> {
+  await request(`/categorias/${id}/`, {
+    method: 'DELETE',
+  });
+}
+
 export async function apiGetProveedores(): Promise<Proveedor[]> {
   return await request<Proveedor[]>('/proveedores/');
+}
+
+export async function apiCreateProveedor(data: {
+  nombre: string;
+  contacto?: string;
+  telefono?: string;
+  email?: string;
+}): Promise<Proveedor> {
+  return await request<Proveedor>('/proveedores/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiUpdateProveedor(
+  id: number,
+  data: Partial<{
+    nombre: string;
+    contacto: string;
+    telefono: string;
+    email: string;
+  }>
+): Promise<Proveedor> {
+  return await request<Proveedor>(`/proveedores/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiDeleteProveedor(id: number): Promise<void> {
+  await request(`/proveedores/${id}/`, {
+    method: 'DELETE',
+  });
 }
 
 // ==========================================

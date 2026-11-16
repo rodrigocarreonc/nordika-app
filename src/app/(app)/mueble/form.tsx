@@ -28,6 +28,7 @@ import {
   apiUpdateMueble,
   resolveImageUrl,
 } from '../../../utils/api';
+import { getUser } from '../../../utils/tokenStorage';
 
 export default function MuebleFormScreen() {
   const { id } = useLocalSearchParams();
@@ -54,6 +55,14 @@ export default function MuebleFormScreen() {
   const [selectedProveedorId, setSelectedProveedorId] = useState<number | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageAsset, setImageAsset] = useState<any>(null);
+
+  useEffect(() => {
+    getUser().then((u) => {
+      if (!u?.is_staff) {
+        router.replace('/(app)/(tabs)');
+      }
+    });
+  }, [router]);
 
   useEffect(() => {
     // Cargar listas auxiliares
@@ -105,7 +114,7 @@ export default function MuebleFormScreen() {
         setImageUri(asset.uri);
         setImageAsset(asset);
       }
-    } catch (err: any) {
+    } catch {
       Alert.alert('Error', 'No se pudo abrir la galería de imágenes.');
     }
   };
