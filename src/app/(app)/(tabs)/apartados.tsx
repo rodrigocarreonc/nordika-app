@@ -83,12 +83,10 @@ export default function ApartadosScreen() {
           page: targetPage,
           page_size: size,
         };
-        if (!staff) {
-          if (currentVista === 'activos') {
-            params.estado = 'PENDIENTE';
-          } else {
-            params.historial = true;
-          }
+        if (currentVista === 'activos') {
+          params.estado = 'PENDIENTE';
+        } else {
+          params.historial = true;
         }
 
         const res = await apiGetApartados(params);
@@ -246,9 +244,7 @@ export default function ApartadosScreen() {
             {isStaff ? 'Gestión de Apartados' : 'Mis Apartados'}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-            {isStaff
-              ? `${totalCount} ${totalCount === 1 ? 'apartado registrado' : 'apartados registrados'}`
-              : vista === 'activos'
+            {vista === 'activos'
                 ? `${totalCount} ${totalCount === 1 ? 'apartado activo' : 'apartados activos'}`
                 : `${totalCount} ${totalCount === 1 ? 'apartado resuelto' : 'apartados resueltos'}`}
           </Text>
@@ -259,28 +255,26 @@ export default function ApartadosScreen() {
         </View>
       </View>
 
-      {!isStaff ? (
-        <View style={styles.tabsRow}>
-          {(['activos', 'historial'] as const).map((v) => (
-            <Pressable
-              key={v}
-              style={[
-                styles.tabChip,
-                vista === v
-                  ? { backgroundColor: colors.accent, borderColor: colors.accent }
-                  : { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-              onPress={() => handleSelectVista(v)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: vista === v }}
-            >
-              <Text style={[styles.tabChipText, { color: vista === v ? '#FFFFFF' : colors.text }]}>
-                {v === 'activos' ? 'Activos' : 'Historial'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+      <View style={styles.tabsRow}>
+        {(['activos', 'historial'] as const).map((v) => (
+          <Pressable
+            key={v}
+            style={[
+              styles.tabChip,
+              vista === v
+                ? { backgroundColor: colors.accent, borderColor: colors.accent }
+                : { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={() => handleSelectVista(v)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: vista === v }}
+          >
+            <Text style={[styles.tabChipText, { color: vista === v ? '#FFFFFF' : colors.text }]}>
+              {v === 'activos' ? 'Activos' : 'Historial'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
 
       {loading && !refreshing ? (
         <LoadingView message="Cargando apartados..." />
@@ -313,16 +307,22 @@ export default function ApartadosScreen() {
           ListEmptyComponent={
             <EmptyView
               title={
-                isStaff ? 'No hay apartados' : vista === 'activos' ? 'No tienes apartados activos' : 'Sin historial'
+                vista === 'historial'
+                  ? 'Sin historial'
+                  : isStaff
+                    ? 'No hay apartados pendientes'
+                    : 'No tienes apartados activos'
               }
               description={
-                isStaff
-                  ? 'Cuando un cliente aparte un mueble aparecerá aquí para que lo revises.'
-                  : vista === 'activos'
-                    ? 'Abre un mueble del catálogo y apártalo para reservar tus piezas.'
+                vista === 'historial'
+                  ? isStaff
+                    ? 'Aquí verás los apartados aceptados, rechazados o vencidos.'
                     : 'Aquí verás tus apartados aceptados, rechazados o vencidos.'
+                  : isStaff
+                    ? 'Cuando un cliente aparte un mueble aparecerá aquí para que lo revises.'
+                    : 'Abre un mueble del catálogo y apártalo para reservar tus piezas.'
               }
-              icon={vista === 'historial' && !isStaff ? 'time-outline' : 'bookmark-outline'}
+              icon={vista === 'historial' ? 'time-outline' : 'bookmark-outline'}
               actionLabel={isStaff || vista === 'historial' ? undefined : 'Explorar catálogo'}
               onAction={isStaff || vista === 'historial' ? undefined : () => router.replace('/')}
             />
