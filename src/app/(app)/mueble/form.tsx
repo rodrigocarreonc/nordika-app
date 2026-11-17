@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { File as FsFile } from 'expo-file-system';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -158,15 +159,9 @@ export default function MuebleFormScreen() {
           formData.append('categoria_id', selectedCategoriaId.toString());
         }
 
-        const filename = imageAsset.uri.split('/').pop() || 'photo.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image/jpeg`;
-
-        formData.append('imagen', {
-          uri: imageAsset.uri,
-          name: filename,
-          type,
-        } as any);
+        // FormData solo sube Blobs: en web el File del navegador, en el celular el File de expo-file-system.
+        // Un objeto {uri, name, type} se envía como "[object Object]" (el fetch global del SDK 58 es expo/fetch).
+        formData.append('imagen', imageAsset.file ?? new FsFile(imageAsset.uri));
 
         if (isEditing) {
           await apiUpdateMueble(editId, formData);
