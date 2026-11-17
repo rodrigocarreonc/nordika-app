@@ -380,7 +380,7 @@ Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se 
           </View>
 
           {/* Apartar piezas */}
-          {mueble.stock > 0 ? (
+          {!isStaff && mueble.stock > 0 ? (
             <View
               style={[
                 styles.apartarCard,
