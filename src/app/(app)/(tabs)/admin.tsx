@@ -4,7 +4,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -25,6 +24,7 @@ import { ErrorView } from '../../../components/ErrorView';
 import { LoadingView } from '../../../components/LoadingView';
 import { Pagination } from '../../../components/Pagination';
 import { Colors } from '../../../constants/theme';
+import { dialog } from '../../../context/DialogContext';
 import { Categoria, Mueble, Proveedor } from '../../../types';
 import {
   apiCreateCategoria,
@@ -84,6 +84,7 @@ export default function AdminScreen() {
   const [catNombre, setCatNombre] = useState('');
   const [catDescripcion, setCatDescripcion] = useState('');
   const [submittingCat, setSubmittingCat] = useState(false);
+  const [catFormError, setCatFormError] = useState<string | null>(null);
 
   // ==========================================
   // ESTADOS DEL MÓDULO PROVEEDORES
@@ -101,6 +102,7 @@ export default function AdminScreen() {
   const [provTelefono, setProvTelefono] = useState('');
   const [provEmail, setProvEmail] = useState('');
   const [submittingProv, setSubmittingProv] = useState(false);
+  const [provFormError, setProvFormError] = useState<string | null>(null);
 
   // Error genérico por pestaña
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -232,27 +234,23 @@ export default function AdminScreen() {
   // ==========================================
   // ACCIONES CRUD: MUEBLES
   // ==========================================
-  const handleDeleteMueble = (mueble: Mueble) => {
-    Alert.alert(
-      'Eliminar Mueble',
-      `¿Estás seguro de que deseas eliminar permanentemente "${mueble.nombre}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiDeleteMueble(mueble.id);
-              Alert.alert('Éxito', 'El mueble ha sido eliminado.');
-              fetchMuebles(mueblesPage);
-            } catch (err: any) {
-              Alert.alert('No se pudo eliminar', err.message || 'Error al eliminar el mueble.');
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteMueble = async (mueble: Mueble) => {
+    const ok = await dialog.confirm({
+      title: 'Eliminar Mueble',
+      message: `¿Estás seguro de que deseas eliminar permanentemente "${mueble.nombre}"?`,
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      confirmStyle: 'destructive',
+    });
+    if (!ok) return;
+
+    try {
+      await apiDeleteMueble(mueble.id);
+      dialog.alert({ title: 'Éxito', message: 'El mueble ha sido eliminado.' });
+      fetchMuebles(mueblesPage);
+    } catch (err: any) {
+      dialog.alert({ title: 'No se pudo eliminar', message: err.message || 'Error al eliminar el mueble.' });
+    }
   };
 
   // ==========================================
@@ -263,6 +261,7 @@ export default function AdminScreen() {
     setEditingCatId(null);
     setCatNombre('');
     setCatDescripcion('');
+    setCatFormError(null);
     setCatModalVisible(true);
   };
 
@@ -271,40 +270,49 @@ export default function AdminScreen() {
     setEditingCatId(cat.id);
     setCatNombre(cat.nombre);
     setCatDescripcion(cat.descripcion || '');
+    setCatFormError(null);
     setCatModalVisible(true);
   };
 
   const handleSaveCategoria = async () => {
+    setCatFormError(null);
     if (!catNombre.trim()) {
-      Alert.alert('Campo requerido', 'El nombre de la categoría no puede estar vacío.');
+      setCatFormError('El nombre de la categoría no puede estar vacío.');
       return;
     }
 
     try {
       setSubmittingCat(true);
+      let successMsg = '';
       if (catModalMode === 'create') {
         await apiCreateCategoria({
           nombre: catNombre.trim(),
           descripcion: catDescripcion.trim() || undefined,
         });
-        Alert.alert('Éxito', 'Categoría creada exitosamente.');
+        successMsg = 'Categoría creada exitosamente.';
       } else if (editingCatId) {
         await apiUpdateCategoria(editingCatId, {
           nombre: catNombre.trim(),
           descripcion: catDescripcion.trim() || '',
         });
-        Alert.alert('Éxito', 'Categoría actualizada exitosamente.');
+        successMsg = 'Categoría actualizada exitosamente.';
       }
       setCatModalVisible(false);
       fetchCategorias();
+      if (Platform.OS !== 'web') {
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      if (successMsg) {
+        dialog.alert({ title: 'Éxito', message: successMsg });
+      }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'No se pudo guardar la categoría.');
+      setCatFormError(err.message || 'No se pudo guardar la categoría.');
     } finally {
       setSubmittingCat(false);
     }
   };
 
-  const handleDeleteCategoria = (cat: Categoria) => {
+  const handleDeleteCategoria = async (cat: Categoria) => {
     const count = cat.muebles_count ?? 0;
     const countText = count === 1 ? '1 mueble asociado' : `${count} muebles asociados`;
     const message =
@@ -312,22 +320,22 @@ export default function AdminScreen() {
         ? `Esta categoría tiene ${countText}. Si la eliminas, esos muebles quedarán sin categoría asignada.\n\n¿Deseas continuar?`
         : `¿Estás seguro de que deseas eliminar la categoría "${cat.nombre}"?`;
 
-    Alert.alert('Eliminar Categoría', message, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await apiDeleteCategoria(cat.id);
-            Alert.alert('Éxito', 'Categoría eliminada.');
-            fetchCategorias();
-          } catch (err: any) {
-            Alert.alert('No se pudo eliminar', err.message || 'Error al eliminar categoría.');
-          }
-        },
-      },
-    ]);
+    const ok = await dialog.confirm({
+      title: 'Eliminar Categoría',
+      message,
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      confirmStyle: 'destructive',
+    });
+    if (!ok) return;
+
+    try {
+      await apiDeleteCategoria(cat.id);
+      dialog.alert({ title: 'Éxito', message: 'Categoría eliminada.' });
+      fetchCategorias();
+    } catch (err: any) {
+      dialog.alert({ title: 'No se pudo eliminar', message: err.message || 'Error al eliminar categoría.' });
+    }
   };
 
   // ==========================================
@@ -340,6 +348,7 @@ export default function AdminScreen() {
     setProvContacto('');
     setProvTelefono('');
     setProvEmail('');
+    setProvFormError(null);
     setProvModalVisible(true);
   };
 
@@ -350,17 +359,20 @@ export default function AdminScreen() {
     setProvContacto(prov.contacto || '');
     setProvTelefono(prov.telefono || '');
     setProvEmail(prov.email || '');
+    setProvFormError(null);
     setProvModalVisible(true);
   };
 
   const handleSaveProveedor = async () => {
+    setProvFormError(null);
     if (!provNombre.trim()) {
-      Alert.alert('Campo requerido', 'El nombre del proveedor es obligatorio.');
+      setProvFormError('El nombre del proveedor es obligatorio.');
       return;
     }
 
     try {
       setSubmittingProv(true);
+      let successMsg = '';
       if (provModalMode === 'create') {
         await apiCreateProveedor({
           nombre: provNombre.trim(),
@@ -368,7 +380,7 @@ export default function AdminScreen() {
           telefono: provTelefono.trim() || undefined,
           email: provEmail.trim() || undefined,
         });
-        Alert.alert('Éxito', 'Proveedor registrado exitosamente.');
+        successMsg = 'Proveedor registrado exitosamente.';
       } else if (editingProvId) {
         await apiUpdateProveedor(editingProvId, {
           nombre: provNombre.trim(),
@@ -376,18 +388,24 @@ export default function AdminScreen() {
           telefono: provTelefono.trim() || '',
           email: provEmail.trim() || '',
         });
-        Alert.alert('Éxito', 'Proveedor actualizado exitosamente.');
+        successMsg = 'Proveedor actualizado exitosamente.';
       }
       setProvModalVisible(false);
       fetchProveedores();
+      if (Platform.OS !== 'web') {
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      if (successMsg) {
+        dialog.alert({ title: 'Éxito', message: successMsg });
+      }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'No se pudo guardar el proveedor.');
+      setProvFormError(err.message || 'No se pudo guardar el proveedor.');
     } finally {
       setSubmittingProv(false);
     }
   };
 
-  const handleDeleteProveedor = (prov: Proveedor) => {
+  const handleDeleteProveedor = async (prov: Proveedor) => {
     const count = prov.muebles_count ?? 0;
     const countText = count === 1 ? '1 mueble asociado' : `${count} muebles asociados`;
     const message =
@@ -395,22 +413,22 @@ export default function AdminScreen() {
         ? `El proveedor "${prov.nombre}" tiene ${countText}.\n\nNo se puede eliminar mientras tenga muebles en el catálogo.\n\n¿Deseas intentar eliminarlo?`
         : `¿Estás seguro de que deseas eliminar permanentemente el proveedor "${prov.nombre}"?`;
 
-    Alert.alert('Eliminar Proveedor', message, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await apiDeleteProveedor(prov.id);
-            Alert.alert('Éxito', 'Proveedor eliminado.');
-            fetchProveedores();
-          } catch (err: any) {
-            Alert.alert('No se pudo eliminar', err.message || 'Error al eliminar proveedor.');
-          }
-        },
-      },
-    ]);
+    const ok = await dialog.confirm({
+      title: 'Eliminar Proveedor',
+      message,
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      confirmStyle: 'destructive',
+    });
+    if (!ok) return;
+
+    try {
+      await apiDeleteProveedor(prov.id);
+      dialog.alert({ title: 'Éxito', message: 'Proveedor eliminado.' });
+      fetchProveedores();
+    } catch (err: any) {
+      dialog.alert({ title: 'No se pudo eliminar', message: err.message || 'Error al eliminar proveedor.' });
+    }
   };
 
   // Helper para formato de precios
@@ -455,6 +473,10 @@ export default function AdminScreen() {
               modulo === 'muebles' && [styles.moduleButtonActive, { backgroundColor: colors.accent }],
             ]}
             onPress={() => handleSelectModulo('muebles')}
+            title="Administrar muebles"
+            accessibilityRole="tab"
+            accessibilityState={{ selected: modulo === 'muebles' }}
+            accessibilityLabel="Módulo de muebles"
           >
             <Ionicons
               name={modulo === 'muebles' ? 'cube' : 'cube-outline'}
@@ -477,6 +499,10 @@ export default function AdminScreen() {
               modulo === 'categorias' && [styles.moduleButtonActive, { backgroundColor: colors.accent }],
             ]}
             onPress={() => handleSelectModulo('categorias')}
+            title="Administrar categorías"
+            accessibilityRole="tab"
+            accessibilityState={{ selected: modulo === 'categorias' }}
+            accessibilityLabel="Módulo de categorías"
           >
             <Ionicons
               name={modulo === 'categorias' ? 'folder' : 'folder-outline'}
@@ -499,6 +525,10 @@ export default function AdminScreen() {
               modulo === 'proveedores' && [styles.moduleButtonActive, { backgroundColor: colors.accent }],
             ]}
             onPress={() => handleSelectModulo('proveedores')}
+            title="Administrar proveedores"
+            accessibilityRole="tab"
+            accessibilityState={{ selected: modulo === 'proveedores' }}
+            accessibilityLabel="Módulo de proveedores"
           >
             <Ionicons
               name={modulo === 'proveedores' ? 'business' : 'business-outline'}
@@ -556,6 +586,8 @@ export default function AdminScreen() {
                     fetchMuebles(1);
                   }}
                   hitSlop={8}
+                  title="Limpiar búsqueda"
+                  accessibilityLabel="Limpiar búsqueda"
                 >
                   <Ionicons name="close-circle" size={18} color={colors.textMuted} />
                 </Pressable>
@@ -565,6 +597,9 @@ export default function AdminScreen() {
             <Pressable
               style={[styles.createButton, { backgroundColor: colors.accent }]}
               onPress={() => router.push('/(app)/mueble/form')}
+              title="Registrar nuevo mueble"
+              accessibilityRole="button"
+              accessibilityLabel="Nuevo mueble"
             >
               <Ionicons name="add" size={18} color="#FFFFFF" />
               <Text style={styles.createButtonText}>Nuevo</Text>
@@ -644,6 +679,9 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: colors.border }]}
                         onPress={() => router.push(`/(app)/mueble/form?id=${item.id}`)}
+                        title={`Editar ${item.nombre}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Editar mueble ${item.nombre}`}
                       >
                         <Ionicons name="create-outline" size={16} color={colors.text} />
                         <Text style={[styles.actionBtnText, { color: colors.text }]}>Editar</Text>
@@ -652,6 +690,9 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: `${colors.danger}40`, backgroundColor: `${colors.danger}10` }]}
                         onPress={() => handleDeleteMueble(item)}
+                        title={`Eliminar ${item.nombre}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Eliminar mueble ${item.nombre}`}
                       >
                         <Ionicons name="trash-outline" size={16} color={colors.danger} />
                         <Text style={[styles.actionBtnText, { color: colors.danger }]}>Eliminar</Text>
@@ -687,6 +728,9 @@ export default function AdminScreen() {
             <Pressable
               style={[styles.createButton, { backgroundColor: colors.accent }]}
               onPress={handleOpenCreateCategoria}
+              title="Crear nueva categoría"
+              accessibilityRole="button"
+              accessibilityLabel="Nueva categoría"
             >
               <Ionicons name="add" size={18} color="#FFFFFF" />
               <Text style={styles.createButtonText}>Nueva</Text>
@@ -747,6 +791,9 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: colors.border }]}
                         onPress={() => handleOpenEditCategoria(item)}
+                        title={`Editar categoría ${item.nombre}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Editar categoría ${item.nombre}`}
                       >
                         <Ionicons name="create-outline" size={16} color={colors.text} />
                         <Text style={[styles.actionBtnText, { color: colors.text }]}>Editar</Text>
@@ -755,6 +802,9 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: `${colors.danger}40`, backgroundColor: `${colors.danger}10` }]}
                         onPress={() => handleDeleteCategoria(item)}
+                        title={`Eliminar categoría ${item.nombre}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Eliminar categoría ${item.nombre}`}
                       >
                         <Ionicons name="trash-outline" size={16} color={colors.danger} />
                         <Text style={[styles.actionBtnText, { color: colors.danger }]}>Eliminar</Text>
@@ -783,6 +833,9 @@ export default function AdminScreen() {
             <Pressable
               style={[styles.createButton, { backgroundColor: colors.accent }]}
               onPress={handleOpenCreateProveedor}
+              title="Registrar nuevo proveedor"
+              accessibilityRole="button"
+              accessibilityLabel="Nuevo proveedor"
             >
               <Ionicons name="add" size={18} color="#FFFFFF" />
               <Text style={styles.createButtonText}>Nuevo</Text>
@@ -862,6 +915,9 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: colors.border }]}
                         onPress={() => handleOpenEditProveedor(item)}
+                        title={`Editar proveedor ${item.nombre}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Editar proveedor ${item.nombre}`}
                       >
                         <Ionicons name="create-outline" size={16} color={colors.text} />
                         <Text style={[styles.actionBtnText, { color: colors.text }]}>Editar</Text>
@@ -870,6 +926,9 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: `${colors.danger}40`, backgroundColor: `${colors.danger}10` }]}
                         onPress={() => handleDeleteProveedor(item)}
+                        title={`Eliminar proveedor ${item.nombre}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Eliminar proveedor ${item.nombre}`}
                       >
                         <Ionicons name="trash-outline" size={16} color={colors.danger} />
                         <Text style={[styles.actionBtnText, { color: colors.danger }]}>Eliminar</Text>
@@ -886,22 +945,46 @@ export default function AdminScreen() {
       {/* ======================================================== */}
       {/* MODAL: FORMULARIO DE CATEGORÍA                           */}
       {/* ======================================================== */}
-      <Modal visible={catModalVisible} transparent animationType="slide">
+      <Modal
+        visible={catModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCatModalVisible(false)}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
-          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setCatModalVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar modal de categoría"
+          />
+          <View
+            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitleText, { color: colors.text }]}>
                 {catModalMode === 'create' ? 'Nueva Categoría' : 'Editar Categoría'}
               </Text>
-              <Pressable onPress={() => setCatModalVisible(false)} hitSlop={8}>
+              <Pressable
+                onPress={() => setCatModalVisible(false)}
+                hitSlop={8}
+                title="Cerrar"
+                accessibilityLabel="Cerrar"
+              >
                 <Ionicons name="close" size={22} color={colors.textMuted} />
               </Pressable>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {catFormError ? (
+                <View style={[styles.inlineErrorBox, { backgroundColor: `${colors.danger}15`, borderColor: `${colors.danger}40` }]}>
+                  <Text style={[styles.inlineErrorText, { color: colors.danger }]}>{catFormError}</Text>
+                </View>
+              ) : null}
               <Text style={[styles.inputLabel, { color: colors.text }]}>Nombre de la categoría *</Text>
               <TextInput
                 style={[
@@ -940,6 +1023,9 @@ export default function AdminScreen() {
                 ]}
                 onPress={handleSaveCategoria}
                 disabled={submittingCat}
+                title={catModalMode === 'create' ? 'Crear categoría' : 'Guardar cambios de categoría'}
+                accessibilityRole="button"
+                accessibilityLabel={catModalMode === 'create' ? 'Crear categoría' : 'Guardar cambios de categoría'}
               >
                 {submittingCat ? (
                   <ActivityIndicator color="#FFFFFF" />
@@ -957,22 +1043,46 @@ export default function AdminScreen() {
       {/* ======================================================== */}
       {/* MODAL: FORMULARIO DE PROVEEDOR                           */}
       {/* ======================================================== */}
-      <Modal visible={provModalVisible} transparent animationType="slide">
+      <Modal
+        visible={provModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setProvModalVisible(false)}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
-          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setProvModalVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar modal de proveedor"
+          />
+          <View
+            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitleText, { color: colors.text }]}>
                 {provModalMode === 'create' ? 'Nuevo Proveedor' : 'Editar Proveedor'}
               </Text>
-              <Pressable onPress={() => setProvModalVisible(false)} hitSlop={8}>
+              <Pressable
+                onPress={() => setProvModalVisible(false)}
+                hitSlop={8}
+                title="Cerrar"
+                accessibilityLabel="Cerrar"
+              >
                 <Ionicons name="close" size={22} color={colors.textMuted} />
               </Pressable>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {provFormError ? (
+                <View style={[styles.inlineErrorBox, { backgroundColor: `${colors.danger}15`, borderColor: `${colors.danger}40` }]}>
+                  <Text style={[styles.inlineErrorText, { color: colors.danger }]}>{provFormError}</Text>
+                </View>
+              ) : null}
               <Text style={[styles.inputLabel, { color: colors.text }]}>Nombre del Proveedor *</Text>
               <TextInput
                 style={[
@@ -1037,6 +1147,9 @@ export default function AdminScreen() {
                 ]}
                 onPress={handleSaveProveedor}
                 disabled={submittingProv}
+                title={provModalMode === 'create' ? 'Registrar proveedor' : 'Guardar cambios de proveedor'}
+                accessibilityRole="button"
+                accessibilityLabel={provModalMode === 'create' ? 'Registrar proveedor' : 'Guardar cambios de proveedor'}
               >
                 {submittingProv ? (
                   <ActivityIndicator color="#FFFFFF" />
@@ -1295,5 +1408,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  inlineErrorBox: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  inlineErrorText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

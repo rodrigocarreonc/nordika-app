@@ -172,6 +172,19 @@ export async function apiLogout(): Promise<void> {
   }
 }
 
+export async function apiCrearCliente(data: {
+  username: string;
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+}): Promise<User> {
+  return await request<User>('/users/crear_cliente/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 // ==========================================
 // CATÁLOGO DE MUEBLES (CRUD, FILTROS, FAVORITOS)
 // ==========================================

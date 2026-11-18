@@ -3,7 +3,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -19,6 +18,7 @@ import { ErrorView } from '../../../components/ErrorView';
 import { LoadingView } from '../../../components/LoadingView';
 import { Pagination } from '../../../components/Pagination';
 import { Colors } from '../../../constants/theme';
+import { dialog } from '../../../context/DialogContext';
 import { Apartado } from '../../../types';
 import { apiAceptarApartado, apiGetApartados, apiRechazarApartado } from '../../../utils/api';
 import { getStoredPageSize } from '../../../utils/settingsStorage';
@@ -130,38 +130,38 @@ export default function ApartadosScreen() {
     fetchApartados(1, pageSize, false, newVista);
   };
 
-  const resolver = (apartado: Apartado, accion: 'aceptar' | 'rechazar') => {
+  const resolver = async (apartado: Apartado, accion: 'aceptar' | 'rechazar') => {
     const aceptar = accion === 'aceptar';
-    Alert.alert(
-      aceptar ? 'Aceptar apartado' : 'Rechazar apartado',
-      aceptar
+    const confirmed = await dialog.confirm({
+      title: aceptar ? 'Aceptar apartado' : 'Rechazar apartado',
+      message: aceptar
         ? `${apartado.codigo}: se registrará la venta de ${apartado.cantidad} x "${apartado.mueble.nombre}".`
         : `${apartado.codigo}: se liberarán ${apartado.cantidad} unidades de "${apartado.mueble.nombre}" al stock.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: aceptar ? 'Aceptar' : 'Rechazar',
-          style: aceptar ? 'default' : 'destructive',
-          onPress: async () => {
-            try {
-              setResolvingId(apartado.id);
-              if (aceptar) {
-                await apiAceptarApartado(apartado.id);
-              } else {
-                await apiRechazarApartado(apartado.id);
-              }
-              // Si la página actual queda vacía tras resolver un apartado, regresar a la página anterior si existe
-              const targetPage = apartados.length === 1 && page > 1 ? page - 1 : page;
-              await fetchApartados(targetPage, pageSize, false, vista);
-            } catch (err: any) {
-              Alert.alert('Error', err.message || 'No se pudo actualizar el apartado.');
-            } finally {
-              setResolvingId(null);
-            }
-          },
-        },
-      ]
-    );
+      confirmText: aceptar ? 'Aceptar' : 'Rechazar',
+      cancelText: 'Cancelar',
+      confirmStyle: aceptar ? 'default' : 'destructive',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setResolvingId(apartado.id);
+      if (aceptar) {
+        await apiAceptarApartado(apartado.id);
+      } else {
+        await apiRechazarApartado(apartado.id);
+      }
+      // Si la página actual queda vacía tras resolver un apartado, regresar a la página anterior si existe
+      const targetPage = apartados.length === 1 && page > 1 ? page - 1 : page;
+      await fetchApartados(targetPage, pageSize, false, vista);
+    } catch (err: any) {
+      dialog.alert({
+        title: 'Error',
+        message: err.message || 'No se pudo actualizar el apartado.',
+      });
+    } finally {
+      setResolvingId(null);
+    }
   };
 
   const lista = apartados;
@@ -172,41 +172,56 @@ export default function ApartadosScreen() {
     const resolving = resolvingId === item.id;
 
     return (
-      <Pressable
+      <View
         style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
-        onPress={() => router.push(`/(app)/mueble/${item.mueble.id}`)}
       >
-        <View style={styles.cardHeader}>
-          <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
-            {item.mueble.nombre}
+        <Pressable
+          onPress={() => router.push(`/(app)/mueble/${item.mueble.id}`)}
+          title={`Ver detalles del mueble ${item.mueble.nombre}`}
+          accessibilityLabel={`Apartado ${item.codigo} para ${item.mueble.nombre}`}
+          accessibilityHint="Toca para ver el detalle de este mueble"
+        >
+          <View style={styles.cardHeader}>
+            <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
+              {item.mueble.nombre}
+            </Text>
+            <Badge label={badge.label} variant={badge.variant} size="small" />
+          </View>
+          <Text style={[styles.cardCode, { color: colors.accent }]}>{item.codigo}</Text>
+
+          <Text style={[styles.cardDetail, { color: colors.textMuted }]}>
+            {item.cantidad} {item.cantidad === 1 ? 'pieza' : 'piezas'} · Total {formatPrice(total)}
           </Text>
-          <Badge label={badge.label} variant={badge.variant} size="small" />
-        </View>
-        <Text style={[styles.cardCode, { color: colors.accent }]}>{item.codigo}</Text>
-
-        <Text style={[styles.cardDetail, { color: colors.textMuted }]}>
-          {item.cantidad} {item.cantidad === 1 ? 'pieza' : 'piezas'} · Total {formatPrice(total)}
-        </Text>
-        {isStaff ? (
-          <Text style={[styles.cardDetail, { color: colors.textMuted }]}>Cliente: {item.usuario_username}</Text>
-        ) : null}
-        <Text style={[styles.cardDate, { color: colors.textMuted }]}>
-          {new Date(item.creado_en).toLocaleString('es-MX')}
-        </Text>
-
-        {item.estado === 'PENDIENTE' ? (() => {
-          const restante = new Date(item.expira_en).getTime() - now;
-          const urgente = restante < 24 * 3600 * 1000;
-          const color = urgente ? colors.danger : colors.warning;
-          return (
-            <View style={[styles.countdown, { backgroundColor: `${color}15` }]}>
-              <Ionicons name="time-outline" size={14} color={color} />
-              <Text style={[styles.countdownText, { color }]}>
-                {restante > 0 ? `Vence en ${formatRestante(restante)}` : 'Vencido, se cancelará al actualizar'}
+          {isStaff ? (
+            <View style={{ marginVertical: 4 }}>
+              <Text style={[styles.cardDetail, { color: colors.text, fontWeight: '600' }]}>
+                Cliente: {item.usuario_nombre ? `${item.usuario_nombre} (@${item.usuario_username})` : item.usuario_username}
               </Text>
+              {item.usuario_email ? (
+                <Text style={[styles.cardDetail, { color: colors.textMuted }]}>
+                  Contacto: {item.usuario_email}
+                </Text>
+              ) : null}
             </View>
-          );
-        })() : null}
+          ) : null}
+          <Text style={[styles.cardDate, { color: colors.textMuted }]}>
+            {new Date(item.creado_en).toLocaleString('es-MX')}
+          </Text>
+
+          {item.estado === 'PENDIENTE' ? (() => {
+            const restante = new Date(item.expira_en).getTime() - now;
+            const urgente = restante < 24 * 3600 * 1000;
+            const color = urgente ? colors.danger : colors.warning;
+            return (
+              <View style={[styles.countdown, { backgroundColor: `${color}15` }]}>
+                <Ionicons name="time-outline" size={14} color={color} />
+                <Text style={[styles.countdownText, { color }]}>
+                  {restante > 0 ? `Vence en ${formatRestante(restante)}` : 'Vencido, se cancelará al actualizar'}
+                </Text>
+              </View>
+            );
+          })() : null}
+        </Pressable>
 
         {isStaff && item.estado === 'PENDIENTE' ? (
           <View style={styles.actionsRow}>
@@ -217,6 +232,10 @@ export default function ApartadosScreen() {
                 <Pressable
                   style={[styles.actionButton, { backgroundColor: `${colors.danger}15`, borderColor: `${colors.danger}40` }]}
                   onPress={() => resolver(item, 'rechazar')}
+                  title="Rechazar apartado y devolver stock"
+                  accessibilityRole="button"
+                  accessibilityLabel="Rechazar apartado"
+                  accessibilityHint="Cancela este apartado y regresa las unidades al inventario disponible"
                 >
                   <Ionicons name="close" size={16} color={colors.danger} />
                   <Text style={[styles.actionText, { color: colors.danger }]}>Rechazar</Text>
@@ -224,6 +243,10 @@ export default function ApartadosScreen() {
                 <Pressable
                   style={[styles.actionButton, { backgroundColor: colors.accent, borderColor: colors.accent }]}
                   onPress={() => resolver(item, 'aceptar')}
+                  title="Aceptar apartado y confirmar venta"
+                  accessibilityRole="button"
+                  accessibilityLabel="Aceptar apartado"
+                  accessibilityHint="Aprueba el apartado y formaliza la venta de los muebles"
                 >
                   <Ionicons name="checkmark" size={16} color="#FFFFFF" />
                   <Text style={[styles.actionText, { color: '#FFFFFF' }]}>Aceptar</Text>
@@ -232,7 +255,7 @@ export default function ApartadosScreen() {
             )}
           </View>
         ) : null}
-      </Pressable>
+      </View>
     );
   };
 
@@ -268,6 +291,9 @@ export default function ApartadosScreen() {
             onPress={() => handleSelectVista(v)}
             accessibilityRole="tab"
             accessibilityState={{ selected: vista === v }}
+            title={v === 'activos' ? 'Ver apartados activos' : 'Ver historial de apartados resueltos'}
+            accessibilityLabel={v === 'activos' ? 'Pestaña Activos' : 'Pestaña Historial'}
+            accessibilityHint={`Filtra la lista para mostrar apartados ${v === 'activos' ? 'pendientes' : 'resueltos'}`}
           >
             <Text style={[styles.tabChipText, { color: vista === v ? '#FFFFFF' : colors.text }]}>
               {v === 'activos' ? 'Activos' : 'Historial'}

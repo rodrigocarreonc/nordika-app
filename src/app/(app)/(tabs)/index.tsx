@@ -162,6 +162,9 @@ export default function CatalogScreen() {
           <Pressable
             style={[styles.headerIconButton, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => setShowOrderModal(true)}
+            title="Ordenar catálogo"
+            accessibilityLabel="Ordenar catálogo"
+            accessibilityHint="Abre opciones para ordenar los muebles por precio o fecha"
           >
             <Ionicons name="filter-outline" size={20} color={colors.text} />
           </Pressable>
@@ -171,6 +174,9 @@ export default function CatalogScreen() {
             <Pressable
               style={[styles.headerCreateButton, { backgroundColor: colors.accent }]}
               onPress={() => router.push('/(app)/mueble/form')}
+              title="Registrar nuevo mueble"
+              accessibilityLabel="Nuevo mueble"
+              accessibilityHint="Abre el formulario para dar de alta un mueble"
             >
               <Ionicons name="add" size={18} color="#FFFFFF" />
               <Text style={styles.headerCreateButtonText}>Nuevo</Text>
@@ -193,7 +199,13 @@ export default function CatalogScreen() {
             returnKeyType="search"
           />
           {search ? (
-            <Pressable onPress={handleClearSearch} hitSlop={8}>
+            <Pressable
+              onPress={handleClearSearch}
+              hitSlop={8}
+              title="Limpiar búsqueda"
+              accessibilityLabel="Limpiar texto de búsqueda"
+              accessibilityHint="Borra el texto ingresado y muestra todos los muebles"
+            >
               <Ionicons name="close-circle" size={18} color={colors.textMuted} />
             </Pressable>
           ) : null}
@@ -214,6 +226,9 @@ export default function CatalogScreen() {
               setSelectedCategoria(null);
               setPage(1);
             }}
+            title="Ver todas las categorías"
+            accessibilityLabel="Categoría: Todas"
+            accessibilityHint="Muestra muebles de cualquier categoría"
           >
             <Text
               style={[
@@ -240,6 +255,9 @@ export default function CatalogScreen() {
                   setSelectedCategoria(isSelected ? null : cat.id);
                   setPage(1);
                 }}
+                title={`Filtrar por categoría ${cat.nombre}`}
+                accessibilityLabel={`Categoría: ${cat.nombre}`}
+                accessibilityHint={`Filtra los muebles para mostrar sólo de categoría ${cat.nombre}`}
               >
                 <Text
                   style={[
@@ -270,6 +288,9 @@ export default function CatalogScreen() {
             setOnlyInStock(!onlyInStock);
             setPage(1);
           }}
+          title={onlyInStock ? 'Mostrar todos los muebles' : 'Mostrar sólo muebles en stock'}
+          accessibilityLabel="Filtro en stock"
+          accessibilityHint="Alterna entre todos los muebles o únicamente aquellos con inventario disponible"
         >
           <Ionicons
             name={onlyInStock ? 'checkmark-circle' : 'ellipse-outline'}
@@ -332,9 +353,19 @@ export default function CatalogScreen() {
       )}
 
       {/* Modal de Ordenamiento */}
-      <Modal visible={showOrderModal} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={() => setShowOrderModal(false)}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Modal visible={showOrderModal} transparent animationType="fade" onRequestClose={() => setShowOrderModal(false)}>
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowOrderModal(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar modal de ordenamiento"
+            accessibilityHint="Cierra el modal al tocar fuera"
+          />
+          <View
+            style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onStartShouldSetResponder={() => true}
+          >
             <Text style={[styles.modalTitle, { color: colors.text }]}>Ordenar Catálogo</Text>
             {orderingOptions.map((opt) => {
               const isSelected = ordering === opt.value;
@@ -350,6 +381,10 @@ export default function CatalogScreen() {
                     setShowOrderModal(false);
                     setPage(1);
                   }}
+                  title={`Ordenar por ${opt.label}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={opt.label}
                 >
                   <Text
                     style={[
@@ -364,7 +399,7 @@ export default function CatalogScreen() {
               );
             })}
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </SafeAreaView>
   );

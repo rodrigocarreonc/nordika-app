@@ -31,6 +31,10 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
             { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
           ]}
           onPress={onRetry}
+          accessibilityRole="button"
+          accessibilityLabel="Reintentar"
+          accessibilityHint="Vuelve a intentar cargar la información"
+          title="Reintentar"
         >
           <Ionicons name="refresh-outline" size={18} color={colors.onPrimary} style={{ marginRight: 8 }} />
           <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>Reintentar</Text>

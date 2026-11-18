@@ -68,6 +68,9 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
         },
       ]}
       onPress={onPress}
+      title={`Ver detalles de ${mueble.nombre}`}
+      accessibilityLabel={`${mueble.nombre}, precio ${formatPrice(mueble.precio)}`}
+      accessibilityHint="Toca para abrir la ficha detallada"
     >
       <View style={styles.imageContainer}>
         {imageUri ? (
@@ -89,6 +92,9 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
           style={[styles.favoriteButton, { backgroundColor: colors.card }]}
           onPress={handleHeartPress}
           hitSlop={8}
+          title={favState ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+          accessibilityLabel={favState ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+          accessibilityHint="Guarda o quita este mueble de tu lista de favoritos"
         >
           <Ionicons
             name={favState ? 'heart' : 'heart-outline'}

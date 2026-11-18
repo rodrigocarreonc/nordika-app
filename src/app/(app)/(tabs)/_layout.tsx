@@ -48,6 +48,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Catálogo',
+          tabBarAccessibilityLabel: 'Catálogo de muebles',
           tabBarIcon: ({ focused }) => (
             <Ionicons name={focused ? 'grid' : 'grid-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
           ),
@@ -57,6 +58,7 @@ export default function TabsLayout() {
         name="favoritos"
         options={{
           title: 'Favoritos',
+          tabBarAccessibilityLabel: 'Muebles favoritos',
           tabBarIcon: ({ focused }) => (
             <Ionicons name={focused ? 'heart' : 'heart-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
           ),
@@ -66,6 +68,7 @@ export default function TabsLayout() {
         name="apartados"
         options={{
           title: 'Apartados',
+          tabBarAccessibilityLabel: 'Apartados de muebles',
           tabBarIcon: ({ focused }) => (
             <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
           ),
@@ -75,6 +78,7 @@ export default function TabsLayout() {
         name="admin"
         options={{
           title: 'Administración',
+          tabBarAccessibilityLabel: 'Panel de administración',
           href: isStaff ? undefined : null,
           tabBarIcon: ({ focused }) => (
             <Ionicons name={focused ? 'shield' : 'shield-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
@@ -85,6 +89,7 @@ export default function TabsLayout() {
         name="settings"
         options={{
           title: 'Ajustes',
+          tabBarAccessibilityLabel: 'Ajustes y perfil',
           tabBarIcon: ({ focused }) => (
             <Ionicons name={focused ? 'settings' : 'settings-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
           ),

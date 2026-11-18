@@ -4,7 +4,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,7 @@ import { Badge } from "../../../components/Badge";
 import { ErrorView } from "../../../components/ErrorView";
 import { LoadingView } from "../../../components/LoadingView";
 import { Colors } from "../../../constants/theme";
+import { dialog } from "../../../context/DialogContext";
 import { Mueble } from "../../../types";
 import {
   apiCrearApartado,
@@ -25,6 +25,7 @@ import {
   apiToggleFavorito,
   resolveImageUrl,
 } from "../../../utils/api";
+import { safeBack } from "../../../utils/navigation";
 import { getUser } from "../../../utils/tokenStorage";
 
 export default function MuebleDetailsScreen() {
@@ -80,38 +81,39 @@ export default function MuebleDetailsScreen() {
         favoritos_count: res.total_favoritos,
       });
     } catch (err: any) {
-      Alert.alert("Error", err.message || "No se pudo actualizar favoritos.");
+      dialog.alert({
+        title: "Error",
+        message: err.message || "No se pudo actualizar favoritos.",
+      });
     } finally {
       setFavLoading(false);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!mueble) return;
-    Alert.alert(
-      "Eliminar Mueble",
-      `¿Estás seguro de que deseas eliminar "${mueble.nombre}"? Esta acción no se puede deshacer.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await apiDeleteMueble(mueble.id);
-              Alert.alert("Éxito", "El mueble ha sido eliminado.", [
-                { text: "OK", onPress: () => router.back() },
-              ]);
-            } catch (err: any) {
-              Alert.alert(
-                "Error al eliminar",
-                err.message || "No se pudo eliminar el mueble.",
-              );
-            }
-          },
-        },
-      ],
-    );
+    const ok = await dialog.confirm({
+      title: "Eliminar Mueble",
+      message: `¿Estás seguro de que deseas eliminar "${mueble.nombre}"? Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      confirmStyle: "destructive",
+    });
+    if (!ok) return;
+
+    try {
+      await apiDeleteMueble(mueble.id);
+      await dialog.alert({
+        title: "Éxito",
+        message: "El mueble ha sido eliminado.",
+      });
+      safeBack(router, "/");
+    } catch (err: any) {
+      dialog.alert({
+        title: "Error al eliminar",
+        message: err.message || "No se pudo eliminar el mueble.",
+      });
+    }
   };
 
   const handleApartar = async () => {
@@ -125,21 +127,25 @@ export default function MuebleDetailsScreen() {
         dateStyle: "medium",
         timeStyle: "short",
       });
-      Alert.alert(
-        "Mueble apartado",
-        `Tu apartado ${apartado.codigo} quedó pendiente de revisión.
-
-Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se cancelará automáticamente.`,
-        [
+      dialog.show({
+        title: "Mueble apartado",
+        message: `Tu apartado ${apartado.codigo} quedó pendiente de revisión.\n\nTienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se cancelará automáticamente.`,
+        buttons: [
           {
             text: "Ver mis apartados",
             onPress: () => router.navigate("/(app)/(tabs)/apartados"),
           },
-          { text: "OK" },
+          {
+            text: "Aceptar",
+            style: "default",
+          },
         ],
-      );
+      });
     } catch (err: any) {
-      Alert.alert("No se pudo apartar", err.message || "Intenta de nuevo.");
+      dialog.alert({
+        title: "No se pudo apartar",
+        message: err.message || "Intenta de nuevo.",
+      });
     } finally {
       setApartando(false);
     }
@@ -178,7 +184,10 @@ Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se 
             styles.navButton,
             { backgroundColor: colors.card, borderColor: colors.border },
           ]}
-          onPress={() => router.back()}
+          onPress={() => safeBack(router, "/")}
+          title="Regresar al catálogo"
+          accessibilityLabel="Regresar al catálogo"
+          accessibilityHint="Regresar a la pantalla anterior del catálogo"
         >
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </Pressable>
@@ -199,6 +208,9 @@ Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se 
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={() => router.push(`/(app)/mueble/form?id=${mueble.id}`)}
+              title="Editar mueble"
+              accessibilityLabel="Editar mueble"
+              accessibilityHint="Abrir formulario de edición del mueble"
             >
               <Ionicons name="create-outline" size={19} color={colors.text} />
             </Pressable>
@@ -213,6 +225,9 @@ Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se 
                 },
               ]}
               onPress={handleDelete}
+              title="Eliminar mueble"
+              accessibilityLabel="Eliminar mueble"
+              accessibilityHint="Eliminar este mueble del catálogo permanentemente"
             >
               <Ionicons name="trash-outline" size={19} color={colors.danger} />
             </Pressable>
@@ -266,6 +281,9 @@ Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se 
             ]}
             onPress={handleToggleFav}
             disabled={favLoading}
+            title={mueble.is_favorito ? "Quitar de favoritos" : "Agregar a favoritos"}
+            accessibilityLabel={mueble.is_favorito ? "Quitar de favoritos" : "Agregar a favoritos"}
+            accessibilityHint="Guarda o quita este mueble de tu lista de favoritos"
           >
             {favLoading ? (
               <ActivityIndicator size="small" color={colors.accent} />
@@ -398,7 +416,9 @@ Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se 
                   ]}
                   onPress={() => setCantidadApartar((c) => Math.max(1, c - 1))}
                   disabled={cantidadApartar <= 1}
-                  accessibilityLabel="Quitar una pieza"
+                  title="Disminuir cantidad"
+                  accessibilityLabel="Disminuir cantidad"
+                  accessibilityHint="Resta una pieza a apartar"
                 >
                   <Ionicons name="remove" size={18} color={colors.text} />
                 </Pressable>
@@ -417,7 +437,9 @@ Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se 
                     setCantidadApartar((c) => Math.min(mueble.stock, c + 1))
                   }
                   disabled={cantidadApartar >= mueble.stock}
-                  accessibilityLabel="Agregar una pieza"
+                  title="Aumentar cantidad"
+                  accessibilityLabel="Aumentar cantidad"
+                  accessibilityHint="Suma una pieza a apartar"
                 >
                   <Ionicons name="add" size={18} color={colors.text} />
                 </Pressable>
@@ -429,6 +451,9 @@ Tienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se 
                 ]}
                 onPress={handleApartar}
                 disabled={apartando}
+                title="Apartar mueble"
+                accessibilityLabel="Apartar mueble"
+                accessibilityHint="Crea una reserva por las piezas seleccionadas"
               >
                 {apartando ? (
                   <ActivityIndicator color="#FFFFFF" />

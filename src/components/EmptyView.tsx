@@ -37,6 +37,10 @@ export const EmptyView: React.FC<EmptyViewProps> = ({
             { backgroundColor: colors.accent, opacity: pressed ? 0.8 : 1 },
           ]}
           onPress={onAction}
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
+          accessibilityHint={actionLabel}
+          title={actionLabel}
         >
           <Text style={styles.actionText}>{actionLabel}</Text>
         </Pressable>
