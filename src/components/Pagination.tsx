@@ -31,7 +31,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         ]}
         disabled={page <= 1}
         onPress={() => onPageChange(Math.max(1, page - 1))}
-        title="Ir a página anterior"
+        accessibilityRole="button"
         accessibilityLabel="Página anterior"
         accessibilityHint="Navega a la página anterior de resultados"
       >
@@ -62,7 +62,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         ]}
         disabled={page >= totalPages}
         onPress={() => onPageChange(Math.min(totalPages, page + 1))}
-        title="Ir a página siguiente"
+        accessibilityRole="button"
         accessibilityLabel="Página siguiente"
         accessibilityHint="Navega a la página siguiente de resultados"
       >

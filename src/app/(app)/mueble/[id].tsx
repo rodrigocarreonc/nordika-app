@@ -185,7 +185,7 @@ export default function MuebleDetailsScreen() {
             { backgroundColor: colors.card, borderColor: colors.border },
           ]}
           onPress={() => safeBack(router, "/")}
-          title="Regresar al catálogo"
+          accessibilityRole="button"
           accessibilityLabel="Regresar al catálogo"
           accessibilityHint="Regresar a la pantalla anterior del catálogo"
         >
@@ -208,7 +208,7 @@ export default function MuebleDetailsScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={() => router.push(`/(app)/mueble/form?id=${mueble.id}`)}
-              title="Editar mueble"
+              accessibilityRole="button"
               accessibilityLabel="Editar mueble"
               accessibilityHint="Abrir formulario de edición del mueble"
             >
@@ -225,7 +225,7 @@ export default function MuebleDetailsScreen() {
                 },
               ]}
               onPress={handleDelete}
-              title="Eliminar mueble"
+              accessibilityRole="button"
               accessibilityLabel="Eliminar mueble"
               accessibilityHint="Eliminar este mueble del catálogo permanentemente"
             >
@@ -281,7 +281,7 @@ export default function MuebleDetailsScreen() {
             ]}
             onPress={handleToggleFav}
             disabled={favLoading}
-            title={mueble.is_favorito ? "Quitar de favoritos" : "Agregar a favoritos"}
+            accessibilityRole="button"
             accessibilityLabel={mueble.is_favorito ? "Quitar de favoritos" : "Agregar a favoritos"}
             accessibilityHint="Guarda o quita este mueble de tu lista de favoritos"
           >
@@ -416,7 +416,7 @@ export default function MuebleDetailsScreen() {
                   ]}
                   onPress={() => setCantidadApartar((c) => Math.max(1, c - 1))}
                   disabled={cantidadApartar <= 1}
-                  title="Disminuir cantidad"
+                  accessibilityRole="button"
                   accessibilityLabel="Disminuir cantidad"
                   accessibilityHint="Resta una pieza a apartar"
                 >
@@ -437,7 +437,7 @@ export default function MuebleDetailsScreen() {
                     setCantidadApartar((c) => Math.min(mueble.stock, c + 1))
                   }
                   disabled={cantidadApartar >= mueble.stock}
-                  title="Aumentar cantidad"
+                  accessibilityRole="button"
                   accessibilityLabel="Aumentar cantidad"
                   accessibilityHint="Suma una pieza a apartar"
                 >
@@ -451,7 +451,7 @@ export default function MuebleDetailsScreen() {
                 ]}
                 onPress={handleApartar}
                 disabled={apartando}
-                title="Apartar mueble"
+                accessibilityRole="button"
                 accessibilityLabel="Apartar mueble"
                 accessibilityHint="Crea una reserva por las piezas seleccionadas"
               >

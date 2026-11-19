@@ -162,7 +162,7 @@ export default function CatalogScreen() {
           <Pressable
             style={[styles.headerIconButton, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => setShowOrderModal(true)}
-            title="Ordenar catálogo"
+            accessibilityRole="button"
             accessibilityLabel="Ordenar catálogo"
             accessibilityHint="Abre opciones para ordenar los muebles por precio o fecha"
           >
@@ -174,7 +174,7 @@ export default function CatalogScreen() {
             <Pressable
               style={[styles.headerCreateButton, { backgroundColor: colors.accent }]}
               onPress={() => router.push('/(app)/mueble/form')}
-              title="Registrar nuevo mueble"
+              accessibilityRole="button"
               accessibilityLabel="Nuevo mueble"
               accessibilityHint="Abre el formulario para dar de alta un mueble"
             >
@@ -202,7 +202,7 @@ export default function CatalogScreen() {
             <Pressable
               onPress={handleClearSearch}
               hitSlop={8}
-              title="Limpiar búsqueda"
+              accessibilityRole="button"
               accessibilityLabel="Limpiar texto de búsqueda"
               accessibilityHint="Borra el texto ingresado y muestra todos los muebles"
             >
@@ -226,7 +226,7 @@ export default function CatalogScreen() {
               setSelectedCategoria(null);
               setPage(1);
             }}
-            title="Ver todas las categorías"
+            accessibilityRole="button"
             accessibilityLabel="Categoría: Todas"
             accessibilityHint="Muestra muebles de cualquier categoría"
           >
@@ -255,7 +255,7 @@ export default function CatalogScreen() {
                   setSelectedCategoria(isSelected ? null : cat.id);
                   setPage(1);
                 }}
-                title={`Filtrar por categoría ${cat.nombre}`}
+                accessibilityRole="button"
                 accessibilityLabel={`Categoría: ${cat.nombre}`}
                 accessibilityHint={`Filtra los muebles para mostrar sólo de categoría ${cat.nombre}`}
               >
@@ -288,7 +288,7 @@ export default function CatalogScreen() {
             setOnlyInStock(!onlyInStock);
             setPage(1);
           }}
-          title={onlyInStock ? 'Mostrar todos los muebles' : 'Mostrar sólo muebles en stock'}
+          accessibilityRole="button"
           accessibilityLabel="Filtro en stock"
           accessibilityHint="Alterna entre todos los muebles o únicamente aquellos con inventario disponible"
         >
@@ -381,7 +381,6 @@ export default function CatalogScreen() {
                     setShowOrderModal(false);
                     setPage(1);
                   }}
-                  title={`Ordenar por ${opt.label}`}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: isSelected }}
                   accessibilityLabel={opt.label}

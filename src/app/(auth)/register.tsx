@@ -86,7 +86,7 @@ export default function RegisterScreen() {
           <Pressable
             style={[styles.backButton, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => safeBack(router, '/(auth)/login')}
-            title="Volver a inicio de sesión"
+            accessibilityRole="button"
             accessibilityLabel="Regresar"
             accessibilityHint="Vuelve a la pantalla de inicio de sesión"
           >
@@ -186,8 +186,8 @@ export default function RegisterScreen() {
                 <Pressable
                   onPress={() => setShowPassword(!showPassword)}
                   hitSlop={8}
-                  title={showPassword ? 'Ocultar contraseñas' : 'Ver contraseñas'}
-                  accessibilityLabel="Mostrar u ocultar contraseña"
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Ocultar contraseñas' : 'Ver contraseñas'}
                 >
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -224,7 +224,7 @@ export default function RegisterScreen() {
               ]}
               onPress={handleRegister}
               disabled={loading}
-              title="Crear mi cuenta"
+              accessibilityRole="button"
               accessibilityLabel="Registrar cuenta"
               accessibilityHint="Envía los datos para registrar la cuenta de cliente"
             >
@@ -243,7 +243,7 @@ export default function RegisterScreen() {
             </Text>
             <Pressable
               onPress={() => router.push('/(auth)/login')}
-              title="Iniciar sesión con cuenta existente"
+              accessibilityRole="button"
               accessibilityLabel="Ir a iniciar sesión"
             >
               <Text style={[styles.loginLink, { color: colors.accent }]}> Iniciar Sesión</Text>

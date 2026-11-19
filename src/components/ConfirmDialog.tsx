@@ -161,7 +161,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                     disabled={isLoading}
                     accessibilityRole="button"
                     accessibilityLabel={btn.text}
-                    title={btn.text}
                   >
                     <Text style={[styles.btnText, { color: textCol }]}>{btn.text}</Text>
                   </Pressable>
@@ -182,7 +181,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                   disabled={isLoading}
                   accessibilityRole="button"
                   accessibilityLabel={cancelText}
-                  title={cancelText}
                 >
                   <Text style={[styles.btnText, { color: colors.text }]}>
                     {cancelText}
@@ -203,7 +201,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 disabled={isLoading}
                 accessibilityRole="button"
                 accessibilityLabel={confirmText}
-                title={confirmText}
               >
                 {isLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />

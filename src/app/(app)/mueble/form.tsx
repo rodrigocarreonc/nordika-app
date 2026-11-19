@@ -210,7 +210,7 @@ export default function MuebleFormScreen() {
         <Pressable
           style={[styles.navButton, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => safeBack(router, '/')}
-          title="Cerrar formulario"
+          accessibilityRole="button"
           accessibilityLabel="Cerrar formulario"
           accessibilityHint="Cierra el formulario y regresa a la pantalla anterior"
         >
@@ -223,7 +223,7 @@ export default function MuebleFormScreen() {
           style={[styles.saveButton, { backgroundColor: colors.accent, opacity: submitting ? 0.7 : 1 }]}
           onPress={handleSubmit}
           disabled={submitting}
-          title={isEditing ? 'Guardar cambios del mueble' : 'Guardar mueble'}
+          accessibilityRole="button"
           accessibilityLabel={isEditing ? 'Guardar cambios del mueble' : 'Guardar mueble'}
           accessibilityHint="Guarda los datos del mueble en el catálogo"
         >
@@ -245,7 +245,7 @@ export default function MuebleFormScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={handlePickImage}
-              title="Seleccionar foto del mueble"
+              accessibilityRole="button"
               accessibilityLabel="Subir o cambiar foto del mueble"
               accessibilityHint="Abre la galería de imágenes para elegir una fotografía"
             >
@@ -328,7 +328,6 @@ export default function MuebleFormScreen() {
                           : { backgroundColor: colors.background, borderColor: colors.border },
                       ]}
                       onPress={() => setSelectedCategoriaId(isSelected ? null : c.id)}
-                      title={`Categoría ${c.nombre}`}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: isSelected }}
                       accessibilityLabel={`Categoría ${c.nombre}`}
@@ -363,7 +362,6 @@ export default function MuebleFormScreen() {
                           : { backgroundColor: colors.background, borderColor: colors.border },
                       ]}
                       onPress={() => setSelectedProveedorId(p.id)}
-                      title={`Proveedor ${p.nombre}`}
                       accessibilityRole="radio"
                       accessibilityState={{ selected: isSelected }}
                       accessibilityLabel={`Proveedor ${p.nombre}`}

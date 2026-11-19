@@ -177,7 +177,7 @@ export default function ApartadosScreen() {
       >
         <Pressable
           onPress={() => router.push(`/(app)/mueble/${item.mueble.id}`)}
-          title={`Ver detalles del mueble ${item.mueble.nombre}`}
+          accessibilityRole="button"
           accessibilityLabel={`Apartado ${item.codigo} para ${item.mueble.nombre}`}
           accessibilityHint="Toca para ver el detalle de este mueble"
         >
@@ -232,7 +232,6 @@ export default function ApartadosScreen() {
                 <Pressable
                   style={[styles.actionButton, { backgroundColor: `${colors.danger}15`, borderColor: `${colors.danger}40` }]}
                   onPress={() => resolver(item, 'rechazar')}
-                  title="Rechazar apartado y devolver stock"
                   accessibilityRole="button"
                   accessibilityLabel="Rechazar apartado"
                   accessibilityHint="Cancela este apartado y regresa las unidades al inventario disponible"
@@ -243,7 +242,6 @@ export default function ApartadosScreen() {
                 <Pressable
                   style={[styles.actionButton, { backgroundColor: colors.accent, borderColor: colors.accent }]}
                   onPress={() => resolver(item, 'aceptar')}
-                  title="Aceptar apartado y confirmar venta"
                   accessibilityRole="button"
                   accessibilityLabel="Aceptar apartado"
                   accessibilityHint="Aprueba el apartado y formaliza la venta de los muebles"
@@ -291,7 +289,6 @@ export default function ApartadosScreen() {
             onPress={() => handleSelectVista(v)}
             accessibilityRole="tab"
             accessibilityState={{ selected: vista === v }}
-            title={v === 'activos' ? 'Ver apartados activos' : 'Ver historial de apartados resueltos'}
             accessibilityLabel={v === 'activos' ? 'Pestaña Activos' : 'Pestaña Historial'}
             accessibilityHint={`Filtra la lista para mostrar apartados ${v === 'activos' ? 'pendientes' : 'resueltos'}`}
           >

@@ -116,8 +116,8 @@ export default function LoginScreen() {
                 <Pressable
                   onPress={() => setShowPassword(!showPassword)}
                   hitSlop={8}
-                  title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-                  accessibilityLabel="Mostrar u ocultar contraseña"
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                 >
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -136,7 +136,6 @@ export default function LoginScreen() {
               ]}
               onPress={handleLogin}
               disabled={loading}
-              title="Iniciar sesión en Nordika"
               accessibilityRole="button"
               accessibilityLabel="Iniciar sesión"
               accessibilityHint="Verifica las credenciales y accede a la tienda"
@@ -144,7 +143,7 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.submitButtonText} title="Acceder">Acceder</Text>
+                <Text style={styles.submitButtonText}>Acceder</Text>
               )}
             </Pressable>
 
@@ -157,18 +156,18 @@ export default function LoginScreen() {
                 <Pressable
                   style={[styles.quickButton, { backgroundColor: colors.backgroundElement }]}
                   onPress={() => fillQuickCredentials('gael', 'gael123')}
-                  title="Autocompletar con usuario cliente gael"
                   accessibilityRole="button"
                   accessibilityLabel="Usar cuenta cliente gael"
+                  accessibilityHint="Autocompleta las credenciales de cliente de prueba"
                 >
                   <Text style={[styles.quickButtonText, { color: colors.text }]}>👤 Cliente (gael)</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.quickButton, { backgroundColor: colors.backgroundElement }]}
                   onPress={() => fillQuickCredentials('admin', 'admin123')}
-                  title="Autocompletar con usuario administrador admin"
                   accessibilityRole="button"
                   accessibilityLabel="Usar cuenta admin"
+                  accessibilityHint="Autocompleta las credenciales de administrador de prueba"
                 >
                   <Text style={[styles.quickButtonText, { color: colors.text }]}>⚙️ Admin (admin)</Text>
                 </Pressable>
@@ -183,7 +182,7 @@ export default function LoginScreen() {
             </Text>
             <Pressable
               onPress={() => router.push('/(auth)/register')}
-              title="Ir al formulario de registro"
+              accessibilityRole="button"
               accessibilityLabel="Registrarse"
               accessibilityHint="Crea una nueva cuenta de cliente"
             >

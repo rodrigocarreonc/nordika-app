@@ -40,7 +40,6 @@ export const EmptyView: React.FC<EmptyViewProps> = ({
           accessibilityRole="button"
           accessibilityLabel={actionLabel}
           accessibilityHint={actionLabel}
-          title={actionLabel}
         >
           <Text style={styles.actionText}>{actionLabel}</Text>
         </Pressable>

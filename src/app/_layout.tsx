@@ -22,19 +22,16 @@ export default function RootLayout() {
     SplashScreen.hideAsync().catch(() => {});
   }, []);
 
-  // Web tooltip synchronizer: ensures title attribute is always present on DOM for tooltips
+  // Web tooltip synchronizer: copies aria-label cleanly to DOM title for tooltips
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
 
     const syncTooltips = () => {
-      const elements = document.querySelectorAll<HTMLElement>(
-        '[data-title], [aria-label], [role="button"], [role="tab"], [role="radio"], button'
-      );
+      const elements = document.querySelectorAll<HTMLElement>('[aria-label]');
       elements.forEach((el) => {
-        if (el.getAttribute('title')) return;
-        const text = el.getAttribute('data-title') || el.getAttribute('aria-label');
-        if (text) {
-          el.setAttribute('title', text);
+        const label = el.getAttribute('aria-label');
+        if (label && el.getAttribute('title') !== label) {
+          el.setAttribute('title', label);
         }
       });
     };
@@ -45,7 +42,7 @@ export default function RootLayout() {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['aria-label', 'data-title'],
+      attributeFilter: ['aria-label'],
     });
 
     return () => observer.disconnect();
