@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { ConfirmDialog, DialogButton } from '../components/ConfirmDialog';
 
@@ -80,8 +80,23 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     title: '',
   });
 
-  const resolverRef = useRef<((value: any) => void) | null>(null);
+  type PendingDialog =
+    | { type: 'confirm'; resolve: (value: boolean) => void }
+    | { type: 'alert'; resolve: () => void };
+
+  const resolverRef = useRef<PendingDialog | null>(null);
   const lastClosedAtRef = useRef<number>(0);
+
+  const resolvePendingDialog = useCallback(() => {
+    const pending = resolverRef.current;
+    if (!pending) return;
+    resolverRef.current = null;
+    if (pending.type === 'confirm') {
+      pending.resolve(false);
+    } else {
+      pending.resolve();
+    }
+  }, []);
 
   const waitNativeModalDismiss = useCallback(async () => {
     if (Platform.OS === 'web') return;
@@ -98,9 +113,12 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const confirm = useCallback(
     async (options: ConfirmOptions): Promise<boolean> => {
+      resolvePendingDialog();
       await waitNativeModalDismiss();
+      resolvePendingDialog();
       return new Promise<boolean>((resolve) => {
-        resolverRef.current = resolve;
+        const pending: PendingDialog = { type: 'confirm', resolve };
+        resolverRef.current = pending;
         setDialogState({
           visible: true,
           title: options.title,
@@ -114,31 +132,43 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 await options.onConfirm();
               }
             } finally {
+              if (resolverRef.current === pending) {
+                resolverRef.current = null;
+              }
               closeDialog();
               resolve(true);
             }
           },
           onCancel: () => {
             if (options.onCancel) options.onCancel();
+            if (resolverRef.current === pending) {
+              resolverRef.current = null;
+            }
             closeDialog();
             resolve(false);
           },
           onClose: () => {
             if (options.onCancel) options.onCancel();
+            if (resolverRef.current === pending) {
+              resolverRef.current = null;
+            }
             closeDialog();
             resolve(false);
           },
         });
       });
     },
-    [closeDialog, waitNativeModalDismiss]
+    [closeDialog, resolvePendingDialog, waitNativeModalDismiss]
   );
 
   const showAlert = useCallback(
     async (options: AlertOptions): Promise<void> => {
+      resolvePendingDialog();
       await waitNativeModalDismiss();
+      resolvePendingDialog();
       return new Promise<void>((resolve) => {
-        resolverRef.current = resolve;
+        const pending: PendingDialog = { type: 'alert', resolve };
+        resolverRef.current = pending;
         setDialogState({
           visible: true,
           title: options.title,
@@ -152,24 +182,32 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 await options.onConfirm();
               }
             } finally {
+              if (resolverRef.current === pending) {
+                resolverRef.current = null;
+              }
               closeDialog();
               resolve();
             }
           },
           onClose: () => {
             if (options.onConfirm) options.onConfirm();
+            if (resolverRef.current === pending) {
+              resolverRef.current = null;
+            }
             closeDialog();
             resolve();
           },
         });
       });
     },
-    [closeDialog, waitNativeModalDismiss]
+    [closeDialog, resolvePendingDialog, waitNativeModalDismiss]
   );
 
   const showDialog = useCallback(
     async (options: CustomDialogOptions) => {
+      resolvePendingDialog();
       await waitNativeModalDismiss();
+      resolvePendingDialog();
       setDialogState({
         visible: true,
         title: options.title,
@@ -189,16 +227,27 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         onClose: closeDialog,
       });
     },
-    [closeDialog, waitNativeModalDismiss]
+    [closeDialog, resolvePendingDialog, waitNativeModalDismiss]
   );
 
-  const contextValue: DialogContextValue = {
-    confirm,
-    showAlert,
-    showDialog,
-  };
+  const contextValue = useMemo<DialogContextValue>(
+    () => ({
+      confirm,
+      showAlert,
+      showDialog,
+    }),
+    [confirm, showAlert, showDialog]
+  );
 
-  globalHandler = contextValue;
+  useEffect(() => {
+    globalHandler = contextValue;
+    return () => {
+      if (globalHandler === contextValue) {
+        globalHandler = null;
+      }
+      resolvePendingDialog();
+    };
+  }, [contextValue, resolvePendingDialog]);
 
   return (
     <DialogContext.Provider value={contextValue}>
