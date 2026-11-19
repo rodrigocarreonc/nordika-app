@@ -71,7 +71,7 @@ test.describe('Nordika E2E Full Issue Verification Suite', () => {
     await backdrop.click({ position: { x: 10, y: 10 }, force: true });
     await expect(page.getByText('Registrar Nuevo Cliente')).not.toBeVisible({ timeout: 5000 });
 
-    // Reopen and submit valid client
+    // Reopen, verify Confirmar contraseña mismatch error, then submit valid client
     await addClientBtn.first().click();
     await expect(page.getByText('Registrar Nuevo Cliente')).toBeVisible({ timeout: 5000 });
 
@@ -81,10 +81,15 @@ test.describe('Nordika E2E Full Issue Verification Suite', () => {
 
     await page.getByPlaceholder('Ej. cliente123').fill(testUser);
     await page.getByPlaceholder('cliente@nordika.com').fill(testEmail);
-    await page.getByPlaceholder('Contraseña').fill('pass123456');
+    await page.getByPlaceholder('Contraseña', { exact: true }).fill('pass123456');
+    await page.getByPlaceholder('Repite la contraseña').fill('otra_pass123');
     await page.getByPlaceholder('Nombre').fill('TestNombre');
     await page.getByPlaceholder('Apellido').fill('TestApellido');
 
+    await page.getByText('Registrar Cliente').first().click();
+    await expect(page.getByText('Las contraseñas no coinciden.')).toBeVisible({ timeout: 5000 });
+
+    await page.getByPlaceholder('Repite la contraseña').fill('pass123456');
     await page.getByText('Registrar Cliente').first().click();
 
     const successAlert = page.getByText('Cliente registrado exitosamente.');
@@ -183,12 +188,12 @@ test.describe('Nordika E2E Full Issue Verification Suite', () => {
       await expect(page.getByText(outOfStockName)).toBeVisible({ timeout: 10000 });
 
       // 2.3 Category chip filter + "Todas"
-      const catChip = page.locator(`[title="Filtrar por categoría ${catList[0].nombre}"]`).first();
+      const catChip = page.locator(`[title="Categoría: ${catList[0].nombre}"]`).first();
       await expect(catChip).toBeVisible();
       await catChip.click();
       await expect(page.getByText(inStockName)).toBeVisible({ timeout: 10000 });
 
-      const allCatChip = page.locator('[title="Ver todas las categorías"]').first();
+      const allCatChip = page.locator('[title="Categoría: Todas"]').first();
       await allCatChip.click();
 
       // 2.4 Clear search button
@@ -214,7 +219,7 @@ test.describe('Nordika E2E Full Issue Verification Suite', () => {
       // 2.6 Open specific test furniture card and verify safeBack
       await searchInput.fill(inStockName);
       await searchInput.press('Enter');
-      const card = page.locator(`[title*="Ver detalles de ${inStockName}"]`).or(page.getByText(inStockName)).first();
+      const card = page.locator(`[title^="${inStockName}, precio "]`).or(page.getByText(inStockName)).first();
       await expect(card).toBeVisible({ timeout: 10000 });
       await card.click();
 
@@ -263,7 +268,7 @@ test.describe('Nordika E2E Full Issue Verification Suite', () => {
     await searchInput.fill(uniqueMuebleName);
     await searchInput.press('Enter');
 
-    const createdCard = page.locator(`[title="Ver detalles de ${uniqueMuebleName}"]`).first();
+    const createdCard = page.locator(`[title^="${uniqueMuebleName}, precio "]`).first();
     await expect(createdCard).toBeVisible({ timeout: 15000 });
     await createdCard.click();
 
@@ -278,7 +283,7 @@ test.describe('Nordika E2E Full Issue Verification Suite', () => {
 
     await deleteBtn.click();
     await expect(confirmDeleteTitle).toBeVisible({ timeout: 5000 });
-    await page.getByRole('button', { name: 'Eliminar' }).click();
+    await page.getByRole('button', { name: 'Eliminar', exact: true }).click();
 
     const deleteSuccessMsg = page.getByText('El mueble ha sido eliminado.');
     await expect(deleteSuccessMsg).toBeVisible({ timeout: 15000 });
@@ -342,7 +347,7 @@ test.describe('Nordika E2E Full Issue Verification Suite', () => {
       const deleteBtn = page.locator('[title="Eliminar mueble"]').first();
       await expect(deleteBtn).toBeVisible({ timeout: 10000 });
       await deleteBtn.click();
-      await page.getByRole('button', { name: 'Eliminar' }).click();
+      await page.getByRole('button', { name: 'Eliminar', exact: true }).click();
 
       const blockedMsg = page.getByText('No se puede eliminar: el mueble tiene 1 apartado asociado.');
       await expect(blockedMsg).toBeVisible({ timeout: 10000 });
@@ -384,14 +389,14 @@ test.describe('Nordika E2E Full Issue Verification Suite', () => {
       const adminSearch2 = page.getByPlaceholder('Buscar sofás, mesas, recámaras...');
       await adminSearch2.fill(targetMuebleName);
       await adminSearch2.press('Enter');
-      const catalogCardAfter = page.locator(`[title="Ver detalles de ${targetMuebleName}"]`).first();
+      const catalogCardAfter = page.locator(`[title^="${targetMuebleName}, precio "]`).first();
       await expect(catalogCardAfter).toBeVisible({ timeout: 10000 });
       await catalogCardAfter.click();
 
       const deleteBtnAfter = page.locator('[title="Eliminar mueble"]').last();
       await expect(deleteBtnAfter).toBeVisible({ timeout: 10000 });
       await deleteBtnAfter.click();
-      await page.getByRole('button', { name: 'Eliminar' }).click();
+      await page.getByRole('button', { name: 'Eliminar', exact: true }).click();
 
       const deletedSuccess = page.getByText('El mueble ha sido eliminado.');
       await expect(deletedSuccess).toBeVisible({ timeout: 15000 });
