@@ -55,6 +55,7 @@ export default function SettingsScreen() {
   const [clientUsername, setClientUsername] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [clientPassword, setClientPassword] = useState('');
+  const [clientPasswordConfirm, setClientPasswordConfirm] = useState('');
   const [clientFirstName, setClientFirstName] = useState('');
   const [clientLastName, setClientLastName] = useState('');
   const [creatingClient, setCreatingClient] = useState(false);
@@ -110,9 +111,6 @@ export default function SettingsScreen() {
       setUser(updated);
       await saveUser(updated);
       setShowEditProfileModal(false);
-      if (Platform.OS !== 'web') {
-        await new Promise((r) => setTimeout(r, 250));
-      }
       dialog.alert({ title: 'Éxito', message: 'Tu información de perfil ha sido actualizada.' });
     } catch (e: any) {
       setProfileError(e.message || 'No se pudo actualizar el perfil.');
@@ -137,6 +135,10 @@ export default function SettingsScreen() {
       setClientError('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
+    if (clientPassword !== clientPasswordConfirm) {
+      setClientError('Las contraseñas no coinciden.');
+      return;
+    }
 
     try {
       setCreatingClient(true);
@@ -144,6 +146,7 @@ export default function SettingsScreen() {
         username: trimmedUsername,
         email: trimmedEmail,
         password: clientPassword,
+        password_confirm: clientPasswordConfirm,
         first_name: clientFirstName.trim(),
         last_name: clientLastName.trim(),
       });
@@ -151,11 +154,9 @@ export default function SettingsScreen() {
       setClientUsername('');
       setClientEmail('');
       setClientPassword('');
+      setClientPasswordConfirm('');
       setClientFirstName('');
       setClientLastName('');
-      if (Platform.OS !== 'web') {
-        await new Promise((r) => setTimeout(r, 250));
-      }
       dialog.alert({ title: 'Éxito', message: 'Cliente registrado exitosamente.' });
     } catch (e: any) {
       setClientError(e.message || 'No se pudo crear el cliente.');
@@ -225,7 +226,6 @@ export default function SettingsScreen() {
               setProfileError(null);
               setShowEditProfileModal(true);
             }}
-            title="Editar perfil de usuario"
             accessibilityRole="button"
             accessibilityLabel="Editar perfil"
             accessibilityHint="Abre el formulario para modificar nombre, apellido o correo"
@@ -261,7 +261,6 @@ export default function SettingsScreen() {
                       : { backgroundColor: colors.background, borderColor: colors.border },
                   ]}
                   onPress={() => handleSelectPageSize(size)}
-                  title={`Mostrar ${size} elementos por página`}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: isSelected }}
                   accessibilityLabel={`${size} elementos por página`}
@@ -303,7 +302,6 @@ export default function SettingsScreen() {
                       : { backgroundColor: colors.background, borderColor: colors.border },
                   ]}
                   onPress={() => handleSelectTheme(t)}
-                  title={`Tema ${labels[t]}`}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: isSelected }}
                   accessibilityLabel={`Tema ${labels[t]}`}
@@ -343,13 +341,12 @@ export default function SettingsScreen() {
                   setClientError(null);
                   setShowAddClientModal(true);
                 }}
-                title="Agregar nuevo cliente"
                 accessibilityRole="button"
                 accessibilityLabel="Agregar nuevo cliente"
                 accessibilityHint="Abre el formulario para registrar un nuevo cliente"
               >
                 <Ionicons name="person-add-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                <Text style={styles.addClientButtonText} title="Agregar nuevo cliente">Agregar Nuevo Cliente</Text>
+                <Text style={styles.addClientButtonText}>Agregar Nuevo Cliente</Text>
               </Pressable>
             </View>
           </>
@@ -359,13 +356,12 @@ export default function SettingsScreen() {
         <Pressable
           style={[styles.logoutButton, { backgroundColor: `${colors.danger}15`, borderColor: `${colors.danger}30` }]}
           onPress={handleLogout}
-          title="Cerrar sesión"
           accessibilityRole="button"
           accessibilityLabel="Cerrar sesión"
           accessibilityHint="Cierra tu sesión actual y regresa a la pantalla de inicio de sesión"
         >
           <Ionicons name="log-out-outline" size={20} color={colors.danger} style={{ marginRight: 8 }} />
-          <Text style={[styles.logoutButtonText, { color: colors.danger }]} title="Cerrar sesión">Cerrar Sesión</Text>
+          <Text style={[styles.logoutButtonText, { color: colors.danger }]}>Cerrar Sesión</Text>
         </Pressable>
       </ScrollView>
 
@@ -394,7 +390,7 @@ export default function SettingsScreen() {
               <Pressable
                 onPress={() => setShowEditProfileModal(false)}
                 hitSlop={8}
-                title="Cerrar"
+                accessibilityRole="button"
                 accessibilityLabel="Cerrar"
               >
                 <Ionicons name="close" size={22} color={colors.textMuted} />
@@ -441,14 +437,13 @@ export default function SettingsScreen() {
                 style={[styles.confirmButton, { backgroundColor: colors.accent }]}
                 onPress={handleSaveProfile}
                 disabled={updatingProfile}
-                title="Guardar cambios de perfil"
                 accessibilityRole="button"
                 accessibilityLabel="Guardar cambios de perfil"
               >
                 {updatingProfile ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.confirmButtonText} title="Guardar cambios de perfil">Guardar Cambios</Text>
+                  <Text style={styles.confirmButtonText}>Guardar Cambios</Text>
                 )}
               </Pressable>
             </ScrollView>
@@ -481,7 +476,7 @@ export default function SettingsScreen() {
               <Pressable
                 onPress={() => setShowAddClientModal(false)}
                 hitSlop={8}
-                title="Cerrar"
+                accessibilityRole="button"
                 accessibilityLabel="Cerrar"
               >
                 <Ionicons name="close" size={22} color={colors.textMuted} />
@@ -526,6 +521,16 @@ export default function SettingsScreen() {
                 placeholderTextColor={colors.textMuted}
               />
 
+              <Text style={[styles.inputLabel, { color: colors.text, marginTop: 10 }]}>Confirmar contraseña *</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={clientPasswordConfirm}
+                onChangeText={setClientPasswordConfirm}
+                secureTextEntry
+                placeholder="Repite la contraseña"
+                placeholderTextColor={colors.textMuted}
+              />
+
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.inputLabel, { color: colors.text }]}>Nombre</Text>
@@ -553,14 +558,13 @@ export default function SettingsScreen() {
                 style={[styles.confirmButton, { backgroundColor: colors.accent, marginTop: 16 }]}
                 onPress={handleCreateClient}
                 disabled={creatingClient}
-                title="Registrar nuevo cliente"
                 accessibilityRole="button"
                 accessibilityLabel="Registrar nuevo cliente"
               >
                 {creatingClient ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.confirmButtonText} title="Registrar nuevo cliente">Registrar Cliente</Text>
+                  <Text style={styles.confirmButtonText}>Registrar Cliente</Text>
                 )}
               </Pressable>
             </ScrollView>

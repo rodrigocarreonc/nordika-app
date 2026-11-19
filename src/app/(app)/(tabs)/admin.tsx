@@ -299,9 +299,6 @@ export default function AdminScreen() {
       }
       setCatModalVisible(false);
       fetchCategorias();
-      if (Platform.OS !== 'web') {
-        await new Promise((r) => setTimeout(r, 250));
-      }
       if (successMsg) {
         dialog.alert({ title: 'Éxito', message: successMsg });
       }
@@ -392,9 +389,6 @@ export default function AdminScreen() {
       }
       setProvModalVisible(false);
       fetchProveedores();
-      if (Platform.OS !== 'web') {
-        await new Promise((r) => setTimeout(r, 250));
-      }
       if (successMsg) {
         dialog.alert({ title: 'Éxito', message: successMsg });
       }
@@ -473,7 +467,6 @@ export default function AdminScreen() {
               modulo === 'muebles' && [styles.moduleButtonActive, { backgroundColor: colors.accent }],
             ]}
             onPress={() => handleSelectModulo('muebles')}
-            title="Administrar muebles"
             accessibilityRole="tab"
             accessibilityState={{ selected: modulo === 'muebles' }}
             accessibilityLabel="Módulo de muebles"
@@ -499,7 +492,6 @@ export default function AdminScreen() {
               modulo === 'categorias' && [styles.moduleButtonActive, { backgroundColor: colors.accent }],
             ]}
             onPress={() => handleSelectModulo('categorias')}
-            title="Administrar categorías"
             accessibilityRole="tab"
             accessibilityState={{ selected: modulo === 'categorias' }}
             accessibilityLabel="Módulo de categorías"
@@ -525,7 +517,6 @@ export default function AdminScreen() {
               modulo === 'proveedores' && [styles.moduleButtonActive, { backgroundColor: colors.accent }],
             ]}
             onPress={() => handleSelectModulo('proveedores')}
-            title="Administrar proveedores"
             accessibilityRole="tab"
             accessibilityState={{ selected: modulo === 'proveedores' }}
             accessibilityLabel="Módulo de proveedores"
@@ -586,7 +577,7 @@ export default function AdminScreen() {
                     fetchMuebles(1);
                   }}
                   hitSlop={8}
-                  title="Limpiar búsqueda"
+                  accessibilityRole="button"
                   accessibilityLabel="Limpiar búsqueda"
                 >
                   <Ionicons name="close-circle" size={18} color={colors.textMuted} />
@@ -597,9 +588,9 @@ export default function AdminScreen() {
             <Pressable
               style={[styles.createButton, { backgroundColor: colors.accent }]}
               onPress={() => router.push('/(app)/mueble/form')}
-              title="Registrar nuevo mueble"
               accessibilityRole="button"
               accessibilityLabel="Nuevo mueble"
+              accessibilityHint="Abre el formulario para registrar un nuevo mueble"
             >
               <Ionicons name="add" size={18} color="#FFFFFF" />
               <Text style={styles.createButtonText}>Nuevo</Text>
@@ -679,7 +670,6 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: colors.border }]}
                         onPress={() => router.push(`/(app)/mueble/form?id=${item.id}`)}
-                        title={`Editar ${item.nombre}`}
                         accessibilityRole="button"
                         accessibilityLabel={`Editar mueble ${item.nombre}`}
                       >
@@ -690,7 +680,6 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: `${colors.danger}40`, backgroundColor: `${colors.danger}10` }]}
                         onPress={() => handleDeleteMueble(item)}
-                        title={`Eliminar ${item.nombre}`}
                         accessibilityRole="button"
                         accessibilityLabel={`Eliminar mueble ${item.nombre}`}
                       >
@@ -728,7 +717,6 @@ export default function AdminScreen() {
             <Pressable
               style={[styles.createButton, { backgroundColor: colors.accent }]}
               onPress={handleOpenCreateCategoria}
-              title="Crear nueva categoría"
               accessibilityRole="button"
               accessibilityLabel="Nueva categoría"
             >
@@ -791,7 +779,6 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: colors.border }]}
                         onPress={() => handleOpenEditCategoria(item)}
-                        title={`Editar categoría ${item.nombre}`}
                         accessibilityRole="button"
                         accessibilityLabel={`Editar categoría ${item.nombre}`}
                       >
@@ -802,7 +789,6 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: `${colors.danger}40`, backgroundColor: `${colors.danger}10` }]}
                         onPress={() => handleDeleteCategoria(item)}
-                        title={`Eliminar categoría ${item.nombre}`}
                         accessibilityRole="button"
                         accessibilityLabel={`Eliminar categoría ${item.nombre}`}
                       >
@@ -833,7 +819,6 @@ export default function AdminScreen() {
             <Pressable
               style={[styles.createButton, { backgroundColor: colors.accent }]}
               onPress={handleOpenCreateProveedor}
-              title="Registrar nuevo proveedor"
               accessibilityRole="button"
               accessibilityLabel="Nuevo proveedor"
             >
@@ -915,7 +900,6 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: colors.border }]}
                         onPress={() => handleOpenEditProveedor(item)}
-                        title={`Editar proveedor ${item.nombre}`}
                         accessibilityRole="button"
                         accessibilityLabel={`Editar proveedor ${item.nombre}`}
                       >
@@ -926,7 +910,6 @@ export default function AdminScreen() {
                       <Pressable
                         style={[styles.actionBtn, { borderColor: `${colors.danger}40`, backgroundColor: `${colors.danger}10` }]}
                         onPress={() => handleDeleteProveedor(item)}
-                        title={`Eliminar proveedor ${item.nombre}`}
                         accessibilityRole="button"
                         accessibilityLabel={`Eliminar proveedor ${item.nombre}`}
                       >
@@ -972,7 +955,7 @@ export default function AdminScreen() {
               <Pressable
                 onPress={() => setCatModalVisible(false)}
                 hitSlop={8}
-                title="Cerrar"
+                accessibilityRole="button"
                 accessibilityLabel="Cerrar"
               >
                 <Ionicons name="close" size={22} color={colors.textMuted} />
@@ -1023,7 +1006,6 @@ export default function AdminScreen() {
                 ]}
                 onPress={handleSaveCategoria}
                 disabled={submittingCat}
-                title={catModalMode === 'create' ? 'Crear categoría' : 'Guardar cambios de categoría'}
                 accessibilityRole="button"
                 accessibilityLabel={catModalMode === 'create' ? 'Crear categoría' : 'Guardar cambios de categoría'}
               >
@@ -1070,7 +1052,7 @@ export default function AdminScreen() {
               <Pressable
                 onPress={() => setProvModalVisible(false)}
                 hitSlop={8}
-                title="Cerrar"
+                accessibilityRole="button"
                 accessibilityLabel="Cerrar"
               >
                 <Ionicons name="close" size={22} color={colors.textMuted} />
@@ -1147,7 +1129,6 @@ export default function AdminScreen() {
                 ]}
                 onPress={handleSaveProveedor}
                 disabled={submittingProv}
-                title={provModalMode === 'create' ? 'Registrar proveedor' : 'Guardar cambios de proveedor'}
                 accessibilityRole="button"
                 accessibilityLabel={provModalMode === 'create' ? 'Registrar proveedor' : 'Guardar cambios de proveedor'}
               >
