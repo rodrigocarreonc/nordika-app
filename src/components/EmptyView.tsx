@@ -1,7 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
-import { Colors } from '../constants/theme';
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useColorScheme,
+} from "react-native";
+import { Colors } from "../constants/theme";
 
 interface EmptyViewProps {
   title: string;
@@ -14,21 +20,28 @@ interface EmptyViewProps {
 export const EmptyView: React.FC<EmptyViewProps> = ({
   title,
   description,
-  icon = 'cube-outline',
+  icon = "cube-outline",
   actionLabel,
   onAction,
 }) => {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.iconCircle, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View
+        style={[
+          styles.iconCircle,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
         <Ionicons name={icon} size={44} color={colors.textMuted} />
       </View>
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
       {description ? (
-        <Text style={[styles.description, { color: colors.textMuted }]}>{description}</Text>
+        <Text style={[styles.description, { color: colors.textMuted }]}>
+          {description}
+        </Text>
       ) : null}
       {actionLabel && onAction ? (
         <Pressable
@@ -51,8 +64,8 @@ export const EmptyView: React.FC<EmptyViewProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 32,
   },
   iconCircle: {
@@ -60,19 +73,19 @@ const styles = StyleSheet.create({
     height: 88,
     borderRadius: 44,
     borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 6,
   },
   description: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 20,
     marginBottom: 20,
   },
@@ -82,8 +95,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   actionText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
     fontSize: 14,
   },
 });

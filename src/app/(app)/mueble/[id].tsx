@@ -282,7 +282,9 @@ export default function MuebleDetailsScreen() {
             onPress={handleToggleFav}
             disabled={favLoading}
             accessibilityRole="button"
-            accessibilityLabel={mueble.is_favorito ? "Quitar de favoritos" : "Agregar a favoritos"}
+            accessibilityLabel={
+              mueble.is_favorito ? "Quitar de favoritos" : "Agregar a favoritos"
+            }
             accessibilityHint="Guarda o quita este mueble de tu lista de favoritos"
           >
             {favLoading ? (

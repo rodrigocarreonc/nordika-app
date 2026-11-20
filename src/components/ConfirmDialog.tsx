@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -7,11 +7,11 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../hooks/use-theme';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../hooks/use-theme";
 
-export type DialogButtonStyle = 'default' | 'cancel' | 'destructive';
+export type DialogButtonStyle = "default" | "cancel" | "destructive";
 
 export interface DialogButton {
   text: string;
@@ -25,7 +25,7 @@ export interface ConfirmDialogProps {
   message?: string;
   confirmText?: string;
   cancelText?: string;
-  confirmStyle?: 'default' | 'destructive';
+  confirmStyle?: "default" | "destructive";
   buttons?: DialogButton[];
   loading?: boolean;
   onConfirm?: () => void | Promise<void>;
@@ -37,9 +37,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   visible,
   title,
   message,
-  confirmText = 'Aceptar',
-  cancelText = 'Cancelar',
-  confirmStyle = 'default',
+  confirmText = "Aceptar",
+  cancelText = "Cancelar",
+  confirmStyle = "default",
   buttons,
   loading: externalLoading = false,
   onConfirm,
@@ -73,19 +73,33 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     }
   };
 
-  const isDestructive = confirmStyle === 'destructive';
+  const isDestructive = confirmStyle === "destructive";
 
   // Determine icon
   const getIcon = () => {
     if (isDestructive) {
       return (
-        <View style={[styles.iconContainer, { backgroundColor: `${colors.danger}15` }]}>
-          <Ionicons name="alert-circle-outline" size={26} color={colors.danger} />
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: `${colors.danger}15` },
+          ]}
+        >
+          <Ionicons
+            name="alert-circle-outline"
+            size={26}
+            color={colors.danger}
+          />
         </View>
       );
     }
     return (
-      <View style={[styles.iconContainer, { backgroundColor: `${colors.accent}15` }]}>
+      <View
+        style={[
+          styles.iconContainer,
+          { backgroundColor: `${colors.accent}15` },
+        ]}
+      >
         <Ionicons name="help-circle-outline" size={26} color={colors.accent} />
       </View>
     );
@@ -121,7 +135,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <View style={styles.headerRow}>
             {getIcon()}
             <View style={styles.titleWrapper}>
-              <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {title}
+              </Text>
             </View>
           </View>
 
@@ -133,17 +149,22 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
           {/* Button actions */}
           {buttons && buttons.length > 0 ? (
-            <View style={[styles.buttonsContainer, buttons.length > 2 && styles.buttonsColumn]}>
+            <View
+              style={[
+                styles.buttonsContainer,
+                buttons.length > 2 && styles.buttonsColumn,
+              ]}
+            >
               {buttons.map((btn, index) => {
-                const isBtnDestructive = btn.style === 'destructive';
-                const isBtnCancel = btn.style === 'cancel';
+                const isBtnDestructive = btn.style === "destructive";
+                const isBtnCancel = btn.style === "cancel";
 
                 let bg = colors.accent;
-                let textCol = '#FFFFFF';
+                let textCol = "#FFFFFF";
 
                 if (isBtnDestructive) {
                   bg = colors.danger;
-                  textCol = '#FFFFFF';
+                  textCol = "#FFFFFF";
                 } else if (isBtnCancel) {
                   bg = colors.backgroundElement;
                   textCol = colors.text;
@@ -155,14 +176,16 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                     style={[
                       styles.btn,
                       { backgroundColor: bg },
-                      Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+                      Platform.OS === "web" && ({ cursor: "pointer" } as any),
                     ]}
                     onPress={() => handleAction(btn.onPress)}
                     disabled={isLoading}
                     accessibilityRole="button"
                     accessibilityLabel={btn.text}
                   >
-                    <Text style={[styles.btnText, { color: textCol }]}>{btn.text}</Text>
+                    <Text style={[styles.btnText, { color: textCol }]}>
+                      {btn.text}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -174,8 +197,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                   style={[
                     styles.btn,
                     styles.btnCancel,
-                    { backgroundColor: colors.backgroundElement, borderColor: colors.border },
-                    Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+                    {
+                      backgroundColor: colors.backgroundElement,
+                      borderColor: colors.border,
+                    },
+                    Platform.OS === "web" && ({ cursor: "pointer" } as any),
                   ]}
                   onPress={() => handleAction(onCancel || onClose)}
                   disabled={isLoading}
@@ -192,10 +218,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 style={[
                   styles.btn,
                   {
-                    backgroundColor: isDestructive ? colors.danger : colors.accent,
+                    backgroundColor: isDestructive
+                      ? colors.danger
+                      : colors.accent,
                     opacity: isLoading ? 0.7 : 1,
                   },
-                  Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+                  Platform.OS === "web" && ({ cursor: "pointer" } as any),
                 ]}
                 onPress={() => handleAction(onConfirm)}
                 disabled={isLoading}
@@ -205,7 +233,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 {isLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={[styles.btnText, { color: '#FFFFFF' }]}>
+                  <Text style={[styles.btnText, { color: "#FFFFFF" }]}>
                     {confirmText}
                   </Text>
                 )}
@@ -220,29 +248,29 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
     zIndex: 9999,
   },
   card: {
-    width: '100%',
+    width: "100%",
     maxWidth: 440,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.2,
         shadowRadius: 16,
@@ -251,21 +279,21 @@ const styles = StyleSheet.create({
         elevation: 8,
       },
       web: {
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.2)',
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.2)",
       } as any,
     }),
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
   iconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 14,
   },
   titleWrapper: {
@@ -273,7 +301,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: "700",
     lineHeight: 22,
   },
   message: {
@@ -282,29 +310,29 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   buttonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
     gap: 10,
     marginTop: 8,
   },
   buttonsColumn: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
+    flexDirection: "column",
+    alignItems: "stretch",
   },
   btn: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
     minWidth: 90,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   btnCancel: {
     borderWidth: 1,
   },
   btnText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

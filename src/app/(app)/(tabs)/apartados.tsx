@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,25 +10,29 @@ import {
   Text,
   View,
   useColorScheme,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Badge } from '../../../components/Badge';
-import { EmptyView } from '../../../components/EmptyView';
-import { ErrorView } from '../../../components/ErrorView';
-import { LoadingView } from '../../../components/LoadingView';
-import { Pagination } from '../../../components/Pagination';
-import { Colors } from '../../../constants/theme';
-import { dialog } from '../../../context/DialogContext';
-import { Apartado } from '../../../types';
-import { apiAceptarApartado, apiGetApartados, apiRechazarApartado } from '../../../utils/api';
-import { getStoredPageSize } from '../../../utils/settingsStorage';
-import { getUser } from '../../../utils/tokenStorage';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Badge } from "../../../components/Badge";
+import { EmptyView } from "../../../components/EmptyView";
+import { ErrorView } from "../../../components/ErrorView";
+import { LoadingView } from "../../../components/LoadingView";
+import { Pagination } from "../../../components/Pagination";
+import { Colors } from "../../../constants/theme";
+import { dialog } from "../../../context/DialogContext";
+import { Apartado } from "../../../types";
+import {
+  apiAceptarApartado,
+  apiGetApartados,
+  apiRechazarApartado,
+} from "../../../utils/api";
+import { getStoredPageSize } from "../../../utils/settingsStorage";
+import { getUser } from "../../../utils/tokenStorage";
 
 const ESTADO_BADGE = {
-  PENDIENTE: { label: 'Pendiente', variant: 'warning' },
-  ACEPTADO: { label: 'Aceptado', variant: 'success' },
-  RECHAZADO: { label: 'Rechazado', variant: 'danger' },
-  CANCELADO: { label: 'Vencido', variant: 'neutral' },
+  PENDIENTE: { label: "Pendiente", variant: "warning" },
+  ACEPTADO: { label: "Aceptado", variant: "success" },
+  RECHAZADO: { label: "Rechazado", variant: "danger" },
+  CANCELADO: { label: "Vencido", variant: "neutral" },
 } as const;
 
 /** Tiempo restante legible: "4d 6h", "5h 20m", "12m". */
@@ -43,13 +47,15 @@ const formatRestante = (ms: number) => {
 };
 
 const formatPrice = (price: string | number) => {
-  const num = typeof price === 'number' ? price : parseFloat(price);
-  return isNaN(num) ? '$0.00' : `$${num.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+  const num = typeof price === "number" ? price : parseFloat(price);
+  return isNaN(num)
+    ? "$0.00"
+    : `$${num.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
 };
 
 export default function ApartadosScreen() {
   const router = useRouter();
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
   const [isStaff, setIsStaff] = useState(false);
@@ -58,7 +64,7 @@ export default function ApartadosScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
-  const [vista, setVista] = useState<'activos' | 'historial'>('activos');
+  const [vista, setVista] = useState<"activos" | "historial">("activos");
   const [now, setNow] = useState(() => Date.now());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -72,7 +78,12 @@ export default function ApartadosScreen() {
   }, []);
 
   const fetchApartados = useCallback(
-    async (targetPage = 1, size = pageSize, isRefresh = false, currentVista = vista) => {
+    async (
+      targetPage = 1,
+      size = pageSize,
+      isRefresh = false,
+      currentVista = vista,
+    ) => {
       try {
         if (!isRefresh) setLoading(true);
         setError(null);
@@ -83,8 +94,8 @@ export default function ApartadosScreen() {
           page: targetPage,
           page_size: size,
         };
-        if (currentVista === 'activos') {
-          params.estado = 'PENDIENTE';
+        if (currentVista === "activos") {
+          params.estado = "PENDIENTE";
         } else {
           params.historial = true;
         }
@@ -95,13 +106,13 @@ export default function ApartadosScreen() {
         setTotalPages(Math.max(1, Math.ceil(res.count / size)));
         setPage(targetPage);
       } catch (err: any) {
-        setError(err.message || 'Error al obtener los apartados.');
+        setError(err.message || "Error al obtener los apartados.");
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [pageSize, vista]
+    [pageSize, vista],
   );
 
   useFocusEffect(
@@ -115,7 +126,7 @@ export default function ApartadosScreen() {
       return () => {
         isMounted = false;
       };
-    }, [fetchApartados, vista])
+    }, [fetchApartados, vista]),
   );
 
   const handleRefresh = () => {
@@ -123,23 +134,26 @@ export default function ApartadosScreen() {
     fetchApartados(page, pageSize, true, vista);
   };
 
-  const handleSelectVista = (newVista: 'activos' | 'historial') => {
+  const handleSelectVista = (newVista: "activos" | "historial") => {
     if (newVista === vista) return;
     setVista(newVista);
     setPage(1);
     fetchApartados(1, pageSize, false, newVista);
   };
 
-  const resolver = async (apartado: Apartado, accion: 'aceptar' | 'rechazar') => {
-    const aceptar = accion === 'aceptar';
+  const resolver = async (
+    apartado: Apartado,
+    accion: "aceptar" | "rechazar",
+  ) => {
+    const aceptar = accion === "aceptar";
     const confirmed = await dialog.confirm({
-      title: aceptar ? 'Aceptar apartado' : 'Rechazar apartado',
+      title: aceptar ? "Aceptar apartado" : "Rechazar apartado",
       message: aceptar
         ? `${apartado.codigo}: se registrará la venta de ${apartado.cantidad} x "${apartado.mueble.nombre}".`
         : `${apartado.codigo}: se liberarán ${apartado.cantidad} unidades de "${apartado.mueble.nombre}" al stock.`,
-      confirmText: aceptar ? 'Aceptar' : 'Rechazar',
-      cancelText: 'Cancelar',
-      confirmStyle: aceptar ? 'default' : 'destructive',
+      confirmText: aceptar ? "Aceptar" : "Rechazar",
+      cancelText: "Cancelar",
+      confirmStyle: aceptar ? "default" : "destructive",
     });
 
     if (!confirmed) return;
@@ -156,8 +170,8 @@ export default function ApartadosScreen() {
       await fetchApartados(targetPage, pageSize, false, vista);
     } catch (err: any) {
       dialog.alert({
-        title: 'Error',
-        message: err.message || 'No se pudo actualizar el apartado.',
+        title: "Error",
+        message: err.message || "No se pudo actualizar el apartado.",
       });
     } finally {
       setResolvingId(null);
@@ -168,12 +182,16 @@ export default function ApartadosScreen() {
 
   const renderItem = ({ item }: { item: Apartado }) => {
     const badge = ESTADO_BADGE[item.estado];
-    const total = item.venta?.total ?? Number(item.mueble.precio) * item.cantidad;
+    const total =
+      item.venta?.total ?? Number(item.mueble.precio) * item.cantidad;
     const resolving = resolvingId === item.id;
 
     return (
       <View
-        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[
+          styles.card,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
       >
         <Pressable
           onPress={() => router.push(`/(app)/mueble/${item.mueble.id}`)}
@@ -182,20 +200,34 @@ export default function ApartadosScreen() {
           accessibilityHint="Toca para ver el detalle de este mueble"
         >
           <View style={styles.cardHeader}>
-            <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
+            <Text
+              style={[styles.cardTitle, { color: colors.text }]}
+              numberOfLines={1}
+            >
               {item.mueble.nombre}
             </Text>
             <Badge label={badge.label} variant={badge.variant} size="small" />
           </View>
-          <Text style={[styles.cardCode, { color: colors.accent }]}>{item.codigo}</Text>
+          <Text style={[styles.cardCode, { color: colors.accent }]}>
+            {item.codigo}
+          </Text>
 
           <Text style={[styles.cardDetail, { color: colors.textMuted }]}>
-            {item.cantidad} {item.cantidad === 1 ? 'pieza' : 'piezas'} · Total {formatPrice(total)}
+            {item.cantidad} {item.cantidad === 1 ? "pieza" : "piezas"} · Total{" "}
+            {formatPrice(total)}
           </Text>
           {isStaff ? (
             <View style={{ marginVertical: 4 }}>
-              <Text style={[styles.cardDetail, { color: colors.text, fontWeight: '600' }]}>
-                Cliente: {item.usuario_nombre ? `${item.usuario_nombre} (@${item.usuario_username})` : item.usuario_username}
+              <Text
+                style={[
+                  styles.cardDetail,
+                  { color: colors.text, fontWeight: "600" },
+                ]}
+              >
+                Cliente:{" "}
+                {item.usuario_nombre
+                  ? `${item.usuario_nombre} (@${item.usuario_username})`
+                  : item.usuario_username}
               </Text>
               {item.usuario_email ? (
                 <Text style={[styles.cardDetail, { color: colors.textMuted }]}>
@@ -205,49 +237,74 @@ export default function ApartadosScreen() {
             </View>
           ) : null}
           <Text style={[styles.cardDate, { color: colors.textMuted }]}>
-            {new Date(item.creado_en).toLocaleString('es-MX')}
+            {new Date(item.creado_en).toLocaleString("es-MX")}
           </Text>
 
-          {item.estado === 'PENDIENTE' ? (() => {
-            const restante = new Date(item.expira_en).getTime() - now;
-            const urgente = restante < 24 * 3600 * 1000;
-            const color = urgente ? colors.danger : colors.warning;
-            return (
-              <View style={[styles.countdown, { backgroundColor: `${color}15` }]}>
-                <Ionicons name="time-outline" size={14} color={color} />
-                <Text style={[styles.countdownText, { color }]}>
-                  {restante > 0 ? `Vence en ${formatRestante(restante)}` : 'Vencido, se cancelará al actualizar'}
-                </Text>
-              </View>
-            );
-          })() : null}
+          {item.estado === "PENDIENTE"
+            ? (() => {
+                const restante = new Date(item.expira_en).getTime() - now;
+                const urgente = restante < 24 * 3600 * 1000;
+                const color = urgente ? colors.danger : colors.warning;
+                return (
+                  <View
+                    style={[
+                      styles.countdown,
+                      { backgroundColor: `${color}15` },
+                    ]}
+                  >
+                    <Ionicons name="time-outline" size={14} color={color} />
+                    <Text style={[styles.countdownText, { color }]}>
+                      {restante > 0
+                        ? `Vence en ${formatRestante(restante)}`
+                        : "Vencido, se cancelará al actualizar"}
+                    </Text>
+                  </View>
+                );
+              })()
+            : null}
         </Pressable>
 
-        {isStaff && item.estado === 'PENDIENTE' ? (
+        {isStaff && item.estado === "PENDIENTE" ? (
           <View style={styles.actionsRow}>
             {resolving ? (
               <ActivityIndicator color={colors.accent} />
             ) : (
               <>
                 <Pressable
-                  style={[styles.actionButton, { backgroundColor: `${colors.danger}15`, borderColor: `${colors.danger}40` }]}
-                  onPress={() => resolver(item, 'rechazar')}
+                  style={[
+                    styles.actionButton,
+                    {
+                      backgroundColor: `${colors.danger}15`,
+                      borderColor: `${colors.danger}40`,
+                    },
+                  ]}
+                  onPress={() => resolver(item, "rechazar")}
                   accessibilityRole="button"
                   accessibilityLabel="Rechazar apartado"
                   accessibilityHint="Cancela este apartado y regresa las unidades al inventario disponible"
                 >
                   <Ionicons name="close" size={16} color={colors.danger} />
-                  <Text style={[styles.actionText, { color: colors.danger }]}>Rechazar</Text>
+                  <Text style={[styles.actionText, { color: colors.danger }]}>
+                    Rechazar
+                  </Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.actionButton, { backgroundColor: colors.accent, borderColor: colors.accent }]}
-                  onPress={() => resolver(item, 'aceptar')}
+                  style={[
+                    styles.actionButton,
+                    {
+                      backgroundColor: colors.accent,
+                      borderColor: colors.accent,
+                    },
+                  ]}
+                  onPress={() => resolver(item, "aceptar")}
                   accessibilityRole="button"
                   accessibilityLabel="Aceptar apartado"
                   accessibilityHint="Aprueba el apartado y formaliza la venta de los muebles"
                 >
                   <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                  <Text style={[styles.actionText, { color: '#FFFFFF' }]}>Aceptar</Text>
+                  <Text style={[styles.actionText, { color: "#FFFFFF" }]}>
+                    Aceptar
+                  </Text>
                 </Pressable>
               </>
             )}
@@ -258,26 +315,31 @@ export default function ApartadosScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      edges={["top", "left", "right"]}
+    >
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {isStaff ? 'Gestión de Apartados' : 'Mis Apartados'}
+            {isStaff ? "Gestión de Apartados" : "Mis Apartados"}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-            {vista === 'activos'
-                ? `${totalCount} ${totalCount === 1 ? 'apartado activo' : 'apartados activos'}`
-                : `${totalCount} ${totalCount === 1 ? 'apartado resuelto' : 'apartados resueltos'}`}
+            {vista === "activos"
+              ? `${totalCount} ${totalCount === 1 ? "apartado activo" : "apartados activos"}`
+              : `${totalCount} ${totalCount === 1 ? "apartado resuelto" : "apartados resueltos"}`}
           </Text>
         </View>
 
-        <View style={[styles.iconPill, { backgroundColor: `${colors.accent}15` }]}>
+        <View
+          style={[styles.iconPill, { backgroundColor: `${colors.accent}15` }]}
+        >
           <Ionicons name="bookmark" size={20} color={colors.accent} />
         </View>
       </View>
 
       <View style={styles.tabsRow}>
-        {(['activos', 'historial'] as const).map((v) => (
+        {(["activos", "historial"] as const).map((v) => (
           <Pressable
             key={v}
             style={[
@@ -289,11 +351,18 @@ export default function ApartadosScreen() {
             onPress={() => handleSelectVista(v)}
             accessibilityRole="tab"
             accessibilityState={{ selected: vista === v }}
-            accessibilityLabel={v === 'activos' ? 'Pestaña Activos' : 'Pestaña Historial'}
-            accessibilityHint={`Filtra la lista para mostrar apartados ${v === 'activos' ? 'pendientes' : 'resueltos'}`}
+            accessibilityLabel={
+              v === "activos" ? "Pestaña Activos" : "Pestaña Historial"
+            }
+            accessibilityHint={`Filtra la lista para mostrar apartados ${v === "activos" ? "pendientes" : "resueltos"}`}
           >
-            <Text style={[styles.tabChipText, { color: vista === v ? '#FFFFFF' : colors.text }]}>
-              {v === 'activos' ? 'Activos' : 'Historial'}
+            <Text
+              style={[
+                styles.tabChipText,
+                { color: vista === v ? "#FFFFFF" : colors.text },
+              ]}
+            >
+              {v === "activos" ? "Activos" : "Historial"}
             </Text>
           </Pressable>
         ))}
@@ -302,7 +371,10 @@ export default function ApartadosScreen() {
       {loading && !refreshing ? (
         <LoadingView message="Cargando apartados..." />
       ) : error ? (
-        <ErrorView message={error} onRetry={() => fetchApartados(page, pageSize, false, vista)} />
+        <ErrorView
+          message={error}
+          onRetry={() => fetchApartados(page, pageSize, false, vista)}
+        />
       ) : (
         <FlatList
           data={lista}
@@ -330,24 +402,32 @@ export default function ApartadosScreen() {
           ListEmptyComponent={
             <EmptyView
               title={
-                vista === 'historial'
-                  ? 'Sin historial'
+                vista === "historial"
+                  ? "Sin historial"
                   : isStaff
-                    ? 'No hay apartados pendientes'
-                    : 'No tienes apartados activos'
+                    ? "No hay apartados pendientes"
+                    : "No tienes apartados activos"
               }
               description={
-                vista === 'historial'
+                vista === "historial"
                   ? isStaff
-                    ? 'Aquí verás los apartados aceptados, rechazados o vencidos.'
-                    : 'Aquí verás tus apartados aceptados, rechazados o vencidos.'
+                    ? "Aquí verás los apartados aceptados, rechazados o vencidos."
+                    : "Aquí verás tus apartados aceptados, rechazados o vencidos."
                   : isStaff
-                    ? 'Cuando un cliente aparte un mueble aparecerá aquí para que lo revises.'
-                    : 'Abre un mueble del catálogo y apártalo para reservar tus piezas.'
+                    ? "Cuando un cliente aparte un mueble aparecerá aquí para que lo revises."
+                    : "Abre un mueble del catálogo y apártalo para reservar tus piezas."
               }
-              icon={vista === 'historial' ? 'time-outline' : 'bookmark-outline'}
-              actionLabel={isStaff || vista === 'historial' ? undefined : 'Explorar catálogo'}
-              onAction={isStaff || vista === 'historial' ? undefined : () => router.replace('/')}
+              icon={vista === "historial" ? "time-outline" : "bookmark-outline"}
+              actionLabel={
+                isStaff || vista === "historial"
+                  ? undefined
+                  : "Explorar catálogo"
+              }
+              onAction={
+                isStaff || vista === "historial"
+                  ? undefined
+                  : () => router.replace("/")
+              }
             />
           }
         />
@@ -361,16 +441,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 14,
     borderBottomWidth: 1,
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   headerSubtitle: {
     fontSize: 12,
@@ -380,11 +460,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   tabsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     paddingHorizontal: 18,
     paddingTop: 12,
@@ -394,11 +474,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   tabChipText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   listContent: {
     padding: 18,
@@ -412,20 +492,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     gap: 8,
     marginBottom: 6,
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     flex: 1,
   },
   cardCode: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0.5,
     marginBottom: 4,
   },
@@ -438,9 +518,9 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   countdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -449,17 +529,17 @@ const styles = StyleSheet.create({
   },
   countdownText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     gap: 8,
     marginTop: 12,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -468,6 +548,6 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });

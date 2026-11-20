@@ -1,7 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
-import { Colors } from '../constants/theme';
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useColorScheme,
+} from "react-native";
+import { Colors } from "../constants/theme";
 
 interface ErrorViewProps {
   message: string;
@@ -12,18 +18,22 @@ interface ErrorViewProps {
 export const ErrorView: React.FC<ErrorViewProps> = ({
   message,
   onRetry,
-  title = 'Ha ocurrido un problema',
+  title = "Ha ocurrido un problema",
 }) => {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.iconCircle, { backgroundColor: `${colors.danger}15` }]}>
+      <View
+        style={[styles.iconCircle, { backgroundColor: `${colors.danger}15` }]}
+      >
         <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
       </View>
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-      <Text style={[styles.message, { color: colors.textMuted }]}>{message}</Text>
+      <Text style={[styles.message, { color: colors.textMuted }]}>
+        {message}
+      </Text>
       {onRetry ? (
         <Pressable
           style={({ pressed }) => [
@@ -35,8 +45,15 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
           accessibilityLabel="Reintentar"
           accessibilityHint="Vuelve a intentar cargar la información"
         >
-          <Ionicons name="refresh-outline" size={18} color={colors.onPrimary} style={{ marginRight: 8 }} />
-          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>Reintentar</Text>
+          <Ionicons
+            name="refresh-outline"
+            size={18}
+            color={colors.onPrimary}
+            style={{ marginRight: 8 }}
+          />
+          <Text style={[styles.retryButtonText, { color: colors.onPrimary }]}>
+            Reintentar
+          </Text>
         </Pressable>
       ) : null}
     </View>
@@ -46,39 +63,39 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 32,
   },
   iconCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   message: {
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
   },
   retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 15,
   },
 });

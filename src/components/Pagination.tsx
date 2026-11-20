@@ -1,7 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
-import { Colors } from '../constants/theme';
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useColorScheme,
+} from "react-native";
+import { Colors } from "../constants/theme";
 
 interface PaginationProps {
   page: number;
@@ -14,7 +20,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   totalPages,
   onPageChange,
 }) => {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
   if (totalPages <= 1) {
@@ -51,7 +57,7 @@ export const Pagination: React.FC<PaginationProps> = ({
       </Pressable>
 
       <Text style={[styles.pageIndicator, { color: colors.text }]}>
-        Pág. <Text style={{ fontWeight: '800' }}>{page}</Text> de {totalPages}
+        Pág. <Text style={{ fontWeight: "800" }}>{page}</Text> de {totalPages}
       </Text>
 
       <Pressable
@@ -86,16 +92,16 @@ export const Pagination: React.FC<PaginationProps> = ({
 
 const styles = StyleSheet.create({
   paginationRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
   },
   pageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
@@ -107,7 +113,7 @@ const styles = StyleSheet.create({
   },
   pageButtonText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   pageIndicator: {
     fontSize: 13,

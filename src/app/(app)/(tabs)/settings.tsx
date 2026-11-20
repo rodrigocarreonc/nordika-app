@@ -12,7 +12,7 @@ import {
   Text,
   TextInput,
   View,
-  useColorScheme
+  useColorScheme,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge } from "../../../components/Badge";
@@ -812,7 +812,9 @@ export default function SettingsScreen() {
                   }
                 >
                   <Ionicons
-                    name={showClientPassword ? "eye-off-outline" : "eye-outline"}
+                    name={
+                      showClientPassword ? "eye-off-outline" : "eye-outline"
+                    }
                     size={18}
                     color={colors.textMuted}
                   />

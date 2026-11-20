@@ -1,9 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
-import { File as FsFile } from 'expo-file-system';
-import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { File as FsFile } from "expo-file-system";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,12 +15,12 @@ import {
   TextInput,
   View,
   useColorScheme,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LoadingView } from '../../../components/LoadingView';
-import { Colors } from '../../../constants/theme';
-import { dialog } from '../../../context/DialogContext';
-import { Categoria, Proveedor } from '../../../types';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LoadingView } from "../../../components/LoadingView";
+import { Colors } from "../../../constants/theme";
+import { dialog } from "../../../context/DialogContext";
+import { Categoria, Proveedor } from "../../../types";
 import {
   apiCreateMueble,
   apiGetCategorias,
@@ -28,14 +28,14 @@ import {
   apiGetProveedores,
   apiUpdateMueble,
   resolveImageUrl,
-} from '../../../utils/api';
-import { safeBack } from '../../../utils/navigation';
-import { getUser } from '../../../utils/tokenStorage';
+} from "../../../utils/api";
+import { safeBack } from "../../../utils/navigation";
+import { getUser } from "../../../utils/tokenStorage";
 
 export default function MuebleFormScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
   const editId = id ? Number(id) : null;
@@ -49,19 +49,23 @@ export default function MuebleFormScreen() {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
 
   // Campos de formulario
-  const [nombre, setNombre] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [precio, setPrecio] = useState('');
-  const [stock, setStock] = useState('0');
-  const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(null);
-  const [selectedProveedorId, setSelectedProveedorId] = useState<number | null>(null);
+  const [nombre, setNombre] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [precio, setPrecio] = useState("");
+  const [stock, setStock] = useState("0");
+  const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(
+    null,
+  );
+  const [selectedProveedorId, setSelectedProveedorId] = useState<number | null>(
+    null,
+  );
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageAsset, setImageAsset] = useState<any>(null);
 
   useEffect(() => {
     getUser().then((u) => {
       if (!u?.is_staff) {
-        router.replace('/(app)/(tabs)');
+        router.replace("/(app)/(tabs)");
       }
     });
   }, [router]);
@@ -83,7 +87,7 @@ export default function MuebleFormScreen() {
       apiGetMueble(editId)
         .then(async (m) => {
           setNombre(m.nombre);
-          setDescripcion(m.descripcion || '');
+          setDescripcion(m.descripcion || "");
           setPrecio(m.precio.toString());
           setStock(m.stock.toString());
           if (m.categoria?.id) setSelectedCategoriaId(m.categoria.id);
@@ -94,7 +98,10 @@ export default function MuebleFormScreen() {
           }
         })
         .catch((err) => {
-          dialog.alert({ title: 'Error', message: err.message || 'No se pudo cargar el mueble' });
+          dialog.alert({
+            title: "Error",
+            message: err.message || "No se pudo cargar el mueble",
+          });
         })
         .finally(() => {
           setLoadingInitial(false);
@@ -105,7 +112,7 @@ export default function MuebleFormScreen() {
   const handlePickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -117,31 +124,46 @@ export default function MuebleFormScreen() {
         setImageAsset(asset);
       }
     } catch {
-      dialog.alert({ title: 'Error', message: 'No se pudo abrir la galería de imágenes.' });
+      dialog.alert({
+        title: "Error",
+        message: "No se pudo abrir la galería de imágenes.",
+      });
     }
   };
 
   const handleSubmit = async () => {
     const trimmedNombre = nombre.trim();
     if (!trimmedNombre) {
-      dialog.alert({ title: 'Validación', message: 'El nombre del mueble es obligatorio.' });
+      dialog.alert({
+        title: "Validación",
+        message: "El nombre del mueble es obligatorio.",
+      });
       return;
     }
 
     const numPrecio = parseFloat(precio);
     if (isNaN(numPrecio) || numPrecio <= 0) {
-      dialog.alert({ title: 'Validación', message: 'Ingresa un precio válido mayor a 0.' });
+      dialog.alert({
+        title: "Validación",
+        message: "Ingresa un precio válido mayor a 0.",
+      });
       return;
     }
 
     const numStock = parseInt(stock, 10);
     if (isNaN(numStock) || numStock < 0) {
-      dialog.alert({ title: 'Validación', message: 'El stock debe ser un número entero mayor o igual a 0.' });
+      dialog.alert({
+        title: "Validación",
+        message: "El stock debe ser un número entero mayor o igual a 0.",
+      });
       return;
     }
 
     if (!selectedProveedorId) {
-      dialog.alert({ title: 'Validación', message: 'Debes seleccionar un proveedor.' });
+      dialog.alert({
+        title: "Validación",
+        message: "Debes seleccionar un proveedor.",
+      });
       return;
     }
 
@@ -151,18 +173,21 @@ export default function MuebleFormScreen() {
       // Si hay una nueva imagen seleccionada, usamos FormData
       if (imageAsset) {
         const formData = new FormData();
-        formData.append('nombre', trimmedNombre);
-        formData.append('descripcion', descripcion.trim());
-        formData.append('precio', numPrecio.toFixed(2));
-        formData.append('stock', numStock.toString());
-        formData.append('proveedor_id', selectedProveedorId.toString());
+        formData.append("nombre", trimmedNombre);
+        formData.append("descripcion", descripcion.trim());
+        formData.append("precio", numPrecio.toFixed(2));
+        formData.append("stock", numStock.toString());
+        formData.append("proveedor_id", selectedProveedorId.toString());
         if (selectedCategoriaId) {
-          formData.append('categoria_id', selectedCategoriaId.toString());
+          formData.append("categoria_id", selectedCategoriaId.toString());
         }
 
         // FormData solo sube Blobs: en web el File del navegador, en el celular el File de expo-file-system.
         // Un objeto {uri, name, type} se envía como "[object Object]" (el fetch global del SDK 58 es expo/fetch).
-        formData.append('imagen', imageAsset.file ?? new FsFile(imageAsset.uri));
+        formData.append(
+          "imagen",
+          imageAsset.file ?? new FsFile(imageAsset.uri),
+        );
 
         if (isEditing) {
           await apiUpdateMueble(editId, formData);
@@ -188,12 +213,17 @@ export default function MuebleFormScreen() {
       }
 
       await dialog.alert({
-        title: 'Operación exitosa',
-        message: isEditing ? 'Mueble actualizado con éxito.' : 'Mueble registrado exitosamente.',
+        title: "Operación exitosa",
+        message: isEditing
+          ? "Mueble actualizado con éxito."
+          : "Mueble registrado exitosamente.",
       });
-      safeBack(router, '/');
+      safeBack(router, "/");
     } catch (err: any) {
-      dialog.alert({ title: 'Error', message: err.message || 'No se pudo guardar el mueble.' });
+      dialog.alert({
+        title: "Error",
+        message: err.message || "No se pudo guardar el mueble.",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -204,12 +234,18 @@ export default function MuebleFormScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      edges={["top", "left", "right"]}
+    >
       {/* Barra de navegación */}
       <View style={[styles.navBar, { borderBottomColor: colors.border }]}>
         <Pressable
-          style={[styles.navButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-          onPress={() => safeBack(router, '/')}
+          style={[
+            styles.navButton,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+          onPress={() => safeBack(router, "/")}
           accessibilityRole="button"
           accessibilityLabel="Cerrar formulario"
           accessibilityHint="Cierra el formulario y regresa a la pantalla anterior"
@@ -217,14 +253,19 @@ export default function MuebleFormScreen() {
           <Ionicons name="close" size={20} color={colors.text} />
         </Pressable>
         <Text style={[styles.navTitle, { color: colors.text }]}>
-          {isEditing ? 'Editar Mueble' : 'Nuevo Mueble'}
+          {isEditing ? "Editar Mueble" : "Nuevo Mueble"}
         </Text>
         <Pressable
-          style={[styles.saveButton, { backgroundColor: colors.accent, opacity: submitting ? 0.7 : 1 }]}
+          style={[
+            styles.saveButton,
+            { backgroundColor: colors.accent, opacity: submitting ? 0.7 : 1 },
+          ]}
           onPress={handleSubmit}
           disabled={submitting}
           accessibilityRole="button"
-          accessibilityLabel={isEditing ? 'Guardar cambios del mueble' : 'Guardar mueble'}
+          accessibilityLabel={
+            isEditing ? "Guardar cambios del mueble" : "Guardar mueble"
+          }
           accessibilityHint="Guarda los datos del mueble en el catálogo"
         >
           {submitting ? (
@@ -235,8 +276,14 @@ export default function MuebleFormScreen() {
         </Pressable>
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Selector de Imagen */}
           <View style={styles.imageSection}>
             <Pressable
@@ -251,7 +298,11 @@ export default function MuebleFormScreen() {
             >
               {imageUri ? (
                 <View style={styles.imagePreviewContainer}>
-                  <Image source={{ uri: imageUri }} style={styles.imagePreview} contentFit="cover" />
+                  <Image
+                    source={{ uri: imageUri }}
+                    style={styles.imagePreview}
+                    contentFit="cover"
+                  />
                   <View style={styles.imageChangeOverlay}>
                     <Ionicons name="camera" size={20} color="#FFFFFF" />
                     <Text style={styles.imageChangeText}>Cambiar foto</Text>
@@ -259,11 +310,25 @@ export default function MuebleFormScreen() {
                 </View>
               ) : (
                 <View style={styles.imagePlaceholder}>
-                  <Ionicons name="cloud-upload-outline" size={40} color={colors.accent} />
-                  <Text style={[styles.imagePlaceholderTitle, { color: colors.text }]}>
+                  <Ionicons
+                    name="cloud-upload-outline"
+                    size={40}
+                    color={colors.accent}
+                  />
+                  <Text
+                    style={[
+                      styles.imagePlaceholderTitle,
+                      { color: colors.text },
+                    ]}
+                  >
                     Subir foto del mueble
                   </Text>
-                  <Text style={[styles.imagePlaceholderSubtitle, { color: colors.textMuted }]}>
+                  <Text
+                    style={[
+                      styles.imagePlaceholderSubtitle,
+                      { color: colors.textMuted },
+                    ]}
+                  >
                     PNG, JPG o WEBP
                   </Text>
                 </View>
@@ -272,12 +337,26 @@ export default function MuebleFormScreen() {
           </View>
 
           {/* Formulario de Datos */}
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
             {/* Nombre */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Nombre del mueble *</Text>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Nombre del mueble *
+              </Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
                 placeholder="Ej. Sofá Nórdico Oslo 3 Plazas"
                 placeholderTextColor={colors.textMuted}
                 value={nombre}
@@ -288,9 +367,18 @@ export default function MuebleFormScreen() {
             {/* Precio & Stock en fila */}
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={[styles.label, { color: colors.text }]}>Precio ($ MXN) *</Text>
+                <Text style={[styles.label, { color: colors.text }]}>
+                  Precio ($ MXN) *
+                </Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.text,
+                    },
+                  ]}
                   placeholder="Ej. 14999.00"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="decimal-pad"
@@ -300,9 +388,18 @@ export default function MuebleFormScreen() {
               </View>
 
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                <Text style={[styles.label, { color: colors.text }]}>Stock Inicial *</Text>
+                <Text style={[styles.label, { color: colors.text }]}>
+                  Stock Inicial *
+                </Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.text,
+                    },
+                  ]}
                   placeholder="Ej. 5"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="number-pad"
@@ -314,8 +411,14 @@ export default function MuebleFormScreen() {
 
             {/* Categoría */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Categoría</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Categoría
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsScroll}
+              >
                 {categorias.map((c) => {
                   const isSelected = selectedCategoriaId === c.id;
                   return (
@@ -324,10 +427,18 @@ export default function MuebleFormScreen() {
                       style={[
                         styles.chip,
                         isSelected
-                          ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                          : { backgroundColor: colors.background, borderColor: colors.border },
+                          ? {
+                              backgroundColor: colors.primary,
+                              borderColor: colors.primary,
+                            }
+                          : {
+                              backgroundColor: colors.background,
+                              borderColor: colors.border,
+                            },
                       ]}
-                      onPress={() => setSelectedCategoriaId(isSelected ? null : c.id)}
+                      onPress={() =>
+                        setSelectedCategoriaId(isSelected ? null : c.id)
+                      }
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: isSelected }}
                       accessibilityLabel={`Categoría ${c.nombre}`}
@@ -335,7 +446,9 @@ export default function MuebleFormScreen() {
                       <Text
                         style={[
                           styles.chipText,
-                          isSelected ? { color: colors.onPrimary } : { color: colors.text },
+                          isSelected
+                            ? { color: colors.onPrimary }
+                            : { color: colors.text },
                         ]}
                       >
                         {c.nombre}
@@ -348,8 +461,14 @@ export default function MuebleFormScreen() {
 
             {/* Proveedor */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Proveedor *</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Proveedor *
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsScroll}
+              >
                 {proveedores.map((p) => {
                   const isSelected = selectedProveedorId === p.id;
                   return (
@@ -358,8 +477,14 @@ export default function MuebleFormScreen() {
                       style={[
                         styles.chip,
                         isSelected
-                          ? { backgroundColor: colors.accent, borderColor: colors.accent }
-                          : { backgroundColor: colors.background, borderColor: colors.border },
+                          ? {
+                              backgroundColor: colors.accent,
+                              borderColor: colors.accent,
+                            }
+                          : {
+                              backgroundColor: colors.background,
+                              borderColor: colors.border,
+                            },
                       ]}
                       onPress={() => setSelectedProveedorId(p.id)}
                       accessibilityRole="radio"
@@ -369,7 +494,9 @@ export default function MuebleFormScreen() {
                       <Text
                         style={[
                           styles.chipText,
-                          isSelected ? { color: '#FFFFFF' } : { color: colors.text },
+                          isSelected
+                            ? { color: "#FFFFFF" }
+                            : { color: colors.text },
                         ]}
                       >
                         {p.nombre}
@@ -382,11 +509,17 @@ export default function MuebleFormScreen() {
 
             {/* Descripción */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Descripción detallada</Text>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Descripción detallada
+              </Text>
               <TextInput
                 style={[
                   styles.textArea,
-                  { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
                 ]}
                 placeholder="Escribe características, materiales, dimensiones..."
                 placeholderTextColor={colors.textMuted}
@@ -409,9 +542,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   navBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
@@ -421,12 +554,12 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 10,
     borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   navTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   saveButton: {
     paddingHorizontal: 16,
@@ -434,8 +567,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   saveButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: "#FFFFFF",
+    fontWeight: "700",
     fontSize: 14,
   },
   scrollContent: {
@@ -449,44 +582,44 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 14,
     borderWidth: 2,
-    borderStyle: 'dashed',
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderStyle: "dashed",
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
   },
   imagePreviewContainer: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
+    width: "100%",
+    height: "100%",
+    position: "relative",
   },
   imagePreview: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   imageChangeOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 12,
     right: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.6)",
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     gap: 6,
   },
   imageChangeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   imagePlaceholder: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 16,
   },
   imagePlaceholderTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: 8,
   },
   imagePlaceholderSubtitle: {
@@ -502,11 +635,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   row: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   label: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 6,
   },
   input: {
@@ -535,6 +668,6 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

@@ -1,12 +1,12 @@
-import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
-import { User } from '../types';
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
+import { User } from "../types";
 
-const TOKEN_KEY = 'nordika_auth_token';
-const USER_KEY = 'nordika_auth_user';
+const TOKEN_KEY = "nordika_auth_token";
+const USER_KEY = "nordika_auth_user";
 
 function isWebStorageAvailable(): boolean {
-  return Platform.OS === 'web' && typeof localStorage !== 'undefined';
+  return Platform.OS === "web" && typeof localStorage !== "undefined";
 }
 
 export async function saveToken(token: string): Promise<void> {
