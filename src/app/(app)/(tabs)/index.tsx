@@ -58,12 +58,18 @@ export default function CatalogScreen() {
     });
   }, []);
 
-  // Cargar categorías iniciales
-  useEffect(() => {
+  // Recargar categorías al volver al catálogo, para ver las creadas/editadas en Administración
+  const fetchCategorias = useCallback(() => {
     apiGetCategorias()
-      .then((cats) => setCategorias(cats))
+      .then((cats) => {
+        setCategorias(cats);
+        // Si la categoría filtrada se eliminó, volver a "Todas"
+        setSelectedCategoria((sel) => (sel !== null && !cats.some((c) => c.id === sel) ? null : sel));
+      })
       .catch(() => {});
   }, []);
+
+  useFocusEffect(fetchCategorias);
 
   // Cargar muebles
   const fetchMuebles = useCallback(
@@ -110,6 +116,7 @@ export default function CatalogScreen() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchCategorias();
     fetchMuebles(1, true);
   };
 
