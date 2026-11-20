@@ -57,76 +57,87 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
   };
 
   return (
-    <Pressable
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.card,
         {
           backgroundColor: colors.card,
           borderColor: colors.border,
-          opacity: pressed ? 0.95 : 1,
-          transform: [{ scale: pressed ? 0.99 : 1 }],
         },
       ]}
-      onPress={onPress}
     >
-      <View style={styles.imageContainer}>
-        {imageUri ? (
-          <Image
-            source={{ uri: imageUri }}
-            style={styles.image}
-            contentFit="cover"
-            transition={300}
-          />
-        ) : (
-          <View style={[styles.placeholderImage, { backgroundColor: colors.backgroundElement }]}>
-            <Ionicons name="image-outline" size={36} color={colors.textMuted} />
-            <Text style={[styles.placeholderText, { color: colors.textMuted }]}>Nordika Design</Text>
-          </View>
-        )}
+      <Pressable
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.95 : 1,
+          transform: [{ scale: pressed ? 0.99 : 1 }],
+        })}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`${mueble.nombre}, precio ${formatPrice(mueble.precio)}`}
+        accessibilityHint="Toca para abrir la ficha detallada"
+      >
+        <View style={styles.imageContainer}>
+          {imageUri ? (
+            <Image
+              source={{ uri: imageUri }}
+              style={styles.image}
+              contentFit="cover"
+              transition={300}
+            />
+          ) : (
+            <View style={[styles.placeholderImage, { backgroundColor: colors.backgroundElement }]}>
+              <Ionicons name="image-outline" size={36} color={colors.textMuted} />
+              <Text style={[styles.placeholderText, { color: colors.textMuted }]}>Nordika Design</Text>
+            </View>
+          )}
 
-        {/* Botón de Favorito Flotante */}
-        <Pressable
-          style={[styles.favoriteButton, { backgroundColor: colors.card }]}
-          onPress={handleHeartPress}
-          hitSlop={8}
-        >
-          <Ionicons
-            name={favState ? 'heart' : 'heart-outline'}
-            size={20}
-            color={favState ? colors.danger : colors.icon}
-          />
-        </Pressable>
-
-        {/* Badge de Categoría */}
-        {mueble.categoria?.nombre ? (
-          <View style={styles.categoryBadgeContainer}>
-            <Badge label={mueble.categoria.nombre} variant="info" size="small" />
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.content}>
-        <View style={styles.stockRow}>
-          {getStockBadge(mueble.stock)}
-          {mueble.proveedor?.nombre ? (
-            <Text style={[styles.proveedorText, { color: colors.textMuted }]} numberOfLines={1}>
-              {mueble.proveedor.nombre}
-            </Text>
+          {/* Badge de Categoría */}
+          {mueble.categoria?.nombre ? (
+            <View style={styles.categoryBadgeContainer}>
+              <Badge label={mueble.categoria.nombre} variant="info" size="small" />
+            </View>
           ) : null}
         </View>
 
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
-          {mueble.nombre}
-        </Text>
+        <View style={styles.content}>
+          <View style={styles.stockRow}>
+            {getStockBadge(mueble.stock)}
+            {mueble.proveedor?.nombre ? (
+              <Text style={[styles.proveedorText, { color: colors.textMuted }]} numberOfLines={1}>
+                {mueble.proveedor.nombre}
+              </Text>
+            ) : null}
+          </View>
 
-        <View style={styles.priceRow}>
-          <Text style={[styles.price, { color: colors.accent }]}>
-            {formatPrice(mueble.precio)}
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
+            {mueble.nombre}
           </Text>
-          <Text style={[styles.currency, { color: colors.textMuted }]}>MXN</Text>
+
+          <View style={styles.priceRow}>
+            <Text style={[styles.price, { color: colors.accent }]}>
+              {formatPrice(mueble.precio)}
+            </Text>
+            <Text style={[styles.currency, { color: colors.textMuted }]}>MXN</Text>
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+
+      {/* Botón de Favorito Flotante (hermano del botón de tarjeta para evitar <button> anidado en Web) */}
+      <Pressable
+        style={[styles.favoriteButton, { backgroundColor: colors.card }]}
+        onPress={handleHeartPress}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={favState ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+        accessibilityHint="Guarda o quita este mueble de tu lista de favoritos"
+      >
+        <Ionicons
+          name={favState ? 'heart' : 'heart-outline'}
+          size={20}
+          color={favState ? colors.danger : colors.icon}
+        />
+      </Pressable>
+    </View>
   );
 };
 

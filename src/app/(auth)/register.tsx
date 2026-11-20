@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,7 +15,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/theme';
+import { dialog } from '../../context/DialogContext';
 import { apiRegister } from '../../utils/api';
+import { safeBack } from '../../utils/navigation';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -37,17 +38,17 @@ export default function RegisterScreen() {
     const trimmedEmail = email.trim();
 
     if (!trimmedUser || !trimmedEmail || !password || !passwordConfirm) {
-      Alert.alert('Datos requeridos', 'Por favor llena todos los campos obligatorios.');
+      dialog.alert({ title: 'Datos requeridos', message: 'Por favor llena todos los campos obligatorios.' });
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Contraseña débil', 'La contraseña debe tener al menos 6 caracteres.');
+      dialog.alert({ title: 'Contraseña débil', message: 'La contraseña debe tener al menos 6 caracteres.' });
       return;
     }
 
     if (password !== passwordConfirm) {
-      Alert.alert('Contraseña no coincide', 'Las contraseñas ingresadas no son iguales.');
+      dialog.alert({ title: 'Contraseña no coincide', message: 'Las contraseñas ingresadas no son iguales.' });
       return;
     }
 
@@ -61,11 +62,10 @@ export default function RegisterScreen() {
         password,
         password_confirm: passwordConfirm,
       });
-      Alert.alert('¡Bienvenido!', 'Tu cuenta ha sido creada exitosamente.', [
-        { text: 'Comenzar', onPress: () => router.replace('/(app)/(tabs)') },
-      ]);
+      await dialog.alert({ title: '¡Bienvenido!', message: 'Tu cuenta ha sido creada exitosamente.' });
+      router.replace('/(app)/(tabs)');
     } catch (error: any) {
-      Alert.alert('Error al registrarse', error.message || 'No se pudo crear la cuenta.');
+      dialog.alert({ title: 'Error al registrarse', message: error.message || 'No se pudo crear la cuenta.' });
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,10 @@ export default function RegisterScreen() {
           {/* Header con botón atrás */}
           <Pressable
             style={[styles.backButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => router.back()}
+            onPress={() => safeBack(router, '/(auth)/login')}
+            accessibilityRole="button"
+            accessibilityLabel="Regresar"
+            accessibilityHint="Vuelve a la pantalla de inicio de sesión"
           >
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </Pressable>
@@ -180,7 +183,12 @@ export default function RegisterScreen() {
                   autoCapitalize="none"
                   editable={!loading}
                 />
-                <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Ocultar contraseñas' : 'Ver contraseñas'}
+                >
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={18}
@@ -216,6 +224,9 @@ export default function RegisterScreen() {
               ]}
               onPress={handleRegister}
               disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel="Registrar cuenta"
+              accessibilityHint="Envía los datos para registrar la cuenta de cliente"
             >
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
@@ -230,7 +241,11 @@ export default function RegisterScreen() {
             <Text style={[styles.footerText, { color: colors.textMuted }]}>
               ¿Ya tienes una cuenta?
             </Text>
-            <Pressable onPress={() => router.push('/(auth)/login')}>
+            <Pressable
+              onPress={() => router.push('/(auth)/login')}
+              accessibilityRole="button"
+              accessibilityLabel="Ir a iniciar sesión"
+            >
               <Text style={[styles.loginLink, { color: colors.accent }]}> Iniciar Sesión</Text>
             </Pressable>
           </View>

@@ -3,8 +3,9 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,8 +18,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge } from '../../../components/Badge';
 import { Colors } from '../../../constants/theme';
+import { dialog } from '../../../context/DialogContext';
 import { User } from '../../../types';
-import { apiGetMe, apiLogout, apiUpdateMe } from '../../../utils/api';
+import { apiCrearCliente, apiGetMe, apiLogout, apiUpdateMe } from '../../../utils/api';
 import {
   getStoredPageSize,
   getStoredTheme,
@@ -46,6 +48,18 @@ export default function SettingsScreen() {
   const [editLastName, setEditLastName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  // Modal para agregar nuevo cliente (Solo Admin)
+  const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [clientUsername, setClientUsername] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientPassword, setClientPassword] = useState('');
+  const [clientPasswordConfirm, setClientPasswordConfirm] = useState('');
+  const [clientFirstName, setClientFirstName] = useState('');
+  const [clientLastName, setClientLastName] = useState('');
+  const [creatingClient, setCreatingClient] = useState(false);
+  const [clientError, setClientError] = useState<string | null>(null);
 
   useEffect(() => {
     // Cargar perfil
@@ -86,6 +100,7 @@ export default function SettingsScreen() {
   };
 
   const handleSaveProfile = async () => {
+    setProfileError(null);
     try {
       setUpdatingProfile(true);
       const updated = await apiUpdateMe({
@@ -96,30 +111,72 @@ export default function SettingsScreen() {
       setUser(updated);
       await saveUser(updated);
       setShowEditProfileModal(false);
-      Alert.alert('Éxito', 'Tu información de perfil ha sido actualizada.');
+      dialog.alert({ title: 'Éxito', message: 'Tu información de perfil ha sido actualizada.' });
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo actualizar el perfil.');
+      setProfileError(e.message || 'No se pudo actualizar el perfil.');
     } finally {
       setUpdatingProfile(false);
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que deseas salir de tu cuenta?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: async () => {
-            await apiLogout();
-            router.replace('/(auth)/login');
-          },
-        },
-      ]
-    );
+  const handleCreateClient = async () => {
+    setClientError(null);
+    const trimmedUsername = clientUsername.trim();
+    const trimmedEmail = clientEmail.trim();
+    if (!trimmedUsername) {
+      setClientError('El nombre de usuario es obligatorio.');
+      return;
+    }
+    if (!trimmedEmail) {
+      setClientError('El correo electrónico es obligatorio.');
+      return;
+    }
+    if (!clientPassword || clientPassword.length < 6) {
+      setClientError('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    if (clientPassword !== clientPasswordConfirm) {
+      setClientError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    try {
+      setCreatingClient(true);
+      await apiCrearCliente({
+        username: trimmedUsername,
+        email: trimmedEmail,
+        password: clientPassword,
+        password_confirm: clientPasswordConfirm,
+        first_name: clientFirstName.trim(),
+        last_name: clientLastName.trim(),
+      });
+      setShowAddClientModal(false);
+      setClientUsername('');
+      setClientEmail('');
+      setClientPassword('');
+      setClientPasswordConfirm('');
+      setClientFirstName('');
+      setClientLastName('');
+      dialog.alert({ title: 'Éxito', message: 'Cliente registrado exitosamente.' });
+    } catch (e: any) {
+      setClientError(e.message || 'No se pudo crear el cliente.');
+    } finally {
+      setCreatingClient(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    const ok = await dialog.confirm({
+      title: 'Cerrar Sesión',
+      message: '¿Estás seguro de que deseas salir de tu cuenta?',
+      confirmText: 'Cerrar Sesión',
+      cancelText: 'Cancelar',
+      confirmStyle: 'destructive',
+    });
+    if (!ok) return;
+
+    await apiLogout();
+    router.replace('/(auth)/login');
   };
 
   return (
@@ -165,7 +222,13 @@ export default function SettingsScreen() {
 
           <Pressable
             style={[styles.editProfileButton, { borderColor: colors.border }]}
-            onPress={() => setShowEditProfileModal(true)}
+            onPress={() => {
+              setProfileError(null);
+              setShowEditProfileModal(true);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Editar perfil"
+            accessibilityHint="Abre el formulario para modificar nombre, apellido o correo"
           >
             <Ionicons name="pencil-outline" size={16} color={colors.text} style={{ marginRight: 6 }} />
             <Text style={[styles.editProfileButtonText, { color: colors.text }]}>Editar Perfil</Text>
@@ -198,6 +261,9 @@ export default function SettingsScreen() {
                       : { backgroundColor: colors.background, borderColor: colors.border },
                   ]}
                   onPress={() => handleSelectPageSize(size)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={`${size} elementos por página`}
                 >
                   <Text
                     style={[
@@ -236,6 +302,9 @@ export default function SettingsScreen() {
                       : { backgroundColor: colors.background, borderColor: colors.border },
                   ]}
                   onPress={() => handleSelectTheme(t)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={`Tema ${labels[t]}`}
                 >
                   <Text
                     style={[
@@ -251,63 +320,256 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Sección: Administración (Solo Staff) */}
+        {user?.is_staff ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionHeaderText, { color: colors.textMuted }]}>
+                ADMINISTRACIÓN
+              </Text>
+            </View>
+
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Gestión de Clientes</Text>
+              <Text style={[styles.cardSubtitle, { color: colors.textMuted }]}>
+                Registra nuevos clientes en el sistema Nordika
+              </Text>
+
+              <Pressable
+                style={[styles.addClientButton, { backgroundColor: colors.accent }]}
+                onPress={() => {
+                  setClientError(null);
+                  setShowAddClientModal(true);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Agregar nuevo cliente"
+                accessibilityHint="Abre el formulario para registrar un nuevo cliente"
+              >
+                <Ionicons name="person-add-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.addClientButtonText}>Agregar Nuevo Cliente</Text>
+              </Pressable>
+            </View>
+          </>
+        ) : null}
+
         {/* Botón de Logout */}
         <Pressable
           style={[styles.logoutButton, { backgroundColor: `${colors.danger}15`, borderColor: `${colors.danger}30` }]}
           onPress={handleLogout}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sesión"
+          accessibilityHint="Cierra tu sesión actual y regresa a la pantalla de inicio de sesión"
         >
           <Ionicons name="log-out-outline" size={20} color={colors.danger} style={{ marginRight: 8 }} />
           <Text style={[styles.logoutButtonText, { color: colors.danger }]}>Cerrar Sesión</Text>
         </Pressable>
       </ScrollView>
 
-      {/* Modal para Editar Perfil */}
-      <Modal visible={showEditProfileModal} transparent animationType="slide">
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {/* Modal para Editar Perfil (se cierra al hacer clic fuera) */}
+      <Modal
+        visible={showEditProfileModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEditProfileModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowEditProfileModal(false)}
+            accessibilityLabel="Cerrar ventana emergente"
+          />
+          <View
+            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitleText, { color: colors.text }]}>Editar Perfil</Text>
-              <Pressable onPress={() => setShowEditProfileModal(false)} hitSlop={8}>
+              <Pressable
+                onPress={() => setShowEditProfileModal(false)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
                 <Ionicons name="close" size={22} color={colors.textMuted} />
               </Pressable>
             </View>
 
-            <Text style={[styles.inputLabel, { color: colors.text }]}>Nombre</Text>
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={editFirstName}
-              onChangeText={setEditFirstName}
-            />
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {profileError ? (
+                <View style={[styles.inlineErrorBox, { backgroundColor: `${colors.danger}15`, borderColor: `${colors.danger}40` }]}>
+                  <Text style={[styles.inlineErrorText, { color: colors.danger }]}>{profileError}</Text>
+                </View>
+              ) : null}
 
-            <Text style={[styles.inputLabel, { color: colors.text, marginTop: 12 }]}>Apellido</Text>
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={editLastName}
-              onChangeText={setEditLastName}
-            />
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Nombre</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={editFirstName}
+                onChangeText={setEditFirstName}
+                placeholder="Tu nombre"
+                placeholderTextColor={colors.textMuted}
+              />
 
-            <Text style={[styles.inputLabel, { color: colors.text, marginTop: 12 }]}>Correo Electrónico</Text>
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={editEmail}
-              onChangeText={setEditEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+              <Text style={[styles.inputLabel, { color: colors.text, marginTop: 12 }]}>Apellido</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={editLastName}
+                onChangeText={setEditLastName}
+                placeholder="Tu apellido"
+                placeholderTextColor={colors.textMuted}
+              />
 
-            <Pressable
-              style={[styles.confirmButton, { backgroundColor: colors.accent }]}
-              onPress={handleSaveProfile}
-              disabled={updatingProfile}
-            >
-              {updatingProfile ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.confirmButtonText}>Guardar Cambios</Text>
-              )}
-            </Pressable>
+              <Text style={[styles.inputLabel, { color: colors.text, marginTop: 12 }]}>Correo Electrónico</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={editEmail}
+                onChangeText={setEditEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholder="correo@ejemplo.com"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Pressable
+                style={[styles.confirmButton, { backgroundColor: colors.accent }]}
+                onPress={handleSaveProfile}
+                disabled={updatingProfile}
+                accessibilityRole="button"
+                accessibilityLabel="Guardar cambios de perfil"
+              >
+                {updatingProfile ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Guardar Cambios</Text>
+                )}
+              </Pressable>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Modal para Agregar Nuevo Cliente (se cierra al hacer clic fuera) */}
+      <Modal
+        visible={showAddClientModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAddClientModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowAddClientModal(false)}
+            accessibilityLabel="Cerrar ventana emergente"
+          />
+          <View
+            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitleText, { color: colors.text }]}>Registrar Nuevo Cliente</Text>
+              <Pressable
+                onPress={() => setShowAddClientModal(false)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {clientError ? (
+                <View style={[styles.inlineErrorBox, { backgroundColor: `${colors.danger}15`, borderColor: `${colors.danger}40` }]}>
+                  <Text style={[styles.inlineErrorText, { color: colors.danger }]}>{clientError}</Text>
+                </View>
+              ) : null}
+
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Nombre de Usuario *</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={clientUsername}
+                onChangeText={setClientUsername}
+                placeholder="Ej. cliente123"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.text, marginTop: 10 }]}>Correo Electrónico *</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={clientEmail}
+                onChangeText={setClientEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholder="cliente@nordika.com"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.text, marginTop: 10 }]}>Contraseña (mínimo 6 caracteres) *</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={clientPassword}
+                onChangeText={setClientPassword}
+                secureTextEntry
+                placeholder="Contraseña"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.text, marginTop: 10 }]}>Confirmar contraseña *</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={clientPasswordConfirm}
+                onChangeText={setClientPasswordConfirm}
+                secureTextEntry
+                placeholder="Repite la contraseña"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.inputLabel, { color: colors.text }]}>Nombre</Text>
+                  <TextInput
+                    style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                    value={clientFirstName}
+                    onChangeText={setClientFirstName}
+                    placeholder="Nombre"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.inputLabel, { color: colors.text }]}>Apellido</Text>
+                  <TextInput
+                    style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                    value={clientLastName}
+                    onChangeText={setClientLastName}
+                    placeholder="Apellido"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </View>
+              </View>
+
+              <Pressable
+                style={[styles.confirmButton, { backgroundColor: colors.accent, marginTop: 16 }]}
+                onPress={handleCreateClient}
+                disabled={creatingClient}
+                accessibilityRole="button"
+                accessibilityLabel="Registrar nuevo cliente"
+              >
+                {creatingClient ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Registrar Cliente</Text>
+                )}
+              </Pressable>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -448,15 +710,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   modalBackdrop: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 9999,
   },
   modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    width: '100%',
+    maxWidth: 460,
+    maxHeight: '90%',
+    borderRadius: 20,
     borderWidth: 1,
     padding: 24,
+  },
+  inlineErrorBox: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  inlineErrorText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -490,6 +773,19 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
+    fontWeight: '700',
+  },
+  addClientButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 44,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  addClientButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '700',
   },
 });

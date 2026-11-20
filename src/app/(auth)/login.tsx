@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/theme';
+import { dialog } from '../../context/DialogContext';
 import { apiLogin } from '../../utils/api';
 
 export default function LoginScreen() {
@@ -31,7 +31,7 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     const trimmedUsername = username.trim();
     if (!trimmedUsername || !password) {
-      Alert.alert('Datos incompletos', 'Por favor ingresa tu usuario y contraseña.');
+      dialog.alert({ title: 'Datos incompletos', message: 'Por favor ingresa tu usuario y contraseña.' });
       return;
     }
 
@@ -40,7 +40,7 @@ export default function LoginScreen() {
       await apiLogin(trimmedUsername, password);
       router.replace('/(app)/(tabs)');
     } catch (error: any) {
-      Alert.alert('Error al iniciar sesión', error.message || 'Credenciales inválidas.');
+      dialog.alert({ title: 'Error al iniciar sesión', message: error.message || 'Credenciales inválidas.' });
     } finally {
       setLoading(false);
     }
@@ -113,7 +113,12 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   editable={!loading}
                 />
-                <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
@@ -131,6 +136,9 @@ export default function LoginScreen() {
               ]}
               onPress={handleLogin}
               disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel="Iniciar sesión"
+              accessibilityHint="Verifica las credenciales y accede a la tienda"
             >
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
@@ -148,12 +156,18 @@ export default function LoginScreen() {
                 <Pressable
                   style={[styles.quickButton, { backgroundColor: colors.backgroundElement }]}
                   onPress={() => fillQuickCredentials('gael', 'gael123')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Usar cuenta cliente gael"
+                  accessibilityHint="Autocompleta las credenciales de cliente de prueba"
                 >
                   <Text style={[styles.quickButtonText, { color: colors.text }]}>👤 Cliente (gael)</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.quickButton, { backgroundColor: colors.backgroundElement }]}
                   onPress={() => fillQuickCredentials('admin', 'admin123')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Usar cuenta admin"
+                  accessibilityHint="Autocompleta las credenciales de administrador de prueba"
                 >
                   <Text style={[styles.quickButtonText, { color: colors.text }]}>⚙️ Admin (admin)</Text>
                 </Pressable>
@@ -166,7 +180,12 @@ export default function LoginScreen() {
             <Text style={[styles.footerText, { color: colors.textMuted }]}>
               ¿Aún no tienes una cuenta?
             </Text>
-            <Pressable onPress={() => router.push('/(auth)/register')}>
+            <Pressable
+              onPress={() => router.push('/(auth)/register')}
+              accessibilityRole="button"
+              accessibilityLabel="Registrarse"
+              accessibilityHint="Crea una nueva cuenta de cliente"
+            >
               <Text style={[styles.registerLink, { color: colors.accent }]}> Registrarse</Text>
             </Pressable>
           </View>

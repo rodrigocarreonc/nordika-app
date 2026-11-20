@@ -6,7 +6,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -20,6 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingView } from '../../../components/LoadingView';
 import { Colors } from '../../../constants/theme';
+import { dialog } from '../../../context/DialogContext';
 import { Categoria, Proveedor } from '../../../types';
 import {
   apiCreateMueble,
@@ -29,6 +29,7 @@ import {
   apiUpdateMueble,
   resolveImageUrl,
 } from '../../../utils/api';
+import { safeBack } from '../../../utils/navigation';
 import { getUser } from '../../../utils/tokenStorage';
 
 export default function MuebleFormScreen() {
@@ -93,7 +94,7 @@ export default function MuebleFormScreen() {
           }
         })
         .catch((err) => {
-          Alert.alert('Error', err.message || 'No se pudo cargar el mueble');
+          dialog.alert({ title: 'Error', message: err.message || 'No se pudo cargar el mueble' });
         })
         .finally(() => {
           setLoadingInitial(false);
@@ -116,31 +117,31 @@ export default function MuebleFormScreen() {
         setImageAsset(asset);
       }
     } catch {
-      Alert.alert('Error', 'No se pudo abrir la galería de imágenes.');
+      dialog.alert({ title: 'Error', message: 'No se pudo abrir la galería de imágenes.' });
     }
   };
 
   const handleSubmit = async () => {
     const trimmedNombre = nombre.trim();
     if (!trimmedNombre) {
-      Alert.alert('Validación', 'El nombre del mueble es obligatorio.');
+      dialog.alert({ title: 'Validación', message: 'El nombre del mueble es obligatorio.' });
       return;
     }
 
     const numPrecio = parseFloat(precio);
     if (isNaN(numPrecio) || numPrecio <= 0) {
-      Alert.alert('Validación', 'Ingresa un precio válido mayor a 0.');
+      dialog.alert({ title: 'Validación', message: 'Ingresa un precio válido mayor a 0.' });
       return;
     }
 
     const numStock = parseInt(stock, 10);
     if (isNaN(numStock) || numStock < 0) {
-      Alert.alert('Validación', 'El stock debe ser un número entero mayor o igual a 0.');
+      dialog.alert({ title: 'Validación', message: 'El stock debe ser un número entero mayor o igual a 0.' });
       return;
     }
 
     if (!selectedProveedorId) {
-      Alert.alert('Validación', 'Debes seleccionar un proveedor.');
+      dialog.alert({ title: 'Validación', message: 'Debes seleccionar un proveedor.' });
       return;
     }
 
@@ -186,13 +187,13 @@ export default function MuebleFormScreen() {
         }
       }
 
-      Alert.alert(
-        'Operación exitosa',
-        isEditing ? 'Mueble actualizado con éxito.' : 'Mueble registrado exitosamente.',
-        [{ text: 'Aceptar', onPress: () => router.back() }]
-      );
+      await dialog.alert({
+        title: 'Operación exitosa',
+        message: isEditing ? 'Mueble actualizado con éxito.' : 'Mueble registrado exitosamente.',
+      });
+      safeBack(router, '/');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'No se pudo guardar el mueble.');
+      dialog.alert({ title: 'Error', message: err.message || 'No se pudo guardar el mueble.' });
     } finally {
       setSubmitting(false);
     }
@@ -208,7 +209,10 @@ export default function MuebleFormScreen() {
       <View style={[styles.navBar, { borderBottomColor: colors.border }]}>
         <Pressable
           style={[styles.navButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-          onPress={() => router.back()}
+          onPress={() => safeBack(router, '/')}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar formulario"
+          accessibilityHint="Cierra el formulario y regresa a la pantalla anterior"
         >
           <Ionicons name="close" size={20} color={colors.text} />
         </Pressable>
@@ -219,6 +223,9 @@ export default function MuebleFormScreen() {
           style={[styles.saveButton, { backgroundColor: colors.accent, opacity: submitting ? 0.7 : 1 }]}
           onPress={handleSubmit}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel={isEditing ? 'Guardar cambios del mueble' : 'Guardar mueble'}
+          accessibilityHint="Guarda los datos del mueble en el catálogo"
         >
           {submitting ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
@@ -238,6 +245,9 @@ export default function MuebleFormScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={handlePickImage}
+              accessibilityRole="button"
+              accessibilityLabel="Subir o cambiar foto del mueble"
+              accessibilityHint="Abre la galería de imágenes para elegir una fotografía"
             >
               {imageUri ? (
                 <View style={styles.imagePreviewContainer}>
@@ -318,6 +328,9 @@ export default function MuebleFormScreen() {
                           : { backgroundColor: colors.background, borderColor: colors.border },
                       ]}
                       onPress={() => setSelectedCategoriaId(isSelected ? null : c.id)}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isSelected }}
+                      accessibilityLabel={`Categoría ${c.nombre}`}
                     >
                       <Text
                         style={[
@@ -349,6 +362,9 @@ export default function MuebleFormScreen() {
                           : { backgroundColor: colors.background, borderColor: colors.border },
                       ]}
                       onPress={() => setSelectedProveedorId(p.id)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected }}
+                      accessibilityLabel={`Proveedor ${p.nombre}`}
                     >
                       <Text
                         style={[
