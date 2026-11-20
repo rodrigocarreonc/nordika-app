@@ -1,12 +1,12 @@
-import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
-const PAGE_SIZE_KEY = 'nordika_page_size';
-const THEME_KEY = 'nordika_theme';
+const PAGE_SIZE_KEY = "nordika_page_size";
+const THEME_KEY = "nordika_theme";
 
 export const DEFAULT_PAGE_SIZE = 10;
 function isWebStorage(): boolean {
-  return Platform.OS === 'web' && typeof localStorage !== 'undefined';
+  return Platform.OS === "web" && typeof localStorage !== "undefined";
 }
 
 async function getItem(key: string): Promise<string | null> {
@@ -35,14 +35,16 @@ export async function saveStoredPageSize(size: number): Promise<void> {
   await setItem(PAGE_SIZE_KEY, size.toString());
 }
 
-export async function getStoredTheme(): Promise<'light' | 'dark' | 'system'> {
+export async function getStoredTheme(): Promise<"light" | "dark" | "system"> {
   const val = await getItem(THEME_KEY);
-  if (val === 'light' || val === 'dark' || val === 'system') {
+  if (val === "light" || val === "dark" || val === "system") {
     return val;
   }
-  return 'system';
+  return "system";
 }
 
-export async function saveStoredTheme(theme: 'light' | 'dark' | 'system'): Promise<void> {
+export async function saveStoredTheme(
+  theme: "light" | "dark" | "system",
+): Promise<void> {
   await setItem(THEME_KEY, theme);
 }

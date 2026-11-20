@@ -1,12 +1,17 @@
-import { Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View, useColorScheme } from 'react-native';
-import { Colors } from '../constants/theme';
-import { getToken } from '../utils/tokenStorage';
+import { Redirect } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from "react-native";
+import { Colors } from "../constants/theme";
+import { getToken } from "../utils/tokenStorage";
 
 export default function RootIndex() {
   const scheme = useColorScheme();
-  const colors = Colors[scheme ?? 'light'];
+  const colors = Colors[scheme ?? "light"];
 
   const [checking, setChecking] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -38,13 +43,17 @@ export default function RootIndex() {
     );
   }
 
-  return isLoggedIn ? <Redirect href={"/(app)/(tabs)" as any} /> : <Redirect href="/(auth)/login" />;
+  return isLoggedIn ? (
+    <Redirect href={"/(app)/(tabs)" as any} />
+  ) : (
+    <Redirect href="/(auth)/login" />
+  );
 }
 
 const styles = StyleSheet.create({
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

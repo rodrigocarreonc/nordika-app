@@ -1,13 +1,21 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform } from 'react-native';
-import { ConfirmDialog, DialogButton } from '../components/ConfirmDialog';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Platform } from "react-native";
+import { ConfirmDialog, DialogButton } from "../components/ConfirmDialog";
 
 export interface ConfirmOptions {
   title: string;
   message?: string;
   confirmText?: string;
   cancelText?: string;
-  confirmStyle?: 'default' | 'destructive';
+  confirmStyle?: "default" | "destructive";
   onConfirm?: () => void | Promise<void>;
   onCancel?: () => void;
 }
@@ -31,7 +39,7 @@ interface DialogState {
   message?: string;
   confirmText?: string;
   cancelText?: string;
-  confirmStyle?: 'default' | 'destructive';
+  confirmStyle?: "default" | "destructive";
   buttons?: DialogButton[];
   onConfirm?: () => void | Promise<void>;
   onCancel?: () => void;
@@ -52,8 +60,14 @@ let globalHandler: DialogContextValue | null = null;
 export const dialog = {
   confirm: (options: ConfirmOptions): Promise<boolean> => {
     if (globalHandler) return globalHandler.confirm(options);
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
-      const res = window.confirm(`${options.title}\n\n${options.message ?? ''}`);
+    if (
+      Platform.OS === "web" &&
+      typeof window !== "undefined" &&
+      typeof window.confirm === "function"
+    ) {
+      const res = window.confirm(
+        `${options.title}\n\n${options.message ?? ""}`,
+      );
       if (res && options.onConfirm) options.onConfirm();
       if (!res && options.onCancel) options.onCancel();
       return Promise.resolve(res);
@@ -62,8 +76,12 @@ export const dialog = {
   },
   alert: (options: AlertOptions): Promise<void> => {
     if (globalHandler) return globalHandler.showAlert(options);
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.alert === 'function') {
-      window.alert(`${options.title}\n\n${options.message ?? ''}`);
+    if (
+      Platform.OS === "web" &&
+      typeof window !== "undefined" &&
+      typeof window.alert === "function"
+    ) {
+      window.alert(`${options.title}\n\n${options.message ?? ""}`);
       if (options.onConfirm) options.onConfirm();
       return Promise.resolve();
     }
@@ -74,15 +92,17 @@ export const dialog = {
   },
 };
 
-export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [dialogState, setDialogState] = useState<DialogState>({
     visible: false,
-    title: '',
+    title: "",
   });
 
   type PendingDialog =
-    | { type: 'confirm'; resolve: (value: boolean) => void }
-    | { type: 'alert'; resolve: () => void };
+    | { type: "confirm"; resolve: (value: boolean) => void }
+    | { type: "alert"; resolve: () => void };
 
   const resolverRef = useRef<PendingDialog | null>(null);
   const lastClosedAtRef = useRef<number>(0);
@@ -91,7 +111,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const pending = resolverRef.current;
     if (!pending) return;
     resolverRef.current = null;
-    if (pending.type === 'confirm') {
+    if (pending.type === "confirm") {
       pending.resolve(false);
     } else {
       pending.resolve();
@@ -99,7 +119,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const waitNativeModalDismiss = useCallback(async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === "web") return;
     const elapsed = Date.now() - lastClosedAtRef.current;
     if (elapsed < 280) {
       await new Promise((r) => setTimeout(r, 280 - elapsed));
@@ -117,15 +137,15 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await waitNativeModalDismiss();
       resolvePendingDialog();
       return new Promise<boolean>((resolve) => {
-        const pending: PendingDialog = { type: 'confirm', resolve };
+        const pending: PendingDialog = { type: "confirm", resolve };
         resolverRef.current = pending;
         setDialogState({
           visible: true,
           title: options.title,
           message: options.message,
-          confirmText: options.confirmText ?? 'Aceptar',
-          cancelText: options.cancelText ?? 'Cancelar',
-          confirmStyle: options.confirmStyle ?? 'default',
+          confirmText: options.confirmText ?? "Aceptar",
+          cancelText: options.cancelText ?? "Cancelar",
+          confirmStyle: options.confirmStyle ?? "default",
           onConfirm: async () => {
             try {
               if (options.onConfirm) {
@@ -158,7 +178,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       });
     },
-    [closeDialog, resolvePendingDialog, waitNativeModalDismiss]
+    [closeDialog, resolvePendingDialog, waitNativeModalDismiss],
   );
 
   const showAlert = useCallback(
@@ -167,15 +187,15 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await waitNativeModalDismiss();
       resolvePendingDialog();
       return new Promise<void>((resolve) => {
-        const pending: PendingDialog = { type: 'alert', resolve };
+        const pending: PendingDialog = { type: "alert", resolve };
         resolverRef.current = pending;
         setDialogState({
           visible: true,
           title: options.title,
           message: options.message,
-          confirmText: options.buttonText ?? 'Aceptar',
+          confirmText: options.buttonText ?? "Aceptar",
           cancelText: undefined, // no cancel button
-          confirmStyle: 'default',
+          confirmStyle: "default",
           onConfirm: async () => {
             try {
               if (options.onConfirm) {
@@ -200,7 +220,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       });
     },
-    [closeDialog, resolvePendingDialog, waitNativeModalDismiss]
+    [closeDialog, resolvePendingDialog, waitNativeModalDismiss],
   );
 
   const showDialog = useCallback(
@@ -227,7 +247,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         onClose: closeDialog,
       });
     },
-    [closeDialog, resolvePendingDialog, waitNativeModalDismiss]
+    [closeDialog, resolvePendingDialog, waitNativeModalDismiss],
   );
 
   const contextValue = useMemo<DialogContextValue>(
@@ -236,7 +256,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       showAlert,
       showDialog,
     }),
-    [confirm, showAlert, showDialog]
+    [confirm, showAlert, showDialog],
   );
 
   useEffect(() => {
@@ -271,7 +291,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 export function useDialog(): DialogContextValue {
   const context = useContext(DialogContext);
   if (!context) {
-    throw new Error('useDialog must be used within a DialogProvider');
+    throw new Error("useDialog must be used within a DialogProvider");
   }
   return context;
 }

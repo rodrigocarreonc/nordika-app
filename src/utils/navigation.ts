@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter } from "expo-router";
 
 export type RouterInstance = ReturnType<typeof useRouter>;
 
@@ -7,7 +7,7 @@ export type RouterInstance = ReturnType<typeof useRouter>;
  * otherwise falls back to the specified route (defaults to '/').
  * Fixes the GO_BACK navigation warning (Issue #30) across the app.
  */
-export function safeBack(router: RouterInstance, fallback: string = '/') {
+export function safeBack(router: RouterInstance, fallback: string = "/") {
   if (router.canGoBack()) {
     router.back();
   } else {

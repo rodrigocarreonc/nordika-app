@@ -1,13 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { useColorScheme } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../../constants/theme';
-import { getUser } from '../../../utils/tokenStorage';
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { useColorScheme } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors } from "../../../constants/theme";
+import { getUser } from "../../../utils/tokenStorage";
 
 export default function TabsLayout() {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
   const insets = useSafeAreaInsets();
   const [isStaff, setIsStaff] = useState(false);
@@ -40,58 +40,78 @@ export default function TabsLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: "600",
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Catálogo',
-          tabBarAccessibilityLabel: 'Catálogo de muebles',
+          title: "Catálogo",
+          tabBarAccessibilityLabel: "Catálogo de muebles",
           tabBarIcon: ({ focused }) => (
-            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
+            <Ionicons
+              name={focused ? "grid" : "grid-outline"}
+              size={22}
+              color={focused ? colors.accent : colors.tabIconDefault}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="favoritos"
         options={{
-          title: 'Favoritos',
-          tabBarAccessibilityLabel: 'Muebles favoritos',
+          title: "Favoritos",
+          tabBarAccessibilityLabel: "Muebles favoritos",
           tabBarIcon: ({ focused }) => (
-            <Ionicons name={focused ? 'heart' : 'heart-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
+            <Ionicons
+              name={focused ? "heart" : "heart-outline"}
+              size={22}
+              color={focused ? colors.accent : colors.tabIconDefault}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="apartados"
         options={{
-          title: 'Apartados',
-          tabBarAccessibilityLabel: 'Apartados de muebles',
+          title: "Apartados",
+          tabBarAccessibilityLabel: "Apartados de muebles",
           tabBarIcon: ({ focused }) => (
-            <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
+            <Ionicons
+              name={focused ? "bookmark" : "bookmark-outline"}
+              size={22}
+              color={focused ? colors.accent : colors.tabIconDefault}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="admin"
         options={{
-          title: 'Administración',
-          tabBarAccessibilityLabel: 'Panel de administración',
+          title: "Administración",
+          tabBarAccessibilityLabel: "Panel de administración",
           href: isStaff ? undefined : null,
           tabBarIcon: ({ focused }) => (
-            <Ionicons name={focused ? 'shield' : 'shield-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
+            <Ionicons
+              name={focused ? "shield" : "shield-outline"}
+              size={22}
+              color={focused ? colors.accent : colors.tabIconDefault}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Ajustes',
-          tabBarAccessibilityLabel: 'Ajustes y perfil',
+          title: "Ajustes",
+          tabBarAccessibilityLabel: "Ajustes y perfil",
           tabBarIcon: ({ focused }) => (
-            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={22} color={focused ? colors.accent : colors.tabIconDefault} />
+            <Ionicons
+              name={focused ? "settings" : "settings-outline"}
+              size={22}
+              color={focused ? colors.accent : colors.tabIconDefault}
+            />
           ),
         }}
       />
