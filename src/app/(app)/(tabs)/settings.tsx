@@ -62,6 +62,7 @@ export default function SettingsScreen() {
   const [clientEmail, setClientEmail] = useState("");
   const [clientPassword, setClientPassword] = useState("");
   const [clientPasswordConfirm, setClientPasswordConfirm] = useState("");
+  const [showClientPassword, setShowClientPassword] = useState(false);
   const [clientFirstName, setClientFirstName] = useState("");
   const [clientLastName, setClientLastName] = useState("");
   const [creatingClient, setCreatingClient] = useState(false);
@@ -430,6 +431,7 @@ export default function SettingsScreen() {
                 ]}
                 onPress={() => {
                   setClientError(null);
+                  setShowClientPassword(false);
                   setShowAddClientModal(true);
                 }}
                 accessibilityRole="button"
@@ -681,7 +683,53 @@ export default function SettingsScreen() {
                 </View>
               ) : null}
 
-              <Text style={[styles.inputLabel, { color: colors.text }]}>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.inputLabel, { color: colors.text }]}>
+                    Nombre
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.modalInput,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                    value={clientFirstName}
+                    onChangeText={setClientFirstName}
+                    placeholder="Nombre"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.inputLabel, { color: colors.text }]}>
+                    Apellido
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.modalInput,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                    value={clientLastName}
+                    onChangeText={setClientLastName}
+                    placeholder="Apellido"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </View>
+              </View>
+
+              <Text
+                style={[
+                  styles.inputLabel,
+                  { color: colors.text, marginTop: 10 },
+                ]}
+              >
                 Nombre de Usuario *
               </Text>
               <TextInput
@@ -733,21 +781,43 @@ export default function SettingsScreen() {
               >
                 Contraseña (mínimo 6 caracteres) *
               </Text>
-              <TextInput
+              <View
                 style={[
                   styles.modalInput,
+                  styles.passwordWrapper,
                   {
                     backgroundColor: colors.background,
                     borderColor: colors.border,
-                    color: colors.text,
                   },
                 ]}
-                value={clientPassword}
-                onChangeText={setClientPassword}
-                secureTextEntry
-                placeholder="Contraseña"
-                placeholderTextColor={colors.textMuted}
-              />
+              >
+                <TextInput
+                  style={[styles.passwordInput, { color: colors.text }]}
+                  value={clientPassword}
+                  onChangeText={setClientPassword}
+                  secureTextEntry={!showClientPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="Contraseña"
+                  placeholderTextColor={colors.textMuted}
+                />
+                <Pressable
+                  onPress={() => setShowClientPassword((v) => !v)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    showClientPassword
+                      ? "Ocultar contraseñas"
+                      : "Ver contraseñas"
+                  }
+                >
+                  <Ionicons
+                    name={showClientPassword ? "eye-off-outline" : "eye-outline"}
+                    size={18}
+                    color={colors.textMuted}
+                  />
+                </Pressable>
+              </View>
 
               <Text
                 style={[
@@ -768,51 +838,12 @@ export default function SettingsScreen() {
                 ]}
                 value={clientPasswordConfirm}
                 onChangeText={setClientPasswordConfirm}
-                secureTextEntry
+                secureTextEntry={!showClientPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
                 placeholder="Repite la contraseña"
                 placeholderTextColor={colors.textMuted}
               />
-
-              <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.text }]}>
-                    Nombre
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.modalInput,
-                      {
-                        backgroundColor: colors.background,
-                        borderColor: colors.border,
-                        color: colors.text,
-                      },
-                    ]}
-                    value={clientFirstName}
-                    onChangeText={setClientFirstName}
-                    placeholder="Nombre"
-                    placeholderTextColor={colors.textMuted}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.text }]}>
-                    Apellido
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.modalInput,
-                      {
-                        backgroundColor: colors.background,
-                        borderColor: colors.border,
-                        color: colors.text,
-                      },
-                    ]}
-                    value={clientLastName}
-                    onChangeText={setClientLastName}
-                    placeholder="Apellido"
-                    placeholderTextColor={colors.textMuted}
-                  />
-                </View>
-              </View>
 
               <Pressable
                 style={[
@@ -1026,6 +1057,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 44,
+    fontSize: 14,
+  },
+  passwordWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  passwordInput: {
+    flex: 1,
+    height: "100%",
     fontSize: 14,
   },
   confirmButton: {
