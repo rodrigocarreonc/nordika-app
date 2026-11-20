@@ -58,12 +58,14 @@ export default function CatalogScreen() {
     });
   }, []);
 
-  // Cargar categorías iniciales
-  useEffect(() => {
+  // Recargar categorías al volver al catálogo, para ver las creadas/editadas en Administración
+  const fetchCategorias = useCallback(() => {
     apiGetCategorias()
       .then((cats) => setCategorias(cats))
       .catch(() => {});
   }, []);
+
+  useFocusEffect(fetchCategorias);
 
   // Cargar muebles
   const fetchMuebles = useCallback(
@@ -110,6 +112,7 @@ export default function CatalogScreen() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchCategorias();
     fetchMuebles(1, true);
   };
 
