@@ -189,6 +189,14 @@ export async function apiChangePassword(
   await saveToken(data.token);
 }
 
+export async function apiDeleteAccount(password: string): Promise<void> {
+  await request("/me/", {
+    method: "DELETE",
+    body: JSON.stringify({ password }),
+  });
+  await deleteToken();
+}
+
 export async function apiLogout(): Promise<void> {
   try {
     await request("/logout/", { method: "POST" });
