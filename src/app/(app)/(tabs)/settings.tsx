@@ -22,6 +22,7 @@ import { User } from "../../../types";
 import {
   apiChangePassword,
   apiCrearCliente,
+  apiDeleteAccount,
   apiGetMe,
   apiLogout,
   apiUpdateMe,
@@ -69,8 +70,12 @@ export default function SettingsScreen() {
   const [creatingClient, setCreatingClient] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
 
-  // Modal para cambiar contraseña
+  // Modal de cuenta: cambiar contraseña o eliminar cuenta
+  // El modo se mantiene al cerrar para que el contenido no cambie durante el fade
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accountAction, setAccountAction] = useState<"password" | "delete">(
+    "password",
+  );
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
@@ -188,12 +193,13 @@ export default function SettingsScreen() {
     }
   };
 
-  const openAccountModal = () => {
+  const openAccountModal = (action: "password" | "delete") => {
     setCurrentPassword("");
     setNewPassword("");
     setNewPasswordConfirm("");
     setShowAccountPassword(false);
     setAccountError(null);
+    setAccountAction(action);
     setShowAccountModal(true);
   };
 
@@ -221,6 +227,39 @@ export default function SettingsScreen() {
       });
     } catch (e: any) {
       setAccountError(e.message || "No se pudo cambiar la contraseña.");
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setAccountError(null);
+    if (!currentPassword) {
+      setAccountError("Escribe tu contraseña para confirmar.");
+      return;
+    }
+    // El diálogo vive en la raíz: si este Modal sigue abierto lo tapa
+    setShowAccountModal(false);
+    const ok = await dialog.confirm({
+      title: "Eliminar Cuenta",
+      message:
+        "Esta acción no se puede deshacer. Tus apartados pendientes se cancelarán y ya no podrás iniciar sesión.",
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      confirmStyle: "destructive",
+    });
+    if (!ok) {
+      setShowAccountModal(true);
+      return;
+    }
+    try {
+      setAccountBusy(true);
+      await apiDeleteAccount(currentPassword);
+      router.replace("/(auth)/login");
+    } catch (e: any) {
+      // Reabre el modal para mostrar el error (p. ej. contraseña incorrecta)
+      setAccountError(e.message || "No se pudo eliminar la cuenta.");
+      setShowAccountModal(true);
     } finally {
       setAccountBusy(false);
     }
@@ -515,7 +554,7 @@ export default function SettingsScreen() {
         >
           <Pressable
             style={[styles.editProfileButton, { borderColor: colors.border }]}
-            onPress={() => openAccountModal()}
+            onPress={() => openAccountModal("password")}
             accessibilityRole="button"
             accessibilityLabel="Cambiar contraseña"
             accessibilityHint="Abre el formulario para cambiar tu contraseña"
@@ -530,6 +569,29 @@ export default function SettingsScreen() {
               style={[styles.editProfileButtonText, { color: colors.text }]}
             >
               Cambiar Contraseña
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.editProfileButton,
+              { borderColor: `${colors.danger}40`, marginTop: 10 },
+            ]}
+            onPress={() => openAccountModal("delete")}
+            accessibilityRole="button"
+            accessibilityLabel="Eliminar cuenta"
+            accessibilityHint="Abre el formulario para eliminar tu cuenta de forma permanente"
+          >
+            <Ionicons
+              name="trash-outline"
+              size={16}
+              color={colors.danger}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[styles.editProfileButtonText, { color: colors.danger }]}
+            >
+              Eliminar Cuenta
             </Text>
           </Pressable>
         </View>
@@ -952,7 +1014,7 @@ export default function SettingsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Modal para Cambiar Contraseña */}
+      {/* Modal de Cuenta: cambiar contraseña o eliminar cuenta */}
       <Modal
         visible={showAccountModal}
         transparent
@@ -977,7 +1039,9 @@ export default function SettingsScreen() {
           >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitleText, { color: colors.text }]}>
-                Cambiar Contraseña
+                {accountAction === "delete"
+                  ? "Eliminar Cuenta"
+                  : "Cambiar Contraseña"}
               </Text>
               <Pressable
                 onPress={() => setShowAccountModal(false)}
@@ -1011,8 +1075,19 @@ export default function SettingsScreen() {
                 </View>
               ) : null}
 
+              {accountAction === "delete" ? (
+                <Text
+                  style={[styles.cardSubtitle, { color: colors.textMuted }]}
+                >
+                  Tu cuenta se desactivará y ya no podrás iniciar sesión. Tus
+                  apartados pendientes se cancelarán.
+                </Text>
+              ) : null}
+
               <Text style={[styles.inputLabel, { color: colors.text }]}>
-                Contraseña actual
+                {accountAction === "delete"
+                  ? "Contraseña"
+                  : "Contraseña actual"}
               </Text>
               <View
                 style={[
@@ -1054,75 +1129,92 @@ export default function SettingsScreen() {
                 </Pressable>
               </View>
 
-              <Text
-                style={[
-                  styles.inputLabel,
-                  { color: colors.text, marginTop: 10 },
-                ]}
-              >
-                Nueva contraseña (mínimo 6 caracteres)
-              </Text>
-              <TextInput
-                style={[
-                  styles.modalInput,
-                  {
-                    backgroundColor: colors.background,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry={!showAccountPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="Nueva contraseña"
-                placeholderTextColor={colors.textMuted}
-              />
+              {accountAction === "password" ? (
+                <>
+                  <Text
+                    style={[
+                      styles.inputLabel,
+                      { color: colors.text, marginTop: 10 },
+                    ]}
+                  >
+                    Nueva contraseña (mínimo 6 caracteres)
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.modalInput,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showAccountPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder="Nueva contraseña"
+                    placeholderTextColor={colors.textMuted}
+                  />
 
-              <Text
-                style={[
-                  styles.inputLabel,
-                  { color: colors.text, marginTop: 10 },
-                ]}
-              >
-                Confirmar nueva contraseña
-              </Text>
-              <TextInput
-                style={[
-                  styles.modalInput,
-                  {
-                    backgroundColor: colors.background,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-                value={newPasswordConfirm}
-                onChangeText={setNewPasswordConfirm}
-                secureTextEntry={!showAccountPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="Repite la nueva contraseña"
-                placeholderTextColor={colors.textMuted}
-              />
+                  <Text
+                    style={[
+                      styles.inputLabel,
+                      { color: colors.text, marginTop: 10 },
+                    ]}
+                  >
+                    Confirmar nueva contraseña
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.modalInput,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                    value={newPasswordConfirm}
+                    onChangeText={setNewPasswordConfirm}
+                    secureTextEntry={!showAccountPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder="Repite la nueva contraseña"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </>
+              ) : null}
 
               <Pressable
                 style={[
                   styles.confirmButton,
                   {
-                    backgroundColor: colors.accent,
+                    backgroundColor:
+                      accountAction === "delete"
+                        ? colors.danger
+                        : colors.accent,
                   },
                 ]}
-                onPress={handleChangePassword}
+                onPress={
+                  accountAction === "delete"
+                    ? handleDeleteAccount
+                    : handleChangePassword
+                }
                 disabled={accountBusy}
                 accessibilityRole="button"
-                accessibilityLabel="Guardar nueva contraseña"
+                accessibilityLabel={
+                  accountAction === "delete"
+                    ? "Eliminar cuenta"
+                    : "Guardar nueva contraseña"
+                }
               >
                 {accountBusy ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <Text style={styles.confirmButtonText}>
-                    Cambiar Contraseña
+                    {accountAction === "delete"
+                      ? "Eliminar Cuenta"
+                      : "Cambiar Contraseña"}
                   </Text>
                 )}
               </Pressable>
