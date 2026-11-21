@@ -177,6 +177,18 @@ export async function apiUpdateMe(profileData: Partial<User>): Promise<User> {
   });
 }
 
+export async function apiChangePassword(
+  current_password: string,
+  new_password: string,
+): Promise<void> {
+  const data = await request<{ token: string }>("/change-password/", {
+    method: "POST",
+    body: JSON.stringify({ current_password, new_password }),
+  });
+  // El backend rota el token: sin guardarlo, la siguiente petición daría 401
+  await saveToken(data.token);
+}
+
 export async function apiLogout(): Promise<void> {
   try {
     await request("/logout/", { method: "POST" });
