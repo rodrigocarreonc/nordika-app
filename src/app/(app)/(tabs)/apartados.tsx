@@ -225,9 +225,13 @@ export default function ApartadosScreen() {
                 ]}
               >
                 Cliente:{" "}
-                {item.usuario_nombre
-                  ? `${item.usuario_nombre} (@${item.usuario_username})`
-                  : item.usuario_username}
+                {item.usuario_activo === false
+                  ? item.usuario_nombre
+                    ? `${item.usuario_nombre} (cuenta eliminada)`
+                    : "Cuenta eliminada"
+                  : item.usuario_nombre
+                    ? `${item.usuario_nombre} (@${item.usuario_username})`
+                    : item.usuario_username}
               </Text>
               {item.usuario_email ? (
                 <Text style={[styles.cardDetail, { color: colors.textMuted }]}>

@@ -84,6 +84,7 @@ export interface Apartado {
   usuario_username: string;
   usuario_email?: string;
   usuario_nombre?: string;
+  usuario_activo?: boolean;
   mueble: Mueble;
   cantidad: number;
   estado: "PENDIENTE" | "ACEPTADO" | "RECHAZADO" | "CANCELADO";
