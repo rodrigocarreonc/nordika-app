@@ -343,28 +343,57 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          <Pressable
-            style={[styles.editProfileButton, { borderColor: colors.border }]}
-            onPress={() => {
-              setProfileError(null);
-              setShowEditProfileModal(true);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Editar perfil"
-            accessibilityHint="Abre el formulario para modificar nombre, apellido o correo"
-          >
-            <Ionicons
-              name="pencil-outline"
-              size={16}
-              color={colors.text}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={[styles.editProfileButtonText, { color: colors.text }]}
+          <View style={styles.profileActions}>
+            <Pressable
+              style={[
+                styles.editProfileButton,
+                styles.profileActionButton,
+                { borderColor: colors.border },
+              ]}
+              onPress={() => {
+                setProfileError(null);
+                setShowEditProfileModal(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Editar perfil"
+              accessibilityHint="Abre el formulario para modificar nombre, apellido o correo"
             >
-              Editar Perfil
-            </Text>
-          </Pressable>
+              <Ionicons
+                name="pencil-outline"
+                size={16}
+                color={colors.text}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[styles.editProfileButtonText, { color: colors.text }]}
+              >
+                Editar Perfil
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.editProfileButton,
+                styles.profileActionButton,
+                { borderColor: colors.border },
+              ]}
+              onPress={() => openAccountModal("password")}
+              accessibilityRole="button"
+              accessibilityLabel="Cambiar contraseña"
+              accessibilityHint="Abre el formulario para cambiar tu contraseña"
+            >
+              <Ionicons
+                name="key-outline"
+                size={16}
+                color={colors.text}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[styles.editProfileButtonText, { color: colors.text }]}
+              >
+                Cambiar Contraseña
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Sección: Paginación Configurable */}
@@ -539,62 +568,51 @@ export default function SettingsScreen() {
           </>
         ) : null}
 
-        {/* Sección: Cuenta */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionHeaderText, { color: colors.textMuted }]}>
-            CUENTA
-          </Text>
-        </View>
+        {/* Sección: Cuenta (eliminar cuenta, solo clientes) */}
+        {!user?.is_staff && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text
+                style={[styles.sectionHeaderText, { color: colors.textMuted }]}
+              >
+                CUENTA
+              </Text>
+            </View>
 
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Pressable
-            style={[styles.editProfileButton, { borderColor: colors.border }]}
-            onPress={() => openAccountModal("password")}
-            accessibilityRole="button"
-            accessibilityLabel="Cambiar contraseña"
-            accessibilityHint="Abre el formulario para cambiar tu contraseña"
-          >
-            <Ionicons
-              name="key-outline"
-              size={16}
-              color={colors.text}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={[styles.editProfileButtonText, { color: colors.text }]}
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
             >
-              Cambiar Contraseña
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={[
-              styles.editProfileButton,
-              { borderColor: `${colors.danger}40`, marginTop: 10 },
-            ]}
-            onPress={() => openAccountModal("delete")}
-            accessibilityRole="button"
-            accessibilityLabel="Eliminar cuenta"
-            accessibilityHint="Abre el formulario para eliminar tu cuenta de forma permanente"
-          >
-            <Ionicons
-              name="trash-outline"
-              size={16}
-              color={colors.danger}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={[styles.editProfileButtonText, { color: colors.danger }]}
-            >
-              Eliminar Cuenta
-            </Text>
-          </Pressable>
-        </View>
+              <Pressable
+                style={[
+                  styles.editProfileButton,
+                  { borderColor: `${colors.danger}40` },
+                ]}
+                onPress={() => openAccountModal("delete")}
+                accessibilityRole="button"
+                accessibilityLabel="Eliminar cuenta"
+                accessibilityHint="Abre el formulario para eliminar tu cuenta de forma permanente"
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={16}
+                  color={colors.danger}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.editProfileButtonText,
+                    { color: colors.danger },
+                  ]}
+                >
+                  Eliminar Cuenta
+                </Text>
+              </Pressable>
+            </View>
+          </>
+        )}
 
         {/* Botón de Logout */}
         <Pressable
@@ -1297,6 +1315,13 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 10,
     borderWidth: 1,
+  },
+  profileActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  profileActionButton: {
+    flex: 1,
   },
   editProfileButtonText: {
     fontSize: 13,
