@@ -568,42 +568,51 @@ export default function SettingsScreen() {
           </>
         ) : null}
 
-        {/* Sección: Cuenta */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionHeaderText, { color: colors.textMuted }]}>
-            CUENTA
-          </Text>
-        </View>
+        {/* Sección: Cuenta (eliminar cuenta, solo clientes) */}
+        {!user?.is_staff && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text
+                style={[styles.sectionHeaderText, { color: colors.textMuted }]}
+              >
+                CUENTA
+              </Text>
+            </View>
 
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Pressable
-            style={[
-              styles.editProfileButton,
-              { borderColor: `${colors.danger}40` },
-            ]}
-            onPress={() => openAccountModal("delete")}
-            accessibilityRole="button"
-            accessibilityLabel="Eliminar cuenta"
-            accessibilityHint="Abre el formulario para eliminar tu cuenta de forma permanente"
-          >
-            <Ionicons
-              name="trash-outline"
-              size={16}
-              color={colors.danger}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={[styles.editProfileButtonText, { color: colors.danger }]}
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
             >
-              Eliminar Cuenta
-            </Text>
-          </Pressable>
-        </View>
+              <Pressable
+                style={[
+                  styles.editProfileButton,
+                  { borderColor: `${colors.danger}40` },
+                ]}
+                onPress={() => openAccountModal("delete")}
+                accessibilityRole="button"
+                accessibilityLabel="Eliminar cuenta"
+                accessibilityHint="Abre el formulario para eliminar tu cuenta de forma permanente"
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={16}
+                  color={colors.danger}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.editProfileButtonText,
+                    { color: colors.danger },
+                  ]}
+                >
+                  Eliminar Cuenta
+                </Text>
+              </Pressable>
+            </View>
+          </>
+        )}
 
         {/* Botón de Logout */}
         <Pressable
