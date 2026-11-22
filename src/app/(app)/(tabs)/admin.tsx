@@ -383,6 +383,14 @@ export default function AdminScreen() {
       setProvFormError("El nombre del proveedor es obligatorio.");
       return;
     }
+    if (!provContacto.trim() || !provTelefono.trim()) {
+      setProvFormError("La persona de contacto y el teléfono son obligatorios.");
+      return;
+    }
+    if (!/^\d{1,10}$/.test(provTelefono.trim())) {
+      setProvFormError("El teléfono no puede tener más de 10 dígitos.");
+      return;
+    }
 
     try {
       setSubmittingProv(true);
@@ -1433,7 +1441,7 @@ export default function AdminScreen() {
                   { color: colors.text, marginTop: 14 },
                 ]}
               >
-                Persona de Contacto
+                Persona de Contacto *
               </Text>
               <TextInput
                 style={[
@@ -1457,7 +1465,7 @@ export default function AdminScreen() {
                   { color: colors.text, marginTop: 14 },
                 ]}
               >
-                Teléfono
+                Teléfono *
               </Text>
               <TextInput
                 style={[
@@ -1473,6 +1481,7 @@ export default function AdminScreen() {
                 value={provTelefono}
                 onChangeText={setProvTelefono}
                 keyboardType="phone-pad"
+                maxLength={10}
               />
 
               <Text
