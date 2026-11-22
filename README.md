@@ -17,7 +17,13 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-3. Start the app
+3. Configure the API URL (copy `.env.example` to `.env` and edit `EXPO_PUBLIC_API_URL`)
+
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Start the app
 
    ```bash
    npx expo start

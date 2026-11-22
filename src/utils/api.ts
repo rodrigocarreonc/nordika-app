@@ -1,0 +1,441 @@
+import { router } from "expo-router";
+import {
+  Apartado,
+  AuthResponse,
+  Categoria,
+  Mueble,
+  MuebleFilterParams,
+  PaginatedResponse,
+  Proveedor,
+  User,
+} from "../types";
+import { deleteToken, getToken, saveToken, saveUser } from "./tokenStorage";
+
+// Se fija en build desde EXPO_PUBLIC_API_URL (.env); quita '/' final
+const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+if (!API_URL) throw new Error("Falta EXPO_PUBLIC_API_URL en .env");
+
+export class ApiError extends Error {
+  status: number;
+  data: any;
+
+  constructor(message: string, status: number, data?: any) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
+/**
+ * Realiza una petición HTTP genérica al backend con token de autenticación.
+ */
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const baseUrl = API_URL;
+  const token = await getToken();
+
+  const url = `${baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...(options.headers as Record<string, string>),
+  };
+
+  // Solo agregar Content-Type: application/json si no es FormData (para subida de imágenes)
+  if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (token) {
+    headers["Authorization"] = `Token ${token}`;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (err: any) {
+    throw new ApiError(
+      `No se pudo conectar con el servidor en ${baseUrl}. Verifica tu conexión o EXPO_PUBLIC_API_URL en .env.`,
+      0,
+      err,
+    );
+  }
+
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  let responseData: any = null;
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    try {
+      responseData = await response.json();
+    } catch {
+      responseData = null;
+    }
+  } else {
+    responseData = await response.text();
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 && !endpoint.includes("/api-token-auth/")) {
+      await deleteToken();
+      router.replace("/(auth)/login");
+    }
+
+    let errorMessage = `Error del servidor (${response.status})`;
+    if (responseData) {
+      if (typeof responseData === "string") {
+        errorMessage = responseData;
+      } else if (responseData.detail) {
+        errorMessage = responseData.detail;
+      } else if (responseData.non_field_errors) {
+        errorMessage = Array.isArray(responseData.non_field_errors)
+          ? responseData.non_field_errors.join(", ")
+          : responseData.non_field_errors;
+      } else {
+        // Concatenar primer mensaje de error encontrado en campos
+        const firstKey = Object.keys(responseData)[0];
+        if (firstKey) {
+          const val = responseData[firstKey];
+          errorMessage = `${firstKey}: ${Array.isArray(val) ? val[0] : val}`;
+        }
+      }
+    }
+    throw new ApiError(errorMessage, response.status, responseData);
+  }
+
+  return responseData as T;
+}
+
+// ==========================================
+// SERVICIOS DE AUTENTICACIÓN
+// ==========================================
+
+export async function apiLogin(
+  username: string,
+  password: string,
+): Promise<AuthResponse> {
+  const data = await request<AuthResponse>("/api-token-auth/", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+  if (data.token) {
+    await saveToken(data.token);
+    await saveUser({
+      id: data.user_id,
+      username: data.username,
+      email: data.email,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      is_staff: data.is_staff,
+    });
+  }
+  return data;
+}
+
+export async function apiRegister(userData: {
+  username: string;
+  email: string;
+  password: string;
+  password_confirm?: string;
+  first_name?: string;
+  last_name?: string;
+}): Promise<AuthResponse> {
+  const data = await request<AuthResponse>("/api-register/", {
+    method: "POST",
+    body: JSON.stringify(userData),
+  });
+  if (data.token) {
+    await saveToken(data.token);
+    await saveUser({
+      id: data.user_id,
+      username: data.username,
+      email: data.email,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      is_staff: data.is_staff,
+    });
+  }
+  return data;
+}
+
+export async function apiGetMe(): Promise<User> {
+  return await request<User>("/me/");
+}
+
+export async function apiUpdateMe(profileData: Partial<User>): Promise<User> {
+  return await request<User>("/me/", {
+    method: "PATCH",
+    body: JSON.stringify(profileData),
+  });
+}
+
+export async function apiChangePassword(
+  current_password: string,
+  new_password: string,
+): Promise<void> {
+  const data = await request<{ token: string }>("/change-password/", {
+    method: "POST",
+    body: JSON.stringify({ current_password, new_password }),
+  });
+  // El backend rota el token: sin guardarlo, la siguiente petición daría 401
+  await saveToken(data.token);
+}
+
+export async function apiDeleteAccount(password: string): Promise<void> {
+  await request("/me/", {
+    method: "DELETE",
+    body: JSON.stringify({ password }),
+  });
+  await deleteToken();
+}
+
+export async function apiLogout(): Promise<void> {
+  try {
+    await request("/logout/", { method: "POST" });
+  } catch {
+    // Si falla en backend, de todas formas limpiar token local
+  } finally {
+    await deleteToken();
+  }
+}
+
+export async function apiCrearCliente(data: {
+  username: string;
+  email: string;
+  password: string;
+  password_confirm?: string;
+  first_name?: string;
+  last_name?: string;
+}): Promise<User> {
+  return await request<User>("/users/crear_cliente/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ==========================================
+// CATÁLOGO DE MUEBLES (CRUD, FILTROS, FAVORITOS)
+// ==========================================
+
+export async function apiGetMuebles(
+  params: MuebleFilterParams = {},
+): Promise<PaginatedResponse<Mueble>> {
+  const query = new URLSearchParams();
+
+  if (params.page) query.append("page", params.page.toString());
+  if (params.page_size) query.append("page_size", params.page_size.toString());
+  if (params.search) query.append("search", params.search);
+  if (params.categoria) query.append("categoria", params.categoria.toString());
+  if (params.proveedor) query.append("proveedor", params.proveedor.toString());
+  if (params.precio_min !== undefined)
+    query.append("precio_min", params.precio_min.toString());
+  if (params.precio_max !== undefined)
+    query.append("precio_max", params.precio_max.toString());
+  if (params.en_stock !== undefined)
+    query.append("en_stock", params.en_stock ? "true" : "false");
+  if (params.ordering) query.append("ordering", params.ordering);
+
+  const qs = query.toString();
+  return await request<PaginatedResponse<Mueble>>(
+    `/muebles/${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function apiGetMueble(id: number): Promise<Mueble> {
+  return await request<Mueble>(`/muebles/${id}/`);
+}
+
+export async function apiCreateMueble(
+  data: FormData | Record<string, any>,
+): Promise<Mueble> {
+  const isFormData =
+    typeof FormData !== "undefined" && data instanceof FormData;
+  return await request<Mueble>("/muebles/", {
+    method: "POST",
+    body: isFormData ? data : JSON.stringify(data),
+  });
+}
+
+export async function apiUpdateMueble(
+  id: number,
+  data: FormData | Record<string, any>,
+): Promise<Mueble> {
+  const isFormData =
+    typeof FormData !== "undefined" && data instanceof FormData;
+  return await request<Mueble>(`/muebles/${id}/`, {
+    method: "PATCH",
+    body: isFormData ? data : JSON.stringify(data),
+  });
+}
+
+export async function apiDeleteMueble(id: number): Promise<void> {
+  await request(`/muebles/${id}/`, {
+    method: "DELETE",
+  });
+}
+
+export async function apiToggleFavorito(
+  muebleId: number,
+): Promise<{ is_favorito: boolean; total_favoritos: number; detail: string }> {
+  return await request<{
+    is_favorito: boolean;
+    total_favoritos: number;
+    detail: string;
+  }>(`/muebles/${muebleId}/toggle_favorito/`, { method: "POST" });
+}
+
+export async function apiGetMisFavoritos(
+  params: { page?: number; page_size?: number } = {},
+): Promise<PaginatedResponse<Mueble>> {
+  const query = new URLSearchParams();
+  if (params.page) query.append("page", params.page.toString());
+  if (params.page_size) query.append("page_size", params.page_size.toString());
+  const qs = query.toString();
+  return await request<PaginatedResponse<Mueble>>(
+    `/muebles/mis_favoritos/${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function apiGetDestacados(): Promise<Mueble[]> {
+  return await request<Mueble[]>("/muebles/destacados/");
+}
+
+// ==========================================
+// APARTADOS
+// ==========================================
+
+export async function apiGetApartados(
+  params: {
+    page?: number;
+    page_size?: number;
+    estado?: Apartado["estado"];
+    historial?: boolean;
+  } = {},
+): Promise<PaginatedResponse<Apartado>> {
+  const query = new URLSearchParams();
+  if (params.page) query.append("page", params.page.toString());
+  if (params.page_size) query.append("page_size", params.page_size.toString());
+  if (params.estado) query.append("estado", params.estado);
+  if (params.historial !== undefined)
+    query.append("historial", params.historial.toString());
+  const qs = query.toString();
+  return await request<PaginatedResponse<Apartado>>(
+    `/apartados/${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function apiCrearApartado(
+  muebleId: number,
+  cantidad: number,
+): Promise<Apartado> {
+  return await request<Apartado>("/apartados/", {
+    method: "POST",
+    body: JSON.stringify({ mueble_id: muebleId, cantidad }),
+  });
+}
+
+export async function apiAceptarApartado(id: number): Promise<Apartado> {
+  return await request<Apartado>(`/apartados/${id}/aceptar/`, {
+    method: "POST",
+  });
+}
+
+export async function apiRechazarApartado(id: number): Promise<Apartado> {
+  return await request<Apartado>(`/apartados/${id}/rechazar/`, {
+    method: "POST",
+  });
+}
+
+// ==========================================
+// CATEGORÍAS Y PROVEEDORES (sin paginar: el backend devuelve la lista completa)
+// ==========================================
+
+export async function apiGetCategorias(): Promise<Categoria[]> {
+  return await request<Categoria[]>("/categorias/");
+}
+
+export async function apiCreateCategoria(data: {
+  nombre: string;
+  descripcion?: string;
+}): Promise<Categoria> {
+  return await request<Categoria>("/categorias/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiUpdateCategoria(
+  id: number,
+  data: Partial<{ nombre: string; descripcion: string }>,
+): Promise<Categoria> {
+  return await request<Categoria>(`/categorias/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiDeleteCategoria(id: number): Promise<void> {
+  await request(`/categorias/${id}/`, {
+    method: "DELETE",
+  });
+}
+
+export async function apiGetProveedores(): Promise<Proveedor[]> {
+  return await request<Proveedor[]>("/proveedores/");
+}
+
+export async function apiCreateProveedor(data: {
+  nombre: string;
+  contacto?: string;
+  telefono?: string;
+  email?: string;
+}): Promise<Proveedor> {
+  return await request<Proveedor>("/proveedores/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiUpdateProveedor(
+  id: number,
+  data: Partial<{
+    nombre: string;
+    contacto: string;
+    telefono: string;
+    email: string;
+  }>,
+): Promise<Proveedor> {
+  return await request<Proveedor>(`/proveedores/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiDeleteProveedor(id: number): Promise<void> {
+  await request(`/proveedores/${id}/`, {
+    method: "DELETE",
+  });
+}
+
+// ==========================================
+// HELPER PARA URLs DE IMÁGENES
+// ==========================================
+
+export async function resolveImageUrl(
+  imageUrl: string | null | undefined,
+): Promise<string | null> {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+  const baseUrl = API_URL;
+  return `${baseUrl}${imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`}`;
+}
