@@ -18,6 +18,7 @@ import { Colors } from "../../constants/theme";
 import { dialog } from "../../context/DialogContext";
 import { apiRegister } from "../../utils/api";
 import { safeBack } from "../../utils/navigation";
+import { NAME_ERROR, isValidName } from "../../utils/validation";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -42,6 +43,11 @@ export default function RegisterScreen() {
         title: "Datos requeridos",
         message: "Por favor llena todos los campos obligatorios.",
       });
+      return;
+    }
+
+    if (!isValidName(firstName) || !isValidName(lastName)) {
+      dialog.alert({ title: "Nombre inválido", message: NAME_ERROR });
       return;
     }
 

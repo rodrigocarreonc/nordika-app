@@ -35,6 +35,7 @@ import {
 } from "../../../utils/settingsStorage";
 import { applyTheme } from "../../../utils/theme";
 import { getUser, saveUser } from "../../../utils/tokenStorage";
+import { NAME_ERROR, isValidName } from "../../../utils/validation";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -123,6 +124,10 @@ export default function SettingsScreen() {
 
   const handleSaveProfile = async () => {
     setProfileError(null);
+    if (!isValidName(editFirstName) || !isValidName(editLastName)) {
+      setProfileError(NAME_ERROR);
+      return;
+    }
     try {
       setUpdatingProfile(true);
       const updated = await apiUpdateMe({
@@ -154,6 +159,10 @@ export default function SettingsScreen() {
     }
     if (!trimmedEmail) {
       setClientError("El correo electrónico es obligatorio.");
+      return;
+    }
+    if (!isValidName(clientFirstName) || !isValidName(clientLastName)) {
+      setClientError(NAME_ERROR);
       return;
     }
     if (!clientPassword || clientPassword.length < 6) {
