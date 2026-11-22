@@ -387,6 +387,10 @@ export default function AdminScreen() {
       setProvFormError("La persona de contacto y el teléfono son obligatorios.");
       return;
     }
+    if (!/^\d{1,10}$/.test(provTelefono.trim())) {
+      setProvFormError("El teléfono no puede tener más de 10 dígitos.");
+      return;
+    }
 
     try {
       setSubmittingProv(true);
@@ -1477,6 +1481,7 @@ export default function AdminScreen() {
                 value={provTelefono}
                 onChangeText={setProvTelefono}
                 keyboardType="phone-pad"
+                maxLength={10}
               />
 
               <Text
