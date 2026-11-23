@@ -1,3 +1,5 @@
+// Gestión y consulta de apartados: separa activos/historial, muestra vigencia y permite al staff aceptar o rechazar.
+
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -15,10 +17,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge } from "../../../components/Badge";
 import { EmptyView } from "../../../components/EmptyView";
 import { ErrorView } from "../../../components/ErrorView";
-import { LoadingView } from "../../../components/LoadingView";
 import { Pagination } from "../../../components/Pagination";
+import { ApartadosSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
+import { useRealtimeEvents } from "../../../hooks/use-realtime";
+import { useResponsive } from "../../../hooks/use-responsive";
 import { Apartado } from "../../../types";
 import {
   apiAceptarApartado,
@@ -28,6 +32,7 @@ import {
 import { getStoredPageSize } from "../../../utils/settingsStorage";
 import { getUser } from "../../../utils/tokenStorage";
 
+// Mapa visual de cada estado de negocio a etiqueta y variante de color del Badge.
 const ESTADO_BADGE = {
   PENDIENTE: { label: "Pendiente", variant: "warning" },
   ACEPTADO: { label: "Aceptado", variant: "success" },
@@ -35,7 +40,7 @@ const ESTADO_BADGE = {
   CANCELADO: { label: "Vencido", variant: "neutral" },
 } as const;
 
-/** Tiempo restante legible: "4d 6h", "5h 20m", "12m". */
+/** Formatea los milisegundos restantes antes de la expiración ("4d 6h", "5h 20m", "12m"). */
 const formatRestante = (ms: number) => {
   const min = Math.floor(ms / 60000);
   const d = Math.floor(min / 1440);
@@ -57,6 +62,16 @@ export default function ApartadosScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { isMobile, contentMaxWidth } = useResponsive("content");
+
+  // En tablet/escritorio acota y centra la columna de contenido; en móvil conserva el ancho completo original.
+  const desktopContainerStyle = !isMobile
+    ? {
+        maxWidth: contentMaxWidth,
+        width: "100%" as const,
+        alignSelf: "center" as const,
+      }
+    : undefined;
 
   const [isStaff, setIsStaff] = useState(false);
   const [apartados, setApartados] = useState<Apartado[]>([]);
@@ -71,7 +86,7 @@ export default function ApartadosScreen() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Actualiza el countdown cada minuto.
+  // Refresca el reloj local cada minuto para actualizar el contador de vigencia sin consultar la API.
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);
@@ -83,10 +98,11 @@ export default function ApartadosScreen() {
       size = pageSize,
       isRefresh = false,
       currentVista = vista,
+      silent = false,
     ) => {
       try {
-        if (!isRefresh) setLoading(true);
-        setError(null);
+        if (!isRefresh && !silent) setLoading(true);
+        if (!silent) setError(null);
         const staff = !!(await getUser())?.is_staff;
         setIsStaff(staff);
 
@@ -106,14 +122,23 @@ export default function ApartadosScreen() {
         setTotalPages(Math.max(1, Math.ceil(res.count / size)));
         setPage(targetPage);
       } catch (err: any) {
-        setError(err.message || "Error al obtener los apartados.");
+        if (!silent) {
+          setError(err.message || "Error al obtener los apartados.");
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (!silent) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [pageSize, vista],
   );
+
+  // Refresca en segundo plano la página y vista actuales ante eventos SSE sin mostrar skeleton ni spinner.
+  useRealtimeEvents(["apartado", "mueble"], () => {
+    void fetchApartados(page, pageSize, true, vista, true);
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -141,6 +166,7 @@ export default function ApartadosScreen() {
     fetchApartados(1, pageSize, false, newVista);
   };
 
+  // Pide confirmación antes de aceptar (genera Venta) o rechazar (devuelve piezas al stock).
   const resolver = async (
     apartado: Apartado,
     accion: "aceptar" | "rechazar",
@@ -324,25 +350,27 @@ export default function ApartadosScreen() {
       edges={["top", "left", "right"]}
     >
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {isStaff ? "Gestión de Apartados" : "Mis Apartados"}
-          </Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-            {vista === "activos"
-              ? `${totalCount} ${totalCount === 1 ? "apartado activo" : "apartados activos"}`
-              : `${totalCount} ${totalCount === 1 ? "apartado resuelto" : "apartados resueltos"}`}
-          </Text>
-        </View>
+        <View style={[styles.headerInner, desktopContainerStyle]}>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              {isStaff ? "Gestión de Apartados" : "Mis Apartados"}
+            </Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
+              {vista === "activos"
+                ? `${totalCount} ${totalCount === 1 ? "apartado activo" : "apartados activos"}`
+                : `${totalCount} ${totalCount === 1 ? "apartado resuelto" : "apartados resueltos"}`}
+            </Text>
+          </View>
 
-        <View
-          style={[styles.iconPill, { backgroundColor: `${colors.accent}15` }]}
-        >
-          <Ionicons name="bookmark" size={20} color={colors.accent} />
+          <View
+            style={[styles.iconPill, { backgroundColor: `${colors.accent}15` }]}
+          >
+            <Ionicons name="bookmark" size={20} color={colors.accent} />
+          </View>
         </View>
       </View>
 
-      <View style={styles.tabsRow}>
+      <View style={[styles.tabsRow, desktopContainerStyle]}>
         {(["activos", "historial"] as const).map((v) => (
           <Pressable
             key={v}
@@ -372,8 +400,9 @@ export default function ApartadosScreen() {
         ))}
       </View>
 
+      {/* Muestra skeleton en la carga inicial para mantener estabilidad visual antes de renderizar la lista. */}
       {loading && !refreshing ? (
-        <LoadingView message="Cargando apartados..." />
+        <ApartadosSkeleton />
       ) : error ? (
         <ErrorView
           message={error}
@@ -384,7 +413,7 @@ export default function ApartadosScreen() {
           data={lista}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, desktopContainerStyle]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -445,12 +474,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    borderBottomWidth: 1,
+  },
+  headerInner: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 14,
-    borderBottomWidth: 1,
+    width: "100%",
   },
   headerTitle: {
     fontSize: 22,

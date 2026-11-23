@@ -1,3 +1,5 @@
+// Layout raíz de Expo Router: aplica el tema guardado, monta DialogProvider y define los grupos (auth)/(app).
+
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -9,6 +11,7 @@ import { DialogProvider } from "../context/DialogContext";
 import { getStoredTheme } from "../utils/settingsStorage";
 import { applyTheme } from "../utils/theme";
 
+// Mantiene el splash visible hasta cargar la preferencia de tema para evitar destellos de color.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
@@ -22,7 +25,7 @@ export default function RootLayout() {
     SplashScreen.hideAsync().catch(() => {});
   }, []);
 
-  // Web tooltip synchronizer: copies aria-label cleanly to DOM title for tooltips
+  // En Web sincroniza aria-label hacia el atributo title para que botones con solo ícono muestren tooltip nativo.
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
 

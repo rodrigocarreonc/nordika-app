@@ -1,3 +1,5 @@
+// Controles de paginación Anterior/Siguiente; se oculta automáticamente si solo hay una página.
+
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {

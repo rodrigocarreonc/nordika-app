@@ -1,7 +1,10 @@
+// Suite E2E en Playwright: válida flujos críticos (auth, filtros, CRUD muebles, apartados y permisos por rol).
+
 import { test, expect, Page } from "@playwright/test";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+// Obtiene token admin directo contra la API para crear/limpiar fixtures de prueba de forma aislada.
 async function getAdminToken(): Promise<string> {
   const res = await fetch(`${API_URL}/api-token-auth/`, {
     method: "POST",
@@ -13,6 +16,7 @@ async function getAdminToken(): Promise<string> {
   return data.token;
 }
 
+// Limpieza idempotente en bloque finally para no dejar muebles de prueba en la base local.
 async function apiDeleteMuebleById(token: string, id: number) {
   await fetch(`${API_URL}/muebles/${id}/`, {
     method: "DELETE",
@@ -20,6 +24,7 @@ async function apiDeleteMuebleById(token: string, id: number) {
   }).catch(() => {});
 }
 
+// Limpia localStorage e inicia sesión por UI con la cuenta demo indicada hasta que carguen las pestañas.
 async function loginAs(page: Page, role: "admin" | "gael") {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

@@ -1,3 +1,5 @@
+// Contratos TypeScript alineados con los serializers REST del backend de Nordika.
+
 export interface User {
   id: number;
   username: string;
@@ -8,6 +10,7 @@ export interface User {
   date_joined?: string;
 }
 
+// Respuesta de login y registro: trae el token y el perfil en un solo viaje para ahorrar /me/.
 export interface AuthResponse {
   token: string;
   user_id: number;
@@ -36,6 +39,7 @@ export interface Proveedor {
   muebles_count?: number;
 }
 
+// Al leer llega con categoría/proveedor anidados; al escribir se usan categoria_id/proveedor_id.
 export interface Mueble {
   id: number;
   nombre: string;
@@ -70,6 +74,7 @@ export interface Favorito {
   fecha_agregado: string;
 }
 
+// Registro contable generado por el backend solo cuando un apartado pasa a ACEPTADO.
 export interface Venta {
   id: number;
   precio_unitario: string;
@@ -77,6 +82,7 @@ export interface Venta {
   fecha_venta: string;
 }
 
+// Reserva temporal de stock; expone datos de contacto del cliente para que el staff lo contacte.
 export interface Apartado {
   id: number;
   codigo: string;
@@ -94,6 +100,7 @@ export interface Apartado {
   actualizado_en: string;
 }
 
+// Envoltorio devuelto por ConfigurablePageNumberPagination para dibujar la barra de páginas.
 export interface PaginatedResponse<T> {
   count: number;
   total_pages: number;
@@ -104,6 +111,7 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
+// Query params aceptados por GET /muebles/ (filtros, búsqueda, orden y tamaño de página).
 export interface MuebleFilterParams {
   page?: number;
   page_size?: number;

@@ -1,3 +1,5 @@
+// Prueba rápida (smoke) que verifica que Expo Web arranca y renderiza la pantalla inicial de NORDIKA.
+
 import { test, expect } from "@playwright/test";
 
 test("loads the app and checks login page", async ({ page }) => {

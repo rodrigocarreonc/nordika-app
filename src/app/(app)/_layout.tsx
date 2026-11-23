@@ -1,3 +1,5 @@
+// Guardia de autenticación del grupo privado (app): bloquea acceso sin token y envuelve tabs + pantallas de mueble.
+
 import { Redirect, Stack } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View, useColorScheme } from "react-native";

@@ -1,3 +1,5 @@
+// Barra de pestañas inferiores; oculta la pestaña Administración (`href: null`) a usuarios no staff.
+
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";

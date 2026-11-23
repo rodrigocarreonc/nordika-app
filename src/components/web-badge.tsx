@@ -1,3 +1,5 @@
+// Insignia de versión de Expo incluida en la plantilla base para la vista Web.
+
 import { version } from "expo/package.json";
 import { Image } from "expo-image";
 import { useColorScheme, StyleSheet } from "react-native";

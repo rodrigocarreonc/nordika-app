@@ -1,3 +1,5 @@
+// Etiqueta tipo píldora con variantes semánticas (stock, categoría y estado de apartado).
+
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 

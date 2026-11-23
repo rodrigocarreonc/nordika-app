@@ -1,9 +1,12 @@
+// Ficha de detalle de mueble: permite apartar a clientes, marcar favoritos y editar/eliminar al staff.
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,9 +17,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge } from "../../../components/Badge";
 import { ErrorView } from "../../../components/ErrorView";
-import { LoadingView } from "../../../components/LoadingView";
+import { ImageViewerModal } from "../../../components/ImageViewerModal";
+import { MuebleDetailSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
+import { useRealtimeEvents } from "../../../hooks/use-realtime";
+import { useResponsive } from "../../../hooks/use-responsive";
 import { Mueble } from "../../../types";
 import {
   apiCrearApartado,
@@ -33,6 +39,8 @@ export default function MuebleDetailsScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { isMobile, isTablet, isDesktop, contentMaxWidth } =
+    useResponsive("content");
 
   const muebleId = Number(id);
 
@@ -44,21 +52,29 @@ export default function MuebleDetailsScreen() {
   const [cantidadApartar, setCantidadApartar] = useState(1);
   const [apartando, setApartando] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
+  const [showFullscreenImage, setShowFullscreenImage] = useState(false);
 
-  const fetchDetails = useCallback(async () => {
-    if (!muebleId) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await apiGetMueble(muebleId);
-      setMueble(data);
-      setImageUri(await resolveImageUrl(data.imagen));
-    } catch (err: any) {
-      setError(err.message || "Error al obtener detalles del mueble.");
-    } finally {
-      setLoading(false);
-    }
-  }, [muebleId]);
+  const fetchDetails = useCallback(
+    async (silent = false) => {
+      if (!muebleId) return;
+      try {
+        if (!silent) {
+          setLoading(true);
+          setError(null);
+        }
+        const data = await apiGetMueble(muebleId);
+        setMueble(data);
+        setImageUri(await resolveImageUrl(data.imagen));
+      } catch (err: any) {
+        if (!silent) {
+          setError(err.message || "Error al obtener detalles del mueble.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [muebleId],
+  );
 
   // Recarga al volver a la pantalla (p. ej. después de editar el mueble).
   useFocusEffect(
@@ -68,6 +84,19 @@ export default function MuebleDetailsScreen() {
       });
       fetchDetails();
     }, [fetchDetails]),
+  );
+
+  // Refresco silencioso por SSE para mantener stock, precio y favoritos sincronizados en vivo.
+  useRealtimeEvents(
+    ["mueble", "apartado", "favorito"],
+    (ev) => {
+      // Ignora cambios de otros muebles específicos para evitar consultas redundantes.
+      if (ev.resource === "mueble" && ev.id !== null && ev.id !== muebleId) {
+        return;
+      }
+      fetchDetails(true);
+    },
+    { enabled: !!muebleId },
   );
 
   const handleToggleFav = async () => {
@@ -90,6 +119,7 @@ export default function MuebleDetailsScreen() {
     }
   };
 
+  // El backend bloquea con 409 si hay apartados pendientes/vendidos y limpia los rechazados/cancelados.
   const handleDelete = async () => {
     if (!mueble) return;
     const ok = await dialog.confirm({
@@ -116,6 +146,7 @@ export default function MuebleDetailsScreen() {
     }
   };
 
+  // Crea el apartado, actualiza el stock en pantalla con la respuesta y ofrece ir a Mis Apartados.
   const handleApartar = async () => {
     if (!mueble) return;
     try {
@@ -158,98 +189,156 @@ export default function MuebleDetailsScreen() {
       : `$${num.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
   };
 
-  // Solo pantalla de carga completa la primera vez; al recargar se mantiene el contenido visible.
+  // Solo skeleton la primera vez; al recargar o recibir SSE se mantiene el contenido visible.
   if (loading && !mueble) {
-    return <LoadingView message="Cargando detalles del mueble..." />;
+    return (
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={["top", "left", "right"]}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <MuebleDetailSkeleton />
+        </ScrollView>
+      </SafeAreaView>
+    );
   }
 
   if (error || !mueble) {
     return (
       <ErrorView
         message={error || "Mueble no encontrado"}
-        onRetry={fetchDetails}
+        onRetry={() => fetchDetails()}
       />
     );
   }
+
+  // En tablet/escritorio acotamos el ancho de lectura y ajustamos la altura del hero para evitar zoom excesivo.
+  const desktopContainerStyle = !isMobile
+    ? {
+        maxWidth: contentMaxWidth,
+        width: "100%" as const,
+        alignSelf: "center" as const,
+      }
+    : undefined;
+  const heroHeight = isDesktop ? 420 : isTablet ? 360 : 280;
 
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={["top", "left", "right"]}
     >
-      {/* Barra superior de navegación */}
-      <View style={[styles.navBar, { borderBottomColor: colors.border }]}>
-        <Pressable
-          style={[
-            styles.navButton,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-          onPress={() => safeBack(router, "/")}
-          accessibilityRole="button"
-          accessibilityLabel="Regresar al catálogo"
-          accessibilityHint="Regresar a la pantalla anterior del catálogo"
-        >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable>
+      {/* Barra superior de navegación con separador completo y contenido centrado en escritorio */}
+      <View
+        style={[styles.navBarWrapper, { borderBottomColor: colors.border }]}
+      >
+        <View style={[styles.navBar, desktopContainerStyle]}>
+          <Pressable
+            style={[
+              styles.navButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={() => safeBack(router, "/")}
+            accessibilityRole="button"
+            accessibilityLabel="Regresar al catálogo"
+            accessibilityHint="Regresar a la pantalla anterior del catálogo"
+          >
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </Pressable>
 
-        <Text
-          style={[styles.navTitle, { color: colors.text }]}
-          numberOfLines={1}
-        >
-          Detalle de Producto
-        </Text>
+          <Text
+            style={[styles.navTitle, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            Detalle de Producto
+          </Text>
 
-        {isStaff ? (
-          <View style={styles.navRightActions}>
-            {/* Botón Editar (Solo Staff) */}
-            <Pressable
-              style={[
-                styles.navButton,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-              onPress={() => router.push(`/(app)/mueble/form?id=${mueble.id}`)}
-              accessibilityRole="button"
-              accessibilityLabel="Editar mueble"
-              accessibilityHint="Abrir formulario de edición del mueble"
-            >
-              <Ionicons name="create-outline" size={19} color={colors.text} />
-            </Pressable>
+          {isStaff ? (
+            <View style={styles.navRightActions}>
+              {/* Botón Editar (Solo Staff) */}
+              <Pressable
+                style={[
+                  styles.navButton,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+                onPress={() =>
+                  router.push(`/(app)/mueble/form?id=${mueble.id}`)
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Editar mueble"
+                accessibilityHint="Abrir formulario de edición del mueble"
+              >
+                <Ionicons name="create-outline" size={19} color={colors.text} />
+              </Pressable>
 
-            {/* Botón Eliminar (Solo Staff) */}
-            <Pressable
-              style={[
-                styles.navButton,
-                {
-                  backgroundColor: `${colors.danger}15`,
-                  borderColor: `${colors.danger}30`,
-                },
-              ]}
-              onPress={handleDelete}
-              accessibilityRole="button"
-              accessibilityLabel="Eliminar mueble"
-              accessibilityHint="Eliminar este mueble del catálogo permanentemente"
-            >
-              <Ionicons name="trash-outline" size={19} color={colors.danger} />
-            </Pressable>
-          </View>
-        ) : (
-          <View style={{ width: 40 }} />
-        )}
+              {/* Botón Eliminar (Solo Staff) */}
+              <Pressable
+                style={[
+                  styles.navButton,
+                  {
+                    backgroundColor: `${colors.danger}15`,
+                    borderColor: `${colors.danger}30`,
+                  },
+                ]}
+                onPress={handleDelete}
+                accessibilityRole="button"
+                accessibilityLabel="Eliminar mueble"
+                accessibilityHint="Eliminar este mueble del catálogo permanentemente"
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={19}
+                  color={colors.danger}
+                />
+              </Pressable>
+            </View>
+          ) : (
+            <View style={{ width: 40 }} />
+          )}
+        </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          desktopContainerStyle,
+          !isMobile && styles.scrollContentDesktop,
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Imagen Principal Hero */}
-        <View style={styles.heroImageContainer}>
+        {/* Imagen Principal Hero: en escritorio usa contain sobre fondo neutro para mostrar el mueble íntegro */}
+        <View
+          style={[
+            styles.heroImageContainer,
+            {
+              height: heroHeight,
+              backgroundColor: colors.backgroundElement,
+            },
+            !isMobile && styles.heroImageContainerDesktop,
+          ]}
+        >
           {imageUri ? (
-            <Image
-              source={{ uri: imageUri }}
-              style={styles.heroImage}
-              contentFit="cover"
-              transition={300}
-            />
+            <Pressable
+              style={[
+                styles.heroImagePressable,
+                Platform.OS === "web" && ({ cursor: "zoom-in" } as any),
+              ]}
+              onPress={() => setShowFullscreenImage(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Ver imagen en pantalla completa"
+              accessibilityHint="Abre la fotografía del mueble ampliada sin recortes"
+              testID="hero-image-fullscreen-trigger"
+            >
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.heroImage}
+                contentFit={isMobile ? "cover" : "contain"}
+                transition={300}
+              />
+              {/* Indicador visual discreto para comunicar que la foto se puede ampliar */}
+              <View style={styles.expandBadge} pointerEvents="none">
+                <Ionicons name="expand-outline" size={18} color="#FFFFFF" />
+              </View>
+            </Pressable>
           ) : (
             <View
               style={[
@@ -273,7 +362,7 @@ export default function MuebleDetailsScreen() {
             </View>
           )}
 
-          {/* Botón de Favorito Flotante */}
+          {/* Botón de Favorito Flotante (hermano del disparador de pantalla completa para no anidar botones en Web) */}
           <Pressable
             style={[
               styles.heroFavoriteButton,
@@ -303,6 +392,7 @@ export default function MuebleDetailsScreen() {
         <View
           style={[
             styles.infoCard,
+            !isMobile && styles.infoCardDesktop,
             { backgroundColor: colors.card, borderColor: colors.border },
           ]}
         >
@@ -486,6 +576,14 @@ export default function MuebleDetailsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Visor en pantalla completa al pulsar la foto del mueble */}
+      <ImageViewerModal
+        visible={showFullscreenImage}
+        imageUri={imageUri}
+        title={mueble.nombre}
+        onClose={() => setShowFullscreenImage(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -494,13 +592,15 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  navBarWrapper: {
+    borderBottomWidth: 1,
+  },
   navBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: 1,
   },
   navButton: {
     width: 38,
@@ -524,14 +624,38 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 32,
   },
+  scrollContentDesktop: {
+    paddingHorizontal: 18,
+    paddingTop: 18,
+  },
   heroImageContainer: {
     width: "100%",
     height: 280,
     position: "relative",
   },
+  heroImageContainerDesktop: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  heroImagePressable: {
+    width: "100%",
+    height: "100%",
+    position: "relative",
+  },
   heroImage: {
     width: "100%",
     height: "100%",
+  },
+  expandBadge: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   placeholderHero: {
     width: "100%",
@@ -565,6 +689,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     borderWidth: 1,
     padding: 20,
+  },
+  infoCardDesktop: {
+    marginTop: 16,
+    borderRadius: 20,
   },
   tagsRow: {
     flexDirection: "row",

@@ -1,3 +1,5 @@
+// Pantalla de autoregistro de clientes con validación previa de nombre y contraseña antes de llamar al API.
+
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -34,6 +36,7 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Valida en cliente para dar feedback inmediato; apiRegister guarda el token y deja sesión abierta.
   const handleRegister = async () => {
     const trimmedUser = username.trim();
     const trimmedEmail = email.trim();

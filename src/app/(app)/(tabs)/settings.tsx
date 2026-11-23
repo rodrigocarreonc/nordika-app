@@ -1,3 +1,5 @@
+// Pantalla de perfil y ajustes: edición de cuenta, paginación, tema, alta de clientes (staff) y baja de cuenta.
+
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -16,8 +18,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge } from "../../../components/Badge";
+import { SettingsProfileSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
+import { useResponsive } from "../../../hooks/use-responsive";
 import { User } from "../../../types";
 import {
   apiChangePassword,
@@ -41,6 +45,16 @@ export default function SettingsScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { isMobile, contentMaxWidth } = useResponsive("content");
+
+  // En tablet/escritorio limita el ancho de cabecera y tarjetas para mejorar la lectura; en móvil se mantiene intacto.
+  const desktopContainerStyle = !isMobile
+    ? {
+        maxWidth: contentMaxWidth,
+        width: "100%" as const,
+        alignSelf: "center" as const,
+      }
+    : undefined;
 
   // Datos del usuario
   const [user, setUser] = useState<Partial<User> | null>(null);
@@ -85,7 +99,7 @@ export default function SettingsScreen() {
   const [accountError, setAccountError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Cargar perfil
+    // Muestra primero el perfil cacheado para evitar parpadeo y luego sincroniza contra /me/.
     getUser().then((u) => {
       if (u) {
         setUser(u);
@@ -295,115 +309,128 @@ export default function SettingsScreen() {
     >
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Ajustes & Perfil
-        </Text>
-        <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-          Configuración general de Nordika
-        </Text>
+        <View style={[styles.headerInner, desktopContainerStyle]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Ajustes & Perfil
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
+            Configuración general de Nordika
+          </Text>
+        </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, desktopContainerStyle]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Tarjeta de Perfil */}
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <View style={styles.profileRow}>
-            <View
-              style={[styles.avatarCircle, { backgroundColor: colors.primary }]}
-            >
-              <Text style={[styles.avatarInitial, { color: colors.onPrimary }]}>
-                {(
-                  user?.first_name?.[0] ||
-                  user?.username?.[0] ||
-                  "U"
-                ).toUpperCase()}
-              </Text>
-            </View>
-
-            <View style={styles.profileInfo}>
-              <View style={styles.nameRow}>
-                <Text style={[styles.profileName, { color: colors.text }]}>
-                  {user?.first_name
-                    ? `${user.first_name} ${user.last_name || ""}`
-                    : user?.username || "Usuario"}
+        {/* Tarjeta de Perfil: muestra skeleton mientras se consulta el perfil inicial sin caché local */}
+        {loadingUser && !user ? (
+          <SettingsProfileSkeleton style={styles.profileSkeleton} />
+        ) : (
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.profileRow}>
+              <View
+                style={[
+                  styles.avatarCircle,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
+                <Text
+                  style={[styles.avatarInitial, { color: colors.onPrimary }]}
+                >
+                  {(
+                    user?.first_name?.[0] ||
+                    user?.username?.[0] ||
+                    "U"
+                  ).toUpperCase()}
                 </Text>
-                {user?.is_staff ? (
-                  <Badge label="Admin" variant="warning" size="small" />
-                ) : (
-                  <Badge label="Cliente" variant="neutral" size="small" />
-                )}
               </View>
 
-              <Text
-                style={[styles.profileUsername, { color: colors.textMuted }]}
+              <View style={styles.profileInfo}>
+                <View style={styles.nameRow}>
+                  <Text style={[styles.profileName, { color: colors.text }]}>
+                    {user?.first_name
+                      ? `${user.first_name} ${user.last_name || ""}`
+                      : user?.username || "Usuario"}
+                  </Text>
+                  {user?.is_staff ? (
+                    <Badge label="Admin" variant="warning" size="small" />
+                  ) : (
+                    <Badge label="Cliente" variant="neutral" size="small" />
+                  )}
+                </View>
+
+                <Text
+                  style={[styles.profileUsername, { color: colors.textMuted }]}
+                >
+                  @{user?.username}
+                </Text>
+                <Text
+                  style={[styles.profileEmail, { color: colors.textMuted }]}
+                >
+                  {user?.email}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.profileActions}>
+              <Pressable
+                style={[
+                  styles.editProfileButton,
+                  styles.profileActionButton,
+                  { borderColor: colors.border },
+                ]}
+                onPress={() => {
+                  setProfileError(null);
+                  setShowEditProfileModal(true);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Editar perfil"
+                accessibilityHint="Abre el formulario para modificar nombre, apellido o correo"
               >
-                @{user?.username}
-              </Text>
-              <Text style={[styles.profileEmail, { color: colors.textMuted }]}>
-                {user?.email}
-              </Text>
+                <Ionicons
+                  name="pencil-outline"
+                  size={16}
+                  color={colors.text}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[styles.editProfileButtonText, { color: colors.text }]}
+                >
+                  Editar Perfil
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.editProfileButton,
+                  styles.profileActionButton,
+                  { borderColor: colors.border },
+                ]}
+                onPress={() => openAccountModal("password")}
+                accessibilityRole="button"
+                accessibilityLabel="Cambiar contraseña"
+                accessibilityHint="Abre el formulario para cambiar tu contraseña"
+              >
+                <Ionicons
+                  name="key-outline"
+                  size={16}
+                  color={colors.text}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[styles.editProfileButtonText, { color: colors.text }]}
+                >
+                  Cambiar Contraseña
+                </Text>
+              </Pressable>
             </View>
           </View>
-
-          <View style={styles.profileActions}>
-            <Pressable
-              style={[
-                styles.editProfileButton,
-                styles.profileActionButton,
-                { borderColor: colors.border },
-              ]}
-              onPress={() => {
-                setProfileError(null);
-                setShowEditProfileModal(true);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Editar perfil"
-              accessibilityHint="Abre el formulario para modificar nombre, apellido o correo"
-            >
-              <Ionicons
-                name="pencil-outline"
-                size={16}
-                color={colors.text}
-                style={{ marginRight: 6 }}
-              />
-              <Text
-                style={[styles.editProfileButtonText, { color: colors.text }]}
-              >
-                Editar Perfil
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.editProfileButton,
-                styles.profileActionButton,
-                { borderColor: colors.border },
-              ]}
-              onPress={() => openAccountModal("password")}
-              accessibilityRole="button"
-              accessibilityLabel="Cambiar contraseña"
-              accessibilityHint="Abre el formulario para cambiar tu contraseña"
-            >
-              <Ionicons
-                name="key-outline"
-                size={16}
-                color={colors.text}
-                style={{ marginRight: 6 }}
-              />
-              <Text
-                style={[styles.editProfileButtonText, { color: colors.text }]}
-              >
-                Cambiar Contraseña
-              </Text>
-            </Pressable>
-          </View>
-        </View>
+        )}
 
         {/* Sección: Paginación Configurable */}
         <View style={styles.sectionHeader}>
@@ -1258,9 +1285,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    borderBottomWidth: 1,
+  },
+  headerInner: {
     paddingHorizontal: 18,
     paddingVertical: 14,
-    borderBottomWidth: 1,
+    width: "100%",
   },
   headerTitle: {
     fontSize: 22,
@@ -1273,6 +1303,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 18,
     paddingBottom: 40,
+  },
+  profileSkeleton: {
+    marginBottom: 16,
   },
   card: {
     borderRadius: 16,
