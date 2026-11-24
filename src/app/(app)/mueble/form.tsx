@@ -1,3 +1,5 @@
+// Formulario exclusivo de staff para crear o editar muebles, con carga de imagen compatible Web/móvil.
+
 import { Ionicons } from "@expo/vector-icons";
 import { File as FsFile } from "expo-file-system";
 import { Image } from "expo-image";
@@ -17,9 +19,10 @@ import {
   useColorScheme,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LoadingView } from "../../../components/LoadingView";
+import { FormSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
+import { useResponsive } from "../../../hooks/use-responsive";
 import { Categoria, Proveedor } from "../../../types";
 import {
   apiCreateMueble,
@@ -37,6 +40,7 @@ export default function MuebleFormScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { isMobile, contentMaxWidth } = useResponsive("content");
 
   const editId = id ? Number(id) : null;
   const isEditing = !!editId;
@@ -62,6 +66,7 @@ export default function MuebleFormScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageAsset, setImageAsset] = useState<any>(null);
 
+  // Guardia de rol: impide que un cliente abra el formulario escribiendo la ruta directo en Web.
   useEffect(() => {
     getUser().then((u) => {
       if (!u?.is_staff) {
@@ -70,14 +75,14 @@ export default function MuebleFormScreen() {
     });
   }, [router]);
 
+  // Carga catálogos auxiliares (categorías/proveedores) y, si es edición, precarga el mueble.
   useEffect(() => {
-    // Cargar listas auxiliares
     Promise.all([apiGetCategorias(), apiGetProveedores()])
       .then(([cats, provs]) => {
         setCategorias(cats);
         setProveedores(provs);
-        if (provs.length > 0 && !selectedProveedorId) {
-          setSelectedProveedorId(provs[0].id);
+        if (provs.length > 0) {
+          setSelectedProveedorId((prev) => prev ?? provs[0].id);
         }
       })
       .catch(() => {});
@@ -230,50 +235,75 @@ export default function MuebleFormScreen() {
   };
 
   if (loadingInitial) {
-    return <LoadingView message="Cargando datos del mueble..." />;
+    return (
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={["top", "left", "right"]}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <FormSkeleton />
+        </ScrollView>
+      </SafeAreaView>
+    );
   }
+
+  // En tablet/escritorio centramos el formulario para evitar campos excesivamente anchos.
+  const desktopContainerStyle = !isMobile
+    ? {
+        maxWidth: contentMaxWidth,
+        width: "100%" as const,
+        alignSelf: "center" as const,
+      }
+    : undefined;
 
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={["top", "left", "right"]}
     >
-      {/* Barra de navegación */}
-      <View style={[styles.navBar, { borderBottomColor: colors.border }]}>
-        <Pressable
-          style={[
-            styles.navButton,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-          onPress={() => safeBack(router, "/")}
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar formulario"
-          accessibilityHint="Cierra el formulario y regresa a la pantalla anterior"
-        >
-          <Ionicons name="close" size={20} color={colors.text} />
-        </Pressable>
-        <Text style={[styles.navTitle, { color: colors.text }]}>
-          {isEditing ? "Editar Mueble" : "Nuevo Mueble"}
-        </Text>
-        <Pressable
-          style={[
-            styles.saveButton,
-            { backgroundColor: colors.accent, opacity: submitting ? 0.7 : 1 },
-          ]}
-          onPress={handleSubmit}
-          disabled={submitting}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isEditing ? "Guardar cambios del mueble" : "Guardar mueble"
-          }
-          accessibilityHint="Guarda los datos del mueble en el catálogo"
-        >
-          {submitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.saveButtonText}>Guardar</Text>
-          )}
-        </Pressable>
+      {/* Barra de navegación con separador completo y contenido centrado en escritorio */}
+      <View
+        style={[styles.navBarWrapper, { borderBottomColor: colors.border }]}
+      >
+        <View style={[styles.navBar, desktopContainerStyle]}>
+          <Pressable
+            style={[
+              styles.navButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={() => safeBack(router, "/")}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar formulario"
+            accessibilityHint="Cierra el formulario y regresa a la pantalla anterior"
+          >
+            <Ionicons name="close" size={20} color={colors.text} />
+          </Pressable>
+          <Text style={[styles.navTitle, { color: colors.text }]}>
+            {isEditing ? "Editar Mueble" : "Nuevo Mueble"}
+          </Text>
+          <Pressable
+            style={[
+              styles.saveButton,
+              {
+                backgroundColor: colors.accent,
+                opacity: submitting ? 0.7 : 1,
+              },
+            ]}
+            onPress={handleSubmit}
+            disabled={submitting}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isEditing ? "Guardar cambios del mueble" : "Guardar mueble"
+            }
+            accessibilityHint="Guarda los datos del mueble en el catálogo"
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Guardar</Text>
+            )}
+          </Pressable>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -281,14 +311,15 @@ export default function MuebleFormScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, desktopContainerStyle]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Selector de Imagen */}
+          {/* Selector de Imagen: en escritorio usa contain sobre fondo neutro para previsualizar la foto completa */}
           <View style={styles.imageSection}>
             <Pressable
               style={[
                 styles.imagePickerBox,
+                !isMobile && styles.imagePickerBoxDesktop,
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={handlePickImage}
@@ -297,11 +328,16 @@ export default function MuebleFormScreen() {
               accessibilityHint="Abre la galería de imágenes para elegir una fotografía"
             >
               {imageUri ? (
-                <View style={styles.imagePreviewContainer}>
+                <View
+                  style={[
+                    styles.imagePreviewContainer,
+                    !isMobile && { backgroundColor: colors.backgroundElement },
+                  ]}
+                >
                   <Image
                     source={{ uri: imageUri }}
                     style={styles.imagePreview}
-                    contentFit="cover"
+                    contentFit={isMobile ? "cover" : "contain"}
                   />
                   <View style={styles.imageChangeOverlay}>
                     <Ionicons name="camera" size={20} color="#FFFFFF" />
@@ -541,13 +577,15 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  navBarWrapper: {
+    borderBottomWidth: 1,
+  },
   navBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: 1,
   },
   navButton: {
     width: 38,
@@ -586,6 +624,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
+  },
+  imagePickerBoxDesktop: {
+    height: 280,
   },
   imagePreviewContainer: {
     width: "100%",

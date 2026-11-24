@@ -1,6 +1,9 @@
+// Control de tema claro/oscuro en tiempo de ejecución, con polyfill para React Native Web.
+
 import { Appearance, ColorSchemeName, Platform } from "react-native";
 
-// Polyfill Appearance.setColorScheme for React Native Web if not provided
+// React Native Web no implementa Appearance.setColorScheme; este polyfill intercepta
+// getColorScheme y los listeners para que el selector de tema en Ajustes reaccione en Web.
 if (
   Platform.OS === "web" ||
   typeof (Appearance as any).setColorScheme !== "function"
@@ -57,6 +60,7 @@ if (
   };
 }
 
+// Traduce "system" al valor "auto" que espera Appearance.setColorScheme y notifica a los hooks.
 export function applyTheme(theme: "light" | "dark" | "system") {
   const target = theme === "system" ? "auto" : theme;
   if (typeof (Appearance as any).setColorScheme === "function") {

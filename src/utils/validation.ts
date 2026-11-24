@@ -1,3 +1,4 @@
+// Validación compartida de nombres/apellidos en registro, perfil y alta de clientes.
 // Letras (incluye acentos, ñ y ü), espacios, apóstrofo y guion. Vacío es válido: los campos son opcionales.
 const NAME_REGEX = /^[A-Za-zÀ-ÖØ-öø-ÿ' -]*$/;
 

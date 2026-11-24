@@ -1,3 +1,5 @@
+// Panel desplegable reutilizable de la plantilla base de Expo con animación de entrada.
+
 import { SymbolView } from "expo-symbols";
 import { PropsWithChildren, useState } from "react";
 import { Pressable, StyleSheet } from "react-native";

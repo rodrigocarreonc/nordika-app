@@ -1,3 +1,5 @@
+// Navegación nativa de ejemplo incluida en la plantilla base de Expo Router.
+
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useColorScheme } from "react-native";
 

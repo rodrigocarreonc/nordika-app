@@ -1,3 +1,5 @@
+// Modal reutilizable para alertas, confirmaciones destructivas y acciones múltiples en Web y móvil.
+
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -51,6 +53,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const isLoading = externalLoading || internalLoading;
 
+  // Bloquea el cierre accidental tocando fuera mientras corre una acción asíncrona.
   const handleBackdropPress = () => {
     if (isLoading) return;
     if (onClose) {
@@ -60,6 +63,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     }
   };
 
+  // Mantiene el spinner activo y deshabilita botones mientras se resuelve la promesa de onPress.
   const handleAction = async (action?: () => void | Promise<void>) => {
     if (!action) {
       if (onClose) onClose();
@@ -75,7 +79,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const isDestructive = confirmStyle === "destructive";
 
-  // Determine icon
   const getIcon = () => {
     if (isDestructive) {
       return (
@@ -113,14 +116,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onRequestClose={handleBackdropPress}
     >
       <View style={styles.overlay}>
-        {/* Backdrop pressable closes modal when clicking outside content */}
+        {/* Fondo semitransparente que cierra el modal al pulsar fuera de la tarjeta */}
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={handleBackdropPress}
           accessible={false}
         />
 
-        {/* Modal content box */}
+        {/* Tarjeta del dialogo: captura toques internos para que no se propaguen al fondo */}
         <View
           style={[
             styles.card,
@@ -129,7 +132,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               borderColor: colors.border,
             },
           ]}
-          // Prevent touches inside the dialog from bubbling to backdrop
           onStartShouldSetResponder={() => true}
         >
           <View style={styles.headerRow}>
@@ -147,7 +149,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             </Text>
           )}
 
-          {/* Button actions */}
+          {/* Soporta arreglo personalizado de botones (en columna si hay mas de 2) o par estandar */}
           {buttons && buttons.length > 0 ? (
             <View
               style={[
