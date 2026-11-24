@@ -1,3 +1,5 @@
+// Indicador de carga centrado usado mientras se obtienen datos iniciales de una pantalla.
+
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../constants/theme";

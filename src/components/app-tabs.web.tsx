@@ -1,3 +1,5 @@
+// Barra de pestañas Web de la plantilla base de Expo Router.
+
 import {
   Tabs,
   TabList,

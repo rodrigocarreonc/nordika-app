@@ -1,3 +1,5 @@
+// Tarjeta de producto del catálogo con foto, semáforo de stock, precio y toggle optimista de favorito.
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useEffect, useState } from "react";
@@ -9,6 +11,7 @@ import {
   useColorScheme,
 } from "react-native";
 import { Colors } from "../constants/theme";
+import { useResponsive } from "../hooks/use-responsive";
 import { Mueble } from "../types";
 import { resolveImageUrl } from "../utils/api";
 import { Badge } from "./Badge";
@@ -18,6 +21,7 @@ interface MuebleCardProps {
   onPress: () => void;
   onToggleFavorito?: (mueble: Mueble) => void;
   isFavorito?: boolean;
+  isGridItem?: boolean;
 }
 
 export const MuebleCard: React.FC<MuebleCardProps> = ({
@@ -25,11 +29,15 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
   onPress,
   onToggleFavorito,
   isFavorito = false,
+  isGridItem = false,
 }) => {
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { isMobile } = useResponsive("catalog");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const computedFav = isFavorito || !!mueble.is_favorito;
+  // Estado optimista ligado al id del mueble para dar respuesta instantánea al tocar el corazon
+  // sin arrastrar el estado si FlatList recicla la tarjeta para otro producto.
   const [localFav, setLocalFav] = useState<{ id: number; val: boolean } | null>(
     null,
   );
@@ -72,6 +80,8 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
     <View
       style={[
         styles.card,
+        // En cuadrícula multi-columna ocupa todo el ancho de su celda para alinear filas.
+        isGridItem && styles.cardGrid,
         {
           backgroundColor: colors.card,
           borderColor: colors.border,
@@ -79,21 +89,30 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
       ]}
     >
       <Pressable
-        style={({ pressed }) => ({
-          opacity: pressed ? 0.95 : 1,
-          transform: [{ scale: pressed ? 0.99 : 1 }],
-        })}
+        style={({ pressed }) => [
+          isGridItem && styles.cardPressableGrid,
+          {
+            opacity: pressed ? 0.95 : 1,
+            transform: [{ scale: pressed ? 0.99 : 1 }],
+          },
+        ]}
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={`${mueble.nombre}, precio ${formatPrice(mueble.precio)}`}
         accessibilityHint="Toca para abrir la ficha detallada"
       >
-        <View style={styles.imageContainer}>
+        {/* En tablet/escritorio usamos proporción 4:3 con contain para evitar recortes agresivos de la foto. */}
+        <View
+          style={[
+            isMobile ? styles.imageContainer : styles.imageContainerDesktop,
+            !isMobile && { backgroundColor: colors.backgroundElement },
+          ]}
+        >
           {imageUri ? (
             <Image
               source={{ uri: imageUri }}
               style={styles.image}
-              contentFit="cover"
+              contentFit={isMobile ? "cover" : "contain"}
               transition={300}
             />
           ) : (
@@ -192,9 +211,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  cardGrid: {
+    flex: 1,
+  },
+  cardPressableGrid: {
+    flex: 1,
+  },
   imageContainer: {
     width: "100%",
     height: 180,
+    position: "relative",
+  },
+  imageContainerDesktop: {
+    width: "100%",
+    aspectRatio: 4 / 3,
     position: "relative",
   },
   image: {

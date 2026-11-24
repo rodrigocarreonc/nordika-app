@@ -1,3 +1,6 @@
+// Proveedor global de diálogos (confirm, alert y botones personalizados) uniforme entre Web y móvil.
+// Reemplaza Alert.alert de React Native porque no funciona de forma consistente en Expo Web.
+
 import React, {
   createContext,
   useCallback,
@@ -54,9 +57,10 @@ interface DialogContextValue {
 
 const DialogContext = createContext<DialogContextValue | null>(null);
 
-// Module-level global reference for imperative calls outside React trees
+// Referencia a nivel de modulo para disparar diálogos desde helpers fuera del arbol React.
 let globalHandler: DialogContextValue | null = null;
 
+// Fachada imperativa con respaldo a window.confirm/alert en Web si el provider aún no se monto.
 export const dialog = {
   confirm: (options: ConfirmOptions): Promise<boolean> => {
     if (globalHandler) return globalHandler.confirm(options);
@@ -107,6 +111,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({
   const resolverRef = useRef<PendingDialog | null>(null);
   const lastClosedAtRef = useRef<number>(0);
 
+  // Cierra cualquier promesa pendiente antes de abrir otro diálogo para evitar awaits colgados.
   const resolvePendingDialog = useCallback(() => {
     const pending = resolverRef.current;
     if (!pending) return;
@@ -118,6 +123,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
+  // En iOS/Android esperar ~280ms tras cerrar un Modal evita que el siguiente quede congelado o invisible.
   const waitNativeModalDismiss = useCallback(async () => {
     if (Platform.OS === "web") return;
     const elapsed = Date.now() - lastClosedAtRef.current;
@@ -194,7 +200,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({
           title: options.title,
           message: options.message,
           confirmText: options.buttonText ?? "Aceptar",
-          cancelText: undefined, // no cancel button
+          cancelText: undefined, // alerta informativa con un solo boton
           confirmStyle: "default",
           onConfirm: async () => {
             try {
@@ -259,6 +265,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({
     [confirm, showAlert, showDialog],
   );
 
+  // Registra el handler global mientras el provider vive y libera promesas al desmontar.
   useEffect(() => {
     globalHandler = contextValue;
     return () => {

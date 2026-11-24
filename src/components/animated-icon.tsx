@@ -1,3 +1,5 @@
+// Animaciones de splash e ícono nativo heredadas de la plantilla inicial de Expo.
+
 import { Image } from "expo-image";
 import * as SplashScreen from "expo-splash-screen";
 import { useState } from "react";

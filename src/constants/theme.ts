@@ -1,5 +1,8 @@
+// Tokens visuales compartidos (paletas claro/oscuro, tipografía y espaciado) para toda la app.
+
 import { Platform } from "react-native";
 
+// Paleta clara con acento verde nórdico y superficies blancas sobre fondo gris suave.
 const light = {
   text: "#0F172A",
   textSecondary: "#64748B",
@@ -8,7 +11,7 @@ const light = {
   backgroundElement: "#E2E8F0",
   backgroundSelected: "#CBD5E1",
   card: "#FFFFFF",
-  tint: "#0F766E", // Forest Nordic Teal
+  tint: "#0F766E",
   icon: "#64748B",
   tabIconDefault: "#94A3B8",
   tabIconSelected: "#0F766E",
@@ -23,6 +26,7 @@ const light = {
   inputBg: "#FFFFFF",
 };
 
+// Paleta oscura con contraste invertido en primary/onPrimary para mantener legibilidad en botones.
 const dark = {
   text: "#F8FAFC",
   textSecondary: "#94A3B8",
@@ -31,7 +35,7 @@ const dark = {
   backgroundElement: "#334155",
   backgroundSelected: "#475569",
   card: "#1E293B",
-  tint: "#2DD4BF", // Bright teal for dark mode
+  tint: "#2DD4BF",
   icon: "#94A3B8",
   tabIconDefault: "#64748B",
   tabIconSelected: "#2DD4BF",
@@ -46,6 +50,7 @@ const dark = {
   inputBg: "#1E293B",
 };
 
+// Fallback `unspecified` a light evita pantallas sin tema cuando el SO no reporta esquema.
 export const Colors = {
   light,
   dark,
@@ -55,6 +60,7 @@ export const Colors = {
 export type ThemeColors = typeof light;
 export type ThemeColor = keyof typeof light;
 
+// Fuentes nativas por plataforma para evitar cargar tipografias externas pesadas.
 export const Fonts = Platform.select({
   ios: {
     sans: "system-ui",

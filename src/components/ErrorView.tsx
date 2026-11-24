@@ -1,3 +1,5 @@
+// Vista de error recuperable para fallos de red o servidor con botón de reintento.
+
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {

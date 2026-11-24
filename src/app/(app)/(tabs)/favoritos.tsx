@@ -1,9 +1,12 @@
+// Lista paginada de muebles guardados como favoritos por el usuario autenticado.
+
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -12,18 +15,23 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyView } from "../../../components/EmptyView";
 import { ErrorView } from "../../../components/ErrorView";
-import { LoadingView } from "../../../components/LoadingView";
 import { MuebleCard } from "../../../components/MuebleCard";
 import { Pagination } from "../../../components/Pagination";
+import { CatalogSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
+import { useResponsive } from "../../../hooks/use-responsive";
 import { Mueble } from "../../../types";
 import { apiGetMisFavoritos, apiToggleFavorito } from "../../../utils/api";
 import { getStoredPageSize } from "../../../utils/settingsStorage";
+
+type FavoritoGridItem = Mueble | { id: number; __spacer: true };
 
 export default function FavoritosScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { isMobile, catalogColumns, catalogMaxWidth } =
+    useResponsive("catalog");
 
   const [favoritos, setFavoritos] = useState<Mueble[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +72,18 @@ export default function FavoritosScreen() {
     }, [fetchFavoritos, page]),
   );
 
+  // Completa la última fila con espaciadores para mantener proporciones homogéneas en cuadrícula.
+  const gridItems = useMemo<FavoritoGridItem[]>(() => {
+    if (catalogColumns <= 1 || favoritos.length === 0) return favoritos;
+    const remainder = favoritos.length % catalogColumns;
+    if (remainder === 0) return favoritos;
+    const spacers: FavoritoGridItem[] = Array.from(
+      { length: catalogColumns - remainder },
+      (_, idx) => ({ id: -(idx + 1), __spacer: true as const }),
+    );
+    return [...favoritos, ...spacers];
+  }, [favoritos, catalogColumns]);
+
   const handleRefresh = () => {
     setRefreshing(true);
     fetchFavoritos(1, true);
@@ -81,56 +101,83 @@ export default function FavoritosScreen() {
       if (favoritos.length === 1 && page > 1) {
         const prevPage = page - 1;
         setPage(prevPage);
-        fetchFavoritos(prevPage);
+        fetchFavoritos(prevPage, true);
       } else {
-        fetchFavoritos(page);
+        fetchFavoritos(page, true);
       }
     } catch {
       // Ignorar error
     }
   };
 
+  // Ancho máximo centrado en tablet/escritorio; en móvil se mantiene el layout original completo.
+  const desktopContainerStyle = !isMobile
+    ? {
+        maxWidth: catalogMaxWidth,
+        width: "100%" as const,
+        alignSelf: "center" as const,
+      }
+    : undefined;
+
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={["top", "left", "right"]}
     >
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Mis Favoritos
-          </Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-            {totalCount}{" "}
-            {totalCount === 1 ? "mueble guardado" : "muebles guardados"}
-          </Text>
-        </View>
+      {/* Header con separador de ancho completo y contenido centrado en escritorio */}
+      <View
+        style={[styles.headerWrapper, { borderBottomColor: colors.border }]}
+      >
+        <View style={[styles.header, desktopContainerStyle]}>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              Mis Favoritos
+            </Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
+              {totalCount}{" "}
+              {totalCount === 1 ? "mueble guardado" : "muebles guardados"}
+            </Text>
+          </View>
 
-        <View
-          style={[styles.iconPill, { backgroundColor: `${colors.danger}15` }]}
-        >
-          <Ionicons name="heart" size={20} color={colors.danger} />
+          <View
+            style={[styles.iconPill, { backgroundColor: `${colors.danger}15` }]}
+          >
+            <Ionicons name="heart" size={20} color={colors.danger} />
+          </View>
         </View>
       </View>
 
       {loading && !refreshing ? (
-        <LoadingView message="Cargando tus favoritos..." />
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <CatalogSkeleton columns={catalogColumns} />
+        </ScrollView>
       ) : error ? (
         <ErrorView message={error} onRetry={() => fetchFavoritos(page)} />
       ) : (
         <FlatList
-          data={favoritos}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <MuebleCard
-              mueble={item}
-              isFavorito={true}
-              onPress={() => router.push(`/(app)/mueble/${item.id}`)}
-              onToggleFavorito={handleRemoveFavorito}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
+          key={`grid-${catalogColumns}`}
+          data={gridItems}
+          numColumns={catalogColumns}
+          columnWrapperStyle={
+            catalogColumns > 1 ? styles.columnWrapper : undefined
+          }
+          keyExtractor={(item) =>
+            "__spacer" in item ? `spacer-${item.id}` : item.id.toString()
+          }
+          renderItem={({ item }) =>
+            "__spacer" in item ? (
+              <View style={styles.gridSpacer} pointerEvents="none" />
+            ) : (
+              <MuebleCard
+                mueble={item}
+                isFavorito={true}
+                isGridItem={catalogColumns > 1}
+                onPress={() => router.push(`/(app)/mueble/${item.id}`)}
+                onToggleFavorito={handleRemoveFavorito}
+              />
+            )
+          }
+          contentContainerStyle={[styles.listContent, desktopContainerStyle]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -168,13 +215,15 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  headerWrapper: {
+    borderBottomWidth: 1,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 14,
-    borderBottomWidth: 1,
   },
   headerTitle: {
     fontSize: 22,
@@ -194,5 +243,11 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 18,
     paddingBottom: 32,
+  },
+  columnWrapper: {
+    gap: 16,
+  },
+  gridSpacer: {
+    flex: 1,
   },
 });

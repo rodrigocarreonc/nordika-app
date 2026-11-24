@@ -1,3 +1,5 @@
+// Cliente HTTP centralizado: adjunta Token, maneja 401/errores y agrupa todos los endpoints REST.
+
 import { router } from "expo-router";
 import {
   Apartado,
@@ -11,10 +13,11 @@ import {
 } from "../types";
 import { deleteToken, getToken, saveToken, saveUser } from "./tokenStorage";
 
-// Se fija en build desde EXPO_PUBLIC_API_URL (.env); quita '/' final
+// Se fija en build desde EXPO_PUBLIC_API_URL (.env) y recorta '/' final para evitar dobles barras.
 const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
 if (!API_URL) throw new Error("Falta EXPO_PUBLIC_API_URL en .env");
 
+// Error tipado que conserva código HTTP y payload crudo para decidir acciones por status (ej. 409).
 export class ApiError extends Error {
   status: number;
   data: any;
@@ -28,7 +31,7 @@ export class ApiError extends Error {
 }
 
 /**
- * Realiza una petición HTTP genérica al backend con token de autenticación.
+ * Ejecuta peticiones HTTP al backend inyectando el Token y normalizando los mensajes de error.
  */
 async function request<T>(
   endpoint: string,
@@ -44,7 +47,7 @@ async function request<T>(
     ...(options.headers as Record<string, string>),
   };
 
-  // Solo agregar Content-Type: application/json si no es FormData (para subida de imágenes)
+  // Para FormData se omite Content-Type para que fetch genere automáticamente el boundary multipart.
   if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
@@ -84,11 +87,13 @@ async function request<T>(
   }
 
   if (!response.ok) {
+    // Ante 401 (token revocado o vencido) se cierra la sesión local, excepto durante el propio login.
     if (response.status === 401 && !endpoint.includes("/api-token-auth/")) {
       await deleteToken();
       router.replace("/(auth)/login");
     }
 
+    // Extrae un mensaje legible desde los distintos formatos de error de DRF (detail, non_field_errors o por campo).
     let errorMessage = `Error del servidor (${response.status})`;
     if (responseData) {
       if (typeof responseData === "string") {
@@ -100,7 +105,6 @@ async function request<T>(
           ? responseData.non_field_errors.join(", ")
           : responseData.non_field_errors;
       } else {
-        // Concatenar primer mensaje de error encontrado en campos
         const firstKey = Object.keys(responseData)[0];
         if (firstKey) {
           const val = responseData[firstKey];
@@ -118,6 +122,7 @@ async function request<T>(
 // SERVICIOS DE AUTENTICACIÓN
 // ==========================================
 
+// Inicia sesión y persiste token y perfil para restaurar la sesión al reabrir la app.
 export async function apiLogin(
   username: string,
   password: string,
@@ -253,6 +258,7 @@ export async function apiGetMueble(id: number): Promise<Mueble> {
   return await request<Mueble>(`/muebles/${id}/`);
 }
 
+// Acepta FormData cuando el formulario adjunta imagen o JSON plano cuando no hay archivo.
 export async function apiCreateMueble(
   data: FormData | Record<string, any>,
 ): Promise<Mueble> {
@@ -429,6 +435,7 @@ export async function apiDeleteProveedor(id: number): Promise<void> {
 // HELPER PARA URLs DE IMÁGENES
 // ==========================================
 
+// Convierte rutas relativas (/media/...) en URLs absolutas usando API_URL para que Image las cargue.
 export async function resolveImageUrl(
   imageUrl: string | null | undefined,
 ): Promise<string | null> {

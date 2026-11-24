@@ -1,6 +1,8 @@
+// Pantalla principal del catálogo: búsqueda, filtro por categoría/stock, ordenamiento y paginación.
+
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Modal,
@@ -16,10 +18,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyView } from "../../../components/EmptyView";
 import { ErrorView } from "../../../components/ErrorView";
-import { LoadingView } from "../../../components/LoadingView";
 import { MuebleCard } from "../../../components/MuebleCard";
 import { Pagination } from "../../../components/Pagination";
+import { CatalogSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
+import { useResponsive } from "../../../hooks/use-responsive";
 import { Categoria, Mueble } from "../../../types";
 import {
   apiGetCategorias,
@@ -29,10 +32,14 @@ import {
 import { getStoredPageSize } from "../../../utils/settingsStorage";
 import { getUser } from "../../../utils/tokenStorage";
 
+type CatalogGridItem = Mueble | { id: number; __spacer: true };
+
 export default function CatalogScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { isMobile, catalogColumns, catalogMaxWidth } =
+    useResponsive("catalog");
 
   // Estados de datos
   const [muebles, setMuebles] = useState<Mueble[]>([]);
@@ -47,7 +54,6 @@ export default function CatalogScreen() {
   const [ordering, setOrdering] = useState("-creado_en");
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -79,15 +85,14 @@ export default function CatalogScreen() {
 
   useFocusEffect(fetchCategorias);
 
-  // Cargar muebles
+  // Consulta paginada respetando el page_size elegido en Ajustes y todos los filtros activos.
   const fetchMuebles = useCallback(
-    async (currentPage = page, isRefresh = false) => {
+    async (currentPage = 1, isRefresh = false) => {
       try {
         if (!isRefresh) setLoading(true);
         setError(null);
 
         const currentSize = await getStoredPageSize();
-        setPageSize(currentSize);
 
         const data = await apiGetMuebles({
           page: currentPage,
@@ -121,6 +126,18 @@ export default function CatalogScreen() {
       fetchMuebles(page);
     }, [fetchMuebles, page]),
   );
+
+  // Rellena la última fila de la cuadrícula con celdas vacías para evitar que una tarjeta aislada se estire al 100 %.
+  const gridItems = useMemo<CatalogGridItem[]>(() => {
+    if (catalogColumns <= 1 || muebles.length === 0) return muebles;
+    const remainder = muebles.length % catalogColumns;
+    if (remainder === 0) return muebles;
+    const spacers: CatalogGridItem[] = Array.from(
+      { length: catalogColumns - remainder },
+      (_, idx) => ({ id: -(idx + 1), __spacer: true as const }),
+    );
+    return [...muebles, ...spacers];
+  }, [muebles, catalogColumns]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -166,59 +183,72 @@ export default function CatalogScreen() {
     { label: "Nombre: A - Z", value: "nombre" },
   ];
 
+  // Contenedor centrado con ancho máximo en tablet/escritorio; en móvil se mantiene de ancho completo.
+  const desktopContainerStyle = !isMobile
+    ? {
+        maxWidth: catalogMaxWidth,
+        width: "100%" as const,
+        alignSelf: "center" as const,
+      }
+    : undefined;
+
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={["top", "left", "right"]}
     >
-      {/* Header Superior */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View>
-          <Text style={[styles.brandLogo, { color: colors.text }]}>
-            NORDIKA
-          </Text>
-          <Text style={[styles.greeting, { color: colors.textMuted }]}>
-            {currentUser?.first_name
-              ? `Hola, ${currentUser.first_name}`
-              : "Mobiliario Nórdico"}
-          </Text>
-        </View>
+      {/* Header Superior con borde a todo el ancho y contenido centrado en escritorio */}
+      <View
+        style={[styles.headerWrapper, { borderBottomColor: colors.border }]}
+      >
+        <View style={[styles.header, desktopContainerStyle]}>
+          <View>
+            <Text style={[styles.brandLogo, { color: colors.text }]}>
+              NORDIKA
+            </Text>
+            <Text style={[styles.greeting, { color: colors.textMuted }]}>
+              {currentUser?.first_name
+                ? `Hola, ${currentUser.first_name}`
+                : "Mobiliario Nórdico"}
+            </Text>
+          </View>
 
-        <View style={styles.headerActions}>
-          <Pressable
-            style={[
-              styles.headerIconButton,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-            onPress={() => setShowOrderModal(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Ordenar catálogo"
-            accessibilityHint="Abre opciones para ordenar los muebles por precio o fecha"
-          >
-            <Ionicons name="filter-outline" size={20} color={colors.text} />
-          </Pressable>
-
-          {/* Botón Nuevo Mueble (Solo Staff) */}
-          {currentUser?.is_staff ? (
+          <View style={styles.headerActions}>
             <Pressable
               style={[
-                styles.headerCreateButton,
-                { backgroundColor: colors.accent },
+                styles.headerIconButton,
+                { backgroundColor: colors.card, borderColor: colors.border },
               ]}
-              onPress={() => router.push("/(app)/mueble/form")}
+              onPress={() => setShowOrderModal(true)}
               accessibilityRole="button"
-              accessibilityLabel="Nuevo mueble"
-              accessibilityHint="Abre el formulario para dar de alta un mueble"
+              accessibilityLabel="Ordenar catálogo"
+              accessibilityHint="Abre opciones para ordenar los muebles por precio o fecha"
             >
-              <Ionicons name="add" size={18} color="#FFFFFF" />
-              <Text style={styles.headerCreateButtonText}>Nuevo</Text>
+              <Ionicons name="filter-outline" size={20} color={colors.text} />
             </Pressable>
-          ) : null}
+
+            {/* Botón Nuevo Mueble (Solo Staff) */}
+            {currentUser?.is_staff ? (
+              <Pressable
+                style={[
+                  styles.headerCreateButton,
+                  { backgroundColor: colors.accent },
+                ]}
+                onPress={() => router.push("/(app)/mueble/form")}
+                accessibilityRole="button"
+                accessibilityLabel="Nuevo mueble"
+                accessibilityHint="Abre el formulario para dar de alta un mueble"
+              >
+                <Ionicons name="add" size={18} color="#FFFFFF" />
+                <Text style={styles.headerCreateButtonText}>Nuevo</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
       </View>
 
       {/* Barra de Búsqueda */}
-      <View style={styles.searchSection}>
+      <View style={[styles.searchSection, desktopContainerStyle]}>
         <View
           style={[
             styles.searchBar,
@@ -259,7 +289,7 @@ export default function CatalogScreen() {
       </View>
 
       {/* Chips de Categorías (Horizontal Scroll) */}
-      <View style={styles.categoriesSection}>
+      <View style={[styles.categoriesSection, desktopContainerStyle]}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -337,7 +367,7 @@ export default function CatalogScreen() {
       </View>
 
       {/* Filtros Activos & Contador */}
-      <View style={styles.filterStatsRow}>
+      <View style={[styles.filterStatsRow, desktopContainerStyle]}>
         <Text style={[styles.resultsCount, { color: colors.textMuted }]}>
           {totalCount}{" "}
           {totalCount === 1 ? "mueble encontrado" : "muebles encontrados"}
@@ -380,21 +410,35 @@ export default function CatalogScreen() {
 
       {/* Lista de Muebles o Estados */}
       {loading && !refreshing ? (
-        <LoadingView message="Cargando catálogo Nordika..." />
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <CatalogSkeleton columns={catalogColumns} />
+        </ScrollView>
       ) : error ? (
         <ErrorView message={error} onRetry={() => fetchMuebles(page)} />
       ) : (
         <FlatList
-          data={muebles}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <MuebleCard
-              mueble={item}
-              onPress={() => router.push(`/(app)/mueble/${item.id}`)}
-              onToggleFavorito={handleToggleFavorito}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
+          key={`grid-${catalogColumns}`}
+          data={gridItems}
+          numColumns={catalogColumns}
+          columnWrapperStyle={
+            catalogColumns > 1 ? styles.columnWrapper : undefined
+          }
+          keyExtractor={(item) =>
+            "__spacer" in item ? `spacer-${item.id}` : item.id.toString()
+          }
+          renderItem={({ item }) =>
+            "__spacer" in item ? (
+              <View style={styles.gridSpacer} pointerEvents="none" />
+            ) : (
+              <MuebleCard
+                mueble={item}
+                isGridItem={catalogColumns > 1}
+                onPress={() => router.push(`/(app)/mueble/${item.id}`)}
+                onToggleFavorito={handleToggleFavorito}
+              />
+            )
+          }
+          contentContainerStyle={[styles.listContent, desktopContainerStyle]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -505,13 +549,15 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  headerWrapper: {
+    borderBottomWidth: 1,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 12,
-    borderBottomWidth: 1,
   },
   brandLogo: {
     fontSize: 22,
@@ -611,6 +657,12 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 18,
     paddingBottom: 24,
+  },
+  columnWrapper: {
+    gap: 16,
+  },
+  gridSpacer: {
+    flex: 1,
   },
   paginationRow: {
     flexDirection: "row",

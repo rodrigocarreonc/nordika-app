@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * This script is used to reset the project to a blank state.
- * It deletes or moves the /src and /scripts directories to /example based on user input and creates a new /src/app directory with an index.tsx and _layout.tsx file.
- * You can remove the `reset-project` script from package.json and safely delete this file after running it.
+ * Script interactivo de la plantilla de Expo para reiniciar /src a una app en blanco.
+ * Permite mover los directorios actuales a /example o borrarlos antes de crear una base limpia.
  */
 
 const fs = require("fs");
@@ -16,6 +15,7 @@ const exampleDir = "example";
 const newAppDir = "src/app";
 const exampleDirPath = path.join(root, exampleDir);
 
+// Plantillas mínimas para regenerar la pantalla inicial y el layout raíz tras el reinicio.
 const indexContent = `import { Text, View, StyleSheet } from "react-native";
 
 export default function Index() {
@@ -47,6 +47,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
+// Mueve o elimina los directorios existentes según la confirmación del usuario y crea src/app limpio.
 const moveDirectories = async (userInput) => {
   try {
     if (userInput === "y") {

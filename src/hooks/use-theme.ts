@@ -1,7 +1,4 @@
-/**
- * Learn more about light and dark modes:
- * https://docs.expo.dev/guides/color-schemes/
- */
+// Devuelve la paleta activa (claro u oscuro) según el esquema del sistema o la preferencia elegida.
 
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";

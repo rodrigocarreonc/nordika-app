@@ -1,3 +1,5 @@
+// Pantalla de inicio de sesión con autenticación por token y atajos de cuentas demo.
+
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -28,6 +30,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Valida campos requeridos, solicita el token al backend y reemplaza el stack hacia las pestañas.
   const handleLogin = async () => {
     const trimmedUsername = username.trim();
     if (!trimmedUsername || !password) {

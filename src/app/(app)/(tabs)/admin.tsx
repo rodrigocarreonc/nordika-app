@@ -1,3 +1,5 @@
+// Panel exclusivo de staff para gestionar CRUD de muebles, categorías y proveedores desde una sola vista.
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -21,10 +23,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge } from "../../../components/Badge";
 import { EmptyView } from "../../../components/EmptyView";
 import { ErrorView } from "../../../components/ErrorView";
-import { LoadingView } from "../../../components/LoadingView";
 import { Pagination } from "../../../components/Pagination";
+import { AdminListSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
+import { useResponsive } from "../../../hooks/use-responsive";
 import { Categoria, Mueble, Proveedor } from "../../../types";
 import {
   apiCreateCategoria,
@@ -48,6 +51,16 @@ export default function AdminScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { isMobile, contentMaxWidth } = useResponsive("content");
+
+  // En tablet/escritorio limita el ancho de cabecera, controles y listas; en móvil conserva el diseño original.
+  const desktopContainerStyle = !isMobile
+    ? {
+        maxWidth: contentMaxWidth,
+        width: "100%" as const,
+        alignSelf: "center" as const,
+      }
+    : undefined;
 
   // ==========================================
   // ESTADO DE AUTENTICACIÓN / STAFF GUARD
@@ -114,6 +127,7 @@ export default function AdminScreen() {
   // ==========================================
   // VERIFICACIÓN DE ACCESO STAFF
   // ==========================================
+  // Bloquea acceso directo por URL en Web aunque la pestaña esté oculta para clientes.
   const verifyStaffAccess = useCallback(async () => {
     try {
       const user = await getUser();
@@ -322,6 +336,7 @@ export default function AdminScreen() {
     }
   };
 
+  // Advierte antes de borrar: en backend Categoría usa SET_NULL, así que los muebles no se pierden.
   const handleDeleteCategoria = async (cat: Categoria) => {
     const count = cat.muebles_count ?? 0;
     const countText =
@@ -384,7 +399,9 @@ export default function AdminScreen() {
       return;
     }
     if (!provContacto.trim() || !provTelefono.trim()) {
-      setProvFormError("La persona de contacto y el teléfono son obligatorios.");
+      setProvFormError(
+        "La persona de contacto y el teléfono son obligatorios.",
+      );
       return;
     }
     if (!/^\d{1,10}$/.test(provTelefono.trim())) {
@@ -424,6 +441,7 @@ export default function AdminScreen() {
     }
   };
 
+  // Proveedor usa PROTECT en backend: si tiene muebles ligados responderá 409 Conflict.
   const handleDeleteProveedor = async (prov: Proveedor) => {
     const count = prov.muebles_count ?? 0;
     const countText =
@@ -466,7 +484,14 @@ export default function AdminScreen() {
   // RENDER CONDICIONAL: AUTH CHECK
   // ==========================================
   if (checkingAuth) {
-    return <LoadingView message="Verificando permisos de administración..." />;
+    return (
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={["top", "left", "right"]}
+      >
+        <AdminListSkeleton />
+      </SafeAreaView>
+    );
   }
 
   if (!isStaff) {
@@ -483,114 +508,120 @@ export default function AdminScreen() {
     >
       {/* Encabezado Superior */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View style={styles.headerTitleRow}>
-          <View>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              Administración
-            </Text>
-            <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-              Gestión centralizada de catálogo y catálogos auxiliares
-            </Text>
+        <View style={[styles.headerInner, desktopContainerStyle]}>
+          <View style={styles.headerTitleRow}>
+            <View>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                Administración
+              </Text>
+              <Text
+                style={[styles.headerSubtitle, { color: colors.textMuted }]}
+              >
+                Gestión centralizada de catálogo y catálogos auxiliares
+              </Text>
+            </View>
+            <Badge label="STAFF" variant="warning" size="medium" />
           </View>
-          <Badge label="STAFF" variant="warning" size="medium" />
-        </View>
 
-        {/* 3 Botones Principales (Selector de Módulo) */}
-        <View
-          style={[
-            styles.moduleSelector,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Pressable
+          {/* 3 Botones Principales (Selector de Módulo) */}
+          <View
             style={[
-              styles.moduleButton,
-              modulo === "muebles" && [
-                styles.moduleButtonActive,
-                { backgroundColor: colors.accent },
-              ],
+              styles.moduleSelector,
+              { backgroundColor: colors.card, borderColor: colors.border },
             ]}
-            onPress={() => handleSelectModulo("muebles")}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: modulo === "muebles" }}
-            accessibilityLabel="Módulo de muebles"
           >
-            <Ionicons
-              name={modulo === "muebles" ? "cube" : "cube-outline"}
-              size={18}
-              color={modulo === "muebles" ? "#FFFFFF" : colors.text}
-            />
-            <Text
+            <Pressable
               style={[
-                styles.moduleButtonText,
-                { color: modulo === "muebles" ? "#FFFFFF" : colors.text },
+                styles.moduleButton,
+                modulo === "muebles" && [
+                  styles.moduleButtonActive,
+                  { backgroundColor: colors.accent },
+                ],
               ]}
+              onPress={() => handleSelectModulo("muebles")}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: modulo === "muebles" }}
+              accessibilityLabel="Módulo de muebles"
             >
-              Muebles
-            </Text>
-          </Pressable>
+              <Ionicons
+                name={modulo === "muebles" ? "cube" : "cube-outline"}
+                size={18}
+                color={modulo === "muebles" ? "#FFFFFF" : colors.text}
+              />
+              <Text
+                style={[
+                  styles.moduleButtonText,
+                  { color: modulo === "muebles" ? "#FFFFFF" : colors.text },
+                ]}
+              >
+                Muebles
+              </Text>
+            </Pressable>
 
-          <Pressable
-            style={[
-              styles.moduleButton,
-              modulo === "categorias" && [
-                styles.moduleButtonActive,
-                { backgroundColor: colors.accent },
-              ],
-            ]}
-            onPress={() => handleSelectModulo("categorias")}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: modulo === "categorias" }}
-            accessibilityLabel="Módulo de categorías"
-          >
-            <Ionicons
-              name={modulo === "categorias" ? "folder" : "folder-outline"}
-              size={18}
-              color={modulo === "categorias" ? "#FFFFFF" : colors.text}
-            />
-            <Text
+            <Pressable
               style={[
-                styles.moduleButtonText,
-                { color: modulo === "categorias" ? "#FFFFFF" : colors.text },
+                styles.moduleButton,
+                modulo === "categorias" && [
+                  styles.moduleButtonActive,
+                  { backgroundColor: colors.accent },
+                ],
               ]}
+              onPress={() => handleSelectModulo("categorias")}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: modulo === "categorias" }}
+              accessibilityLabel="Módulo de categorías"
             >
-              Categorías
-            </Text>
-          </Pressable>
+              <Ionicons
+                name={modulo === "categorias" ? "folder" : "folder-outline"}
+                size={18}
+                color={modulo === "categorias" ? "#FFFFFF" : colors.text}
+              />
+              <Text
+                style={[
+                  styles.moduleButtonText,
+                  { color: modulo === "categorias" ? "#FFFFFF" : colors.text },
+                ]}
+              >
+                Categorías
+              </Text>
+            </Pressable>
 
-          <Pressable
-            style={[
-              styles.moduleButton,
-              modulo === "proveedores" && [
-                styles.moduleButtonActive,
-                { backgroundColor: colors.accent },
-              ],
-            ]}
-            onPress={() => handleSelectModulo("proveedores")}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: modulo === "proveedores" }}
-            accessibilityLabel="Módulo de proveedores"
-          >
-            <Ionicons
-              name={modulo === "proveedores" ? "business" : "business-outline"}
-              size={18}
-              color={modulo === "proveedores" ? "#FFFFFF" : colors.text}
-            />
-            <Text
+            <Pressable
               style={[
-                styles.moduleButtonText,
-                { color: modulo === "proveedores" ? "#FFFFFF" : colors.text },
+                styles.moduleButton,
+                modulo === "proveedores" && [
+                  styles.moduleButtonActive,
+                  { backgroundColor: colors.accent },
+                ],
               ]}
+              onPress={() => handleSelectModulo("proveedores")}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: modulo === "proveedores" }}
+              accessibilityLabel="Módulo de proveedores"
             >
-              Proveedores
-            </Text>
-          </Pressable>
+              <Ionicons
+                name={
+                  modulo === "proveedores" ? "business" : "business-outline"
+                }
+                size={18}
+                color={modulo === "proveedores" ? "#FFFFFF" : colors.text}
+              />
+              <Text
+                style={[
+                  styles.moduleButtonText,
+                  { color: modulo === "proveedores" ? "#FFFFFF" : colors.text },
+                ]}
+              >
+                Proveedores
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
 
       {/* Vista de Error si falló alguna petición */}
       {errorMsg ? (
-        <View style={{ padding: 16 }}>
+        <View style={[{ padding: 16 }, desktopContainerStyle]}>
           <ErrorView
             message={errorMsg}
             onRetry={() => {
@@ -608,7 +639,7 @@ export default function AdminScreen() {
       {modulo === "muebles" && (
         <View style={styles.contentContainer}>
           {/* Barra de Acciones y Búsqueda */}
-          <View style={styles.actionsBar}>
+          <View style={[styles.actionsBar, desktopContainerStyle]}>
             <View
               style={[
                 styles.searchBox,
@@ -661,7 +692,7 @@ export default function AdminScreen() {
           </View>
 
           {/* Contador de Muebles */}
-          <View style={styles.countRow}>
+          <View style={[styles.countRow, desktopContainerStyle]}>
             <Text style={[styles.countText, { color: colors.textMuted }]}>
               {mueblesTotalCount}{" "}
               {mueblesTotalCount === 1
@@ -671,12 +702,15 @@ export default function AdminScreen() {
           </View>
 
           {loadingMuebles && !refreshingMuebles ? (
-            <LoadingView message="Cargando muebles..." />
+            <AdminListSkeleton />
           ) : (
             <FlatList
               data={muebles}
               keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[
+                styles.listContent,
+                desktopContainerStyle,
+              ]}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshingMuebles}
@@ -716,6 +750,7 @@ export default function AdminScreen() {
                       style={styles.muebleItemMain}
                       onPress={() => router.push(`/(app)/mueble/${item.id}`)}
                     >
+                      {/* En escritorio usa contain sobre backgroundElement para no recortar la miniatura del mueble. */}
                       <View
                         style={[
                           styles.thumbContainer,
@@ -726,7 +761,7 @@ export default function AdminScreen() {
                           <Image
                             source={{ uri: imgUri }}
                             style={styles.thumbImage}
-                            contentFit="cover"
+                            contentFit={isMobile ? "cover" : "contain"}
                           />
                         ) : (
                           <Ionicons
@@ -861,7 +896,7 @@ export default function AdminScreen() {
       {/* ======================================================== */}
       {modulo === "categorias" && (
         <View style={styles.contentContainer}>
-          <View style={styles.actionsBar}>
+          <View style={[styles.actionsBar, desktopContainerStyle]}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.countText, { color: colors.textMuted }]}>
                 {categorias.length}{" "}
@@ -883,12 +918,15 @@ export default function AdminScreen() {
           </View>
 
           {loadingCategorias && !refreshingCategorias ? (
-            <LoadingView message="Cargando categorías..." />
+            <AdminListSkeleton />
           ) : (
             <FlatList
               data={categorias}
               keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[
+                styles.listContent,
+                desktopContainerStyle,
+              ]}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshingCategorias}
@@ -1021,7 +1059,7 @@ export default function AdminScreen() {
       {/* ======================================================== */}
       {modulo === "proveedores" && (
         <View style={styles.contentContainer}>
-          <View style={styles.actionsBar}>
+          <View style={[styles.actionsBar, desktopContainerStyle]}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.countText, { color: colors.textMuted }]}>
                 {proveedores.length}{" "}
@@ -1043,12 +1081,15 @@ export default function AdminScreen() {
           </View>
 
           {loadingProveedores && !refreshingProveedores ? (
-            <LoadingView message="Cargando proveedores..." />
+            <AdminListSkeleton />
           ) : (
             <FlatList
               data={proveedores}
               keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[
+                styles.listContent,
+                desktopContainerStyle,
+              ]}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshingProveedores}
@@ -1234,6 +1275,7 @@ export default function AdminScreen() {
           <View
             style={[
               styles.modalContent,
+              !isMobile && styles.modalContentDesktop,
               { backgroundColor: colors.card, borderColor: colors.border },
             ]}
             onStartShouldSetResponder={() => true}
@@ -1375,6 +1417,7 @@ export default function AdminScreen() {
           <View
             style={[
               styles.modalContent,
+              !isMobile && styles.modalContentDesktop,
               { backgroundColor: colors.card, borderColor: colors.border },
             ]}
             onStartShouldSetResponder={() => true}
@@ -1549,10 +1592,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    borderBottomWidth: 1,
+  },
+  headerInner: {
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 14,
-    borderBottomWidth: 1,
+    width: "100%",
   },
   headerTitleRow: {
     flexDirection: "row",
@@ -1746,6 +1792,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 24,
     maxHeight: "85%",
+  },
+  modalContentDesktop: {
+    maxWidth: 560,
+    width: "100%",
+    alignSelf: "center",
   },
   modalHeader: {
     flexDirection: "row",
