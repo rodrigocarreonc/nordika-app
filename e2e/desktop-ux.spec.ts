@@ -1,27 +1,6 @@
-// Suite E2E en Playwright para validar diseño responsive en escritorio/móvil, visor fullscreen, skeletons y SSE en tiempo real.
+// Suite E2E en Playwright para validar diseño responsive en escritorio/móvil, visor fullscreen y skeleton loaders.
 
 import { expect, Page, test } from "@playwright/test";
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:8000";
-const SCREENSHOT_DIR =
-  "C:/Users/gaelt/.gemini/antigravity-cli/brain/5fd9e9b7-40ba-4413-9f63-946f727e1c57";
-
-// Obtiene un token DRF directo contra el backend para crear y limpiar fixtures de prueba.
-async function getApiToken(
-  username: "admin" | "gael",
-  password: string,
-): Promise<string> {
-  const res = await fetch(`${API_URL}/api-token-auth/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-  if (!res.ok) {
-    throw new Error(`Auth failed for ${username}: ${res.status}`);
-  }
-  const data = await res.json();
-  return data.token;
-}
 
 // Limpia el estado local e inicia sesión desde la pantalla de login hasta que aparezcan las pestañas.
 async function loginAs(page: Page, role: "admin" | "gael") {
@@ -90,7 +69,7 @@ async function waitForLoadedImages(
   return lastResult;
 }
 
-test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
+test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
   test.setTimeout(90000);
 
   test("1. Escritorio (1280x800) multi-columna + contain, detalle acotado, y preservación móvil (390x844)", async ({
@@ -105,7 +84,7 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
       .toBeGreaterThanOrEqual(2);
 
     // Verifica que existan al menos 2 tarjetas compartiendo la misma fila (cuadrícula multi-columna en escritorio).
-    const desktopRowCheck = await expect
+    await expect
       .poll(
         async () => {
           const count = await cards.count();
@@ -124,7 +103,6 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
         { timeout: 10000 },
       )
       .toBe(true);
-    void desktopRowCheck;
 
     // Verifica imágenes de catálogo cargadas con object-fit: contain y sin desbordamiento horizontal.
     const catalogImgSelector =
@@ -139,12 +117,6 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
       () => document.documentElement.scrollWidth <= window.innerWidth,
     );
     expect(desktopOverflow).toBe(true);
-
-    // Pausa breve para que concluya el fade-in de expo-image antes de la captura.
-    await page.waitForTimeout(350);
-    await page.screenshot({
-      path: `${SCREENSHOT_DIR}/desktop-catalog.png`,
-    });
 
     // Abre la primera tarjeta que contenga imagen para validar la ficha de detalle en escritorio.
     const cardWithImage = cards.filter({ has: page.locator("img") }).first();
@@ -181,11 +153,6 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
       () => document.documentElement.scrollWidth <= window.innerWidth,
     );
     expect(detailOverflow).toBe(true);
-
-    await page.waitForTimeout(350);
-    await page.screenshot({
-      path: `${SCREENSHOT_DIR}/desktop-detail.png`,
-    });
 
     // Regresa al catálogo y cambia a viewport móvil (390x844) para confirmar diseño 1 columna + cover.
     const backBtn = page
@@ -229,11 +196,6 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
       () => document.documentElement.scrollWidth <= window.innerWidth,
     );
     expect(mobileOverflow).toBe(true);
-
-    await page.waitForTimeout(350);
-    await page.screenshot({
-      path: `${SCREENSHOT_DIR}/mobile-catalog.png`,
-    });
   });
 
   test("2. Visor de imagen en pantalla completa: abrir, validar carga, cerrar con Escape y botón cerrar", async ({
@@ -266,11 +228,6 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
     expect(modalImgs.count).toBeGreaterThan(0);
     expect(modalImgs.objectFits[0]).toBe("contain");
 
-    await page.waitForTimeout(300);
-    await page.screenshot({
-      path: `${SCREENSHOT_DIR}/fullscreen-modal.png`,
-    });
-
     // Cierra con la tecla Escape en Web.
     await page.keyboard.press("Escape");
     await expect(modal).not.toBeVisible({ timeout: 5000 });
@@ -297,20 +254,29 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
       timeout: 15000,
     });
 
-    // 3.1 Catálogo: retrasa la respuesta de /muebles/ para comprobar el CatalogSkeleton al recargar la vista.
+    // 3.1 Catálogo: retiene GET /muebles/ con una promesa controlada para asegurar que CatalogSkeleton sea visible sin carreras de tiempo.
+    let releaseCatalog: (() => void) | null = null;
     const catalogDelayHandler = async (route: any) => {
       if (route.request().method() === "GET") {
-        await new Promise((resolve) => setTimeout(resolve, 900));
+        await new Promise<void>((resolve) => {
+          releaseCatalog = resolve;
+        });
       }
       await route.continue();
     };
     await page.route(/\/muebles\/(\?.*)?$/, catalogDelayHandler);
 
-    await page.goto("/");
-    const skeleton = page.getByTestId("skeleton-loader").first();
-    await expect(skeleton).toBeVisible({ timeout: 8000 });
+    const stockToggle = page
+      .getByLabel("Filtro en stock")
+      .or(page.locator('[title*="stock"]'))
+      .first();
+    await stockToggle.click();
 
-    // Una vez que llega la respuesta real, el skeleton desaparece y se muestran las tarjetas.
+    const skeleton = page.getByTestId("skeleton-loader").first();
+    await expect(skeleton).toBeVisible({ timeout: 10000 });
+    (releaseCatalog as (() => void) | null)?.();
+
+    // Una vez liberada la respuesta real, el skeleton desaparece y se muestran las tarjetas.
     await expect(page.getByTestId("skeleton-loader")).toHaveCount(0, {
       timeout: 15000,
     });
@@ -319,10 +285,13 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
     });
     await page.unroute(/\/muebles\/(\?.*)?$/, catalogDelayHandler);
 
-    // 3.2 Detalle de mueble: retrasa /muebles/:id/ para comprobar el MuebleDetailSkeleton.
+    // 3.2 Detalle de mueble: retiene GET /muebles/:id/ para comprobar el MuebleDetailSkeleton.
+    let releaseDetail: (() => void) | null = null;
     const detailDelayHandler = async (route: any) => {
       if (route.request().method() === "GET") {
-        await new Promise((resolve) => setTimeout(resolve, 900));
+        await new Promise<void>((resolve) => {
+          releaseDetail = resolve;
+        });
       }
       await route.continue();
     };
@@ -330,8 +299,10 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
 
     await getCatalogCardsLocator(page).first().click();
     await expect(page.getByTestId("skeleton-loader").first()).toBeVisible({
-      timeout: 8000,
+      timeout: 10000,
     });
+    (releaseDetail as (() => void) | null)?.();
+
     await expect(page.getByTestId("skeleton-loader")).toHaveCount(0, {
       timeout: 15000,
     });
@@ -340,16 +311,19 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
     });
     await page.unroute(/\/muebles\/\d+\/?$/, detailDelayHandler);
 
-    // 3.3 Apartados: retrasa /apartados/ para comprobar el ApartadosSkeleton al entrar a la pestaña.
+    // 3.3 Apartados: retiene GET /apartados/ para comprobar el ApartadosSkeleton al entrar a la pestaña.
     const backBtn = page
       .getByLabel("Regresar al catálogo")
       .or(page.locator('[title="Regresar al catálogo"]'))
       .first();
     await backBtn.click();
 
+    let releaseApartados: (() => void) | null = null;
     const apartadosDelayHandler = async (route: any) => {
       if (route.request().method() === "GET") {
-        await new Promise((resolve) => setTimeout(resolve, 900));
+        await new Promise<void>((resolve) => {
+          releaseApartados = resolve;
+        });
       }
       await route.continue();
     };
@@ -361,8 +335,10 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
       .first();
     await apartadosTab.click();
     await expect(page.getByTestId("skeleton-loader").first()).toBeVisible({
-      timeout: 8000,
+      timeout: 10000,
     });
+    (releaseApartados as (() => void) | null)?.();
+
     await expect(page.getByTestId("skeleton-loader")).toHaveCount(0, {
       timeout: 15000,
     });
@@ -370,136 +346,5 @@ test.describe("Nordika UX, Responsive, Skeletons & Realtime SSE", () => {
       timeout: 10000,
     });
     await page.unroute(/\/apartados\/(\?.*)?$/, apartadosDelayHandler);
-  });
-
-  test("4. Sincronización en tiempo real por SSE sin recargar (Catálogo y Apartados)", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1280, height: 800 });
-
-    const adminToken = await getApiToken("admin", "admin123");
-    const gaelToken = await getApiToken("gael", "gael123");
-
-    const [provRes, catRes] = await Promise.all([
-      fetch(`${API_URL}/proveedores/`, {
-        headers: { Authorization: `Token ${adminToken}` },
-      }),
-      fetch(`${API_URL}/categorias/`, {
-        headers: { Authorization: `Token ${adminToken}` },
-      }),
-    ]);
-    const provs = await provRes.json();
-    const cats = await catRes.json();
-    const provList = Array.isArray(provs) ? provs : provs.results;
-    const catList = Array.isArray(cats) ? cats : cats.results;
-
-    const ts = Date.now().toString().slice(-6);
-    const sseMuebleName = `Mesa SSE Vivo ${ts}`;
-    let createdMuebleId: number | null = null;
-    let createdApartadoId: number | null = null;
-
-    try {
-      // Escucha el handshake HTTP 200 de /events/ para asegurar que el stream SSE ya está conectado antes de mutar.
-      const sseHandshakePromise = page
-        .waitForResponse(
-          (res) => res.url().includes("/events/") && res.status() === 200,
-          { timeout: 15000 },
-        )
-        .catch(() => null);
-
-      await loginAs(page, "admin");
-      await expect(getCatalogCardsLocator(page).first()).toBeVisible({
-        timeout: 15000,
-      });
-      await sseHandshakePromise;
-      await page.waitForTimeout(400);
-
-      // Marca en window para demostrar que la actualización ocurre en vivo sin page.reload().
-      await page.evaluate(() => {
-        (window as any).__nordikaSseMarker = "sin-recarga";
-      });
-
-      // Crea el mueble desde la API REST mientras la pestaña de Catálogo permanece abierta.
-      const createRes = await fetch(`${API_URL}/muebles/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${adminToken}`,
-        },
-        body: JSON.stringify({
-          nombre: sseMuebleName,
-          descripcion: "Fixture de verificación SSE en tiempo real",
-          precio: "6490.00",
-          stock: 4,
-          proveedor_id: provList[0].id,
-          categoria_id: catList[0].id,
-        }),
-      });
-      expect(createRes.ok).toBe(true);
-      const createdMueble = await createRes.json();
-      createdMuebleId = createdMueble.id;
-
-      // El nuevo mueble debe aparecer automáticamente en el Catálogo abierto vía SSE.
-      await expect(page.getByText(sseMuebleName).first()).toBeVisible({
-        timeout: 15000,
-      });
-      const catalogMarker = await page.evaluate(
-        () => (window as any).__nordikaSseMarker,
-      );
-      expect(catalogMarker).toBe("sin-recarga");
-
-      // Abre la pestaña de Apartados (Activos) como admin sin recargar la página.
-      const apartadosTab = page
-        .getByLabel("Apartados de muebles")
-        .or(page.getByRole("tab", { name: /apartados/i }))
-        .first();
-      await apartadosTab.click();
-      await expect(page.getByText("Gestión de Apartados")).toBeVisible({
-        timeout: 10000,
-      });
-      await page.waitForTimeout(400);
-
-      // Como cliente 'gael', crea un apartado sobre el mueble recién creado mediante la API REST.
-      const apartadoRes = await fetch(`${API_URL}/apartados/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${gaelToken}`,
-        },
-        body: JSON.stringify({
-          mueble_id: createdMuebleId,
-          cantidad: 1,
-        }),
-      });
-      expect(apartadoRes.ok).toBe(true);
-      const createdApartado = await apartadoRes.json();
-      createdApartadoId = createdApartado.id;
-
-      // El nuevo apartado debe aparecer automáticamente en la pestaña Activos de admin vía SSE.
-      await expect(page.getByText(createdApartado.codigo).first()).toBeVisible({
-        timeout: 15000,
-      });
-      await expect(page.getByText(sseMuebleName).first()).toBeVisible({
-        timeout: 10000,
-      });
-      const apartadosMarker = await page.evaluate(
-        () => (window as any).__nordikaSseMarker,
-      );
-      expect(apartadosMarker).toBe("sin-recarga");
-    } finally {
-      // Rechaza el apartado y elimina el mueble para dejar la base local intacta.
-      if (createdApartadoId !== null) {
-        await fetch(`${API_URL}/apartados/${createdApartadoId}/rechazar/`, {
-          method: "POST",
-          headers: { Authorization: `Token ${adminToken}` },
-        }).catch(() => {});
-      }
-      if (createdMuebleId !== null) {
-        await fetch(`${API_URL}/muebles/${createdMuebleId}/`, {
-          method: "DELETE",
-          headers: { Authorization: `Token ${adminToken}` },
-        }).catch(() => {});
-      }
-    }
   });
 });

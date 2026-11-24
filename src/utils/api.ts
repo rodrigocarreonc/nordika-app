@@ -11,7 +11,6 @@ import {
   Proveedor,
   User,
 } from "../types";
-import { disconnectRealtime } from "./realtime";
 import { deleteToken, getToken, saveToken, saveUser } from "./tokenStorage";
 
 // Se fija en build desde EXPO_PUBLIC_API_URL (.env) y recorta '/' final para evitar dobles barras.
@@ -88,9 +87,8 @@ async function request<T>(
   }
 
   if (!response.ok) {
-    // Ante 401 (token revocado o vencido) se cierra el stream SSE y la sesión local, excepto durante el propio login.
+    // Ante 401 (token revocado o vencido) se cierra la sesión local, excepto durante el propio login.
     if (response.status === 401 && !endpoint.includes("/api-token-auth/")) {
-      disconnectRealtime();
       await deleteToken();
       router.replace("/(auth)/login");
     }
@@ -201,8 +199,6 @@ export async function apiDeleteAccount(password: string): Promise<void> {
     method: "DELETE",
     body: JSON.stringify({ password }),
   });
-  // Cierra el canal SSE antes de borrar el token local para evitar reconexiones con una cuenta eliminada.
-  disconnectRealtime();
   await deleteToken();
 }
 
@@ -212,8 +208,6 @@ export async function apiLogout(): Promise<void> {
   } catch {
     // Si falla en backend, de todas formas limpiar token local
   } finally {
-    // Cierra el canal SSE siempre al salir para que ningún token revocado mantenga la conexión abierta.
-    disconnectRealtime();
     await deleteToken();
   }
 }

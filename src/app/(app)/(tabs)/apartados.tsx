@@ -21,7 +21,6 @@ import { Pagination } from "../../../components/Pagination";
 import { ApartadosSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
-import { useRealtimeEvents } from "../../../hooks/use-realtime";
 import { useResponsive } from "../../../hooks/use-responsive";
 import { Apartado } from "../../../types";
 import {
@@ -98,11 +97,10 @@ export default function ApartadosScreen() {
       size = pageSize,
       isRefresh = false,
       currentVista = vista,
-      silent = false,
     ) => {
       try {
-        if (!isRefresh && !silent) setLoading(true);
-        if (!silent) setError(null);
+        if (!isRefresh) setLoading(true);
+        setError(null);
         const staff = !!(await getUser())?.is_staff;
         setIsStaff(staff);
 
@@ -122,23 +120,14 @@ export default function ApartadosScreen() {
         setTotalPages(Math.max(1, Math.ceil(res.count / size)));
         setPage(targetPage);
       } catch (err: any) {
-        if (!silent) {
-          setError(err.message || "Error al obtener los apartados.");
-        }
+        setError(err.message || "Error al obtener los apartados.");
       } finally {
-        if (!silent) {
-          setLoading(false);
-          setRefreshing(false);
-        }
+        setLoading(false);
+        setRefreshing(false);
       }
     },
     [pageSize, vista],
   );
-
-  // Refresca en segundo plano la página y vista actuales ante eventos SSE sin mostrar skeleton ni spinner.
-  useRealtimeEvents(["apartado", "mueble"], () => {
-    void fetchApartados(page, pageSize, true, vista, true);
-  });
 
   useFocusEffect(
     useCallback(() => {

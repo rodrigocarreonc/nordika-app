@@ -27,7 +27,6 @@ import { Pagination } from "../../../components/Pagination";
 import { AdminListSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
-import { useRealtimeEvents } from "../../../hooks/use-realtime";
 import { useResponsive } from "../../../hooks/use-responsive";
 import { Categoria, Mueble, Proveedor } from "../../../types";
 import {
@@ -150,10 +149,10 @@ export default function AdminScreen() {
   // CARGA DE DATOS: MUEBLES
   // ==========================================
   const fetchMuebles = useCallback(
-    async (pageToLoad = mueblesPage, isRefresh = false, silent = false) => {
+    async (pageToLoad = mueblesPage, isRefresh = false) => {
       try {
-        if (!isRefresh && !silent) setLoadingMuebles(true);
-        if (!silent) setErrorMsg(null);
+        if (!isRefresh) setLoadingMuebles(true);
+        setErrorMsg(null);
         const storedSize = await getStoredPageSize();
 
         const data = await apiGetMuebles({
@@ -180,14 +179,10 @@ export default function AdminScreen() {
         );
         setMueblesImages(urlMap);
       } catch (err: any) {
-        if (!silent) {
-          setErrorMsg(err.message || "Error al obtener los muebles.");
-        }
+        setErrorMsg(err.message || "Error al obtener los muebles.");
       } finally {
-        if (!silent) {
-          setLoadingMuebles(false);
-          setRefreshingMuebles(false);
-        }
+        setLoadingMuebles(false);
+        setRefreshingMuebles(false);
       }
     },
     [mueblesPage, mueblesSearch],
@@ -196,74 +191,36 @@ export default function AdminScreen() {
   // ==========================================
   // CARGA DE DATOS: CATEGORÍAS
   // ==========================================
-  const fetchCategorias = useCallback(
-    async (isRefresh = false, silent = false) => {
-      try {
-        if (!isRefresh && !silent) setLoadingCategorias(true);
-        if (!silent) setErrorMsg(null);
-        const data = await apiGetCategorias();
-        setCategorias(data);
-      } catch (err: any) {
-        if (!silent) {
-          setErrorMsg(err.message || "Error al cargar las categorías.");
-        }
-      } finally {
-        if (!silent) {
-          setLoadingCategorias(false);
-          setRefreshingCategorias(false);
-        }
-      }
-    },
-    [],
-  );
+  const fetchCategorias = useCallback(async (isRefresh = false) => {
+    try {
+      if (!isRefresh) setLoadingCategorias(true);
+      setErrorMsg(null);
+      const data = await apiGetCategorias();
+      setCategorias(data);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Error al cargar las categorías.");
+    } finally {
+      setLoadingCategorias(false);
+      setRefreshingCategorias(false);
+    }
+  }, []);
 
   // ==========================================
   // CARGA DE DATOS: PROVEEDORES
   // ==========================================
-  const fetchProveedores = useCallback(
-    async (isRefresh = false, silent = false) => {
-      try {
-        if (!isRefresh && !silent) setLoadingProveedores(true);
-        if (!silent) setErrorMsg(null);
-        const data = await apiGetProveedores();
-        setProveedores(data);
-      } catch (err: any) {
-        if (!silent) {
-          setErrorMsg(err.message || "Error al cargar los proveedores.");
-        }
-      } finally {
-        if (!silent) {
-          setLoadingProveedores(false);
-          setRefreshingProveedores(false);
-        }
-      }
-    },
-    [],
-  );
-
-  // Sincroniza silenciosamente solo el módulo activo cuando llegan eventos SSE relevantes (solo staff).
-  useRealtimeEvents(
-    ["mueble", "categoria", "proveedor", "apartado"],
-    (ev) => {
-      if (
-        modulo === "muebles" &&
-        (ev.resource === "mueble" || ev.resource === "apartado")
-      ) {
-        void fetchMuebles(mueblesPage, true, true);
-      } else if (
-        modulo === "categorias" &&
-        (ev.resource === "categoria" || ev.resource === "mueble")
-      ) {
-        void fetchCategorias(true, true);
-      } else if (
-        modulo === "proveedores" &&
-        (ev.resource === "proveedor" || ev.resource === "mueble")
-      ) {
-        void fetchProveedores(true, true);
-      }
-    },
-    { enabled: isStaff },
-  );
+  const fetchProveedores = useCallback(async (isRefresh = false) => {
+    try {
+      if (!isRefresh) setLoadingProveedores(true);
+      setErrorMsg(null);
+      const data = await apiGetProveedores();
+      setProveedores(data);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Error al cargar los proveedores.");
+    } finally {
+      setLoadingProveedores(false);
+      setRefreshingProveedores(false);
+    }
+  }, []);
 
   // Carga inicial y al enfocar la pantalla
   useFocusEffect(

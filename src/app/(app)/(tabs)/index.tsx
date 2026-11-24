@@ -22,7 +22,6 @@ import { MuebleCard } from "../../../components/MuebleCard";
 import { Pagination } from "../../../components/Pagination";
 import { CatalogSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
-import { useRealtimeEvents } from "../../../hooks/use-realtime";
 import { useResponsive } from "../../../hooks/use-responsive";
 import { Categoria, Mueble } from "../../../types";
 import {
@@ -88,10 +87,10 @@ export default function CatalogScreen() {
 
   // Consulta paginada respetando el page_size elegido en Ajustes y todos los filtros activos.
   const fetchMuebles = useCallback(
-    async (currentPage = 1, isRefresh = false, silent = false) => {
+    async (currentPage = 1, isRefresh = false) => {
       try {
-        if (!isRefresh && !silent) setLoading(true);
-        if (!silent) setError(null);
+        if (!isRefresh) setLoading(true);
+        setError(null);
 
         const currentSize = await getStoredPageSize();
 
@@ -109,9 +108,7 @@ export default function CatalogScreen() {
         setTotalCount(data.count || 0);
         setPage(data.current_page || 1);
       } catch (err: any) {
-        if (!silent) {
-          setError(err.message || "Error al cargar muebles");
-        }
+        setError(err.message || "Error al cargar muebles");
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -129,14 +126,6 @@ export default function CatalogScreen() {
       fetchMuebles(page);
     }, [fetchMuebles, page]),
   );
-
-  // Sincronización en tiempo real por SSE sin mostrar skeleton para mantener la navegación fluida.
-  useRealtimeEvents(["mueble", "categoria", "apartado", "favorito"], (ev) => {
-    if (ev.resource === "categoria") {
-      fetchCategorias();
-    }
-    fetchMuebles(page, true, true);
-  });
 
   // Rellena la última fila de la cuadrícula con celdas vacías para evitar que una tarjeta aislada se estire al 100 %.
   const gridItems = useMemo<CatalogGridItem[]>(() => {

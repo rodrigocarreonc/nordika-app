@@ -21,7 +21,6 @@ import { ImageViewerModal } from "../../../components/ImageViewerModal";
 import { MuebleDetailSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
-import { useRealtimeEvents } from "../../../hooks/use-realtime";
 import { useResponsive } from "../../../hooks/use-responsive";
 import { Mueble } from "../../../types";
 import {
@@ -54,27 +53,20 @@ export default function MuebleDetailsScreen() {
   const [isStaff, setIsStaff] = useState(false);
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
 
-  const fetchDetails = useCallback(
-    async (silent = false) => {
-      if (!muebleId) return;
-      try {
-        if (!silent) {
-          setLoading(true);
-          setError(null);
-        }
-        const data = await apiGetMueble(muebleId);
-        setMueble(data);
-        setImageUri(await resolveImageUrl(data.imagen));
-      } catch (err: any) {
-        if (!silent) {
-          setError(err.message || "Error al obtener detalles del mueble.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    },
-    [muebleId],
-  );
+  const fetchDetails = useCallback(async () => {
+    if (!muebleId) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiGetMueble(muebleId);
+      setMueble(data);
+      setImageUri(await resolveImageUrl(data.imagen));
+    } catch (err: any) {
+      setError(err.message || "Error al obtener detalles del mueble.");
+    } finally {
+      setLoading(false);
+    }
+  }, [muebleId]);
 
   // Recarga al volver a la pantalla (p. ej. después de editar el mueble).
   useFocusEffect(
@@ -84,19 +76,6 @@ export default function MuebleDetailsScreen() {
       });
       fetchDetails();
     }, [fetchDetails]),
-  );
-
-  // Refresco silencioso por SSE para mantener stock, precio y favoritos sincronizados en vivo.
-  useRealtimeEvents(
-    ["mueble", "apartado", "favorito"],
-    (ev) => {
-      // Ignora cambios de otros muebles específicos para evitar consultas redundantes.
-      if (ev.resource === "mueble" && ev.id !== null && ev.id !== muebleId) {
-        return;
-      }
-      fetchDetails(true);
-    },
-    { enabled: !!muebleId },
   );
 
   const handleToggleFav = async () => {
@@ -189,7 +168,7 @@ export default function MuebleDetailsScreen() {
       : `$${num.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
   };
 
-  // Solo skeleton la primera vez; al recargar o recibir SSE se mantiene el contenido visible.
+  // Solo skeleton la primera vez; al recargar se mantiene el contenido visible.
   if (loading && !mueble) {
     return (
       <SafeAreaView

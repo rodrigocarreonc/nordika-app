@@ -19,7 +19,6 @@ import { MuebleCard } from "../../../components/MuebleCard";
 import { Pagination } from "../../../components/Pagination";
 import { CatalogSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
-import { useRealtimeEvents } from "../../../hooks/use-realtime";
 import { useResponsive } from "../../../hooks/use-responsive";
 import { Mueble } from "../../../types";
 import { apiGetMisFavoritos, apiToggleFavorito } from "../../../utils/api";
@@ -44,10 +43,10 @@ export default function FavoritosScreen() {
   const [totalCount, setTotalCount] = useState(0);
 
   const fetchFavoritos = useCallback(
-    async (targetPage = 1, isRefresh = false, silent = false) => {
+    async (targetPage = 1, isRefresh = false) => {
       try {
-        if (!isRefresh && !silent) setLoading(true);
-        if (!silent) setError(null);
+        if (!isRefresh) setLoading(true);
+        setError(null);
         const pageSize = await getStoredPageSize();
         const res = await apiGetMisFavoritos({
           page: targetPage,
@@ -58,9 +57,7 @@ export default function FavoritosScreen() {
         setTotalCount(res.count ?? (res.results ? res.results.length : 0));
         setPage(res.current_page || targetPage);
       } catch (err: any) {
-        if (!silent) {
-          setError(err.message || "Error al obtener tus muebles favoritos.");
-        }
+        setError(err.message || "Error al obtener tus muebles favoritos.");
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -74,11 +71,6 @@ export default function FavoritosScreen() {
       fetchFavoritos(page);
     }, [fetchFavoritos, page]),
   );
-
-  // Actualiza la lista silenciosamente al recibir eventos SSE de favoritos o cambios en muebles.
-  useRealtimeEvents(["favorito", "mueble"], () => {
-    fetchFavoritos(page, true, true);
-  });
 
   // Completa la última fila con espaciadores para mantener proporciones homogéneas en cuadrícula.
   const gridItems = useMemo<FavoritoGridItem[]>(() => {
