@@ -155,8 +155,9 @@ export default function MuebleFormScreen() {
       return;
     }
 
-    const numStock = parseInt(stock, 10);
-    if (isNaN(numStock) || numStock < 0) {
+    // parseInt aceptaba "2.5" como 2; solo se permiten dígitos.
+    const numStock = parseInt(stock.trim(), 10);
+    if (!/^\d+$/.test(stock.trim())) {
       dialog.alert({
         title: "Validación",
         message: "El stock debe ser un número entero mayor o igual a 0.",
@@ -168,6 +169,14 @@ export default function MuebleFormScreen() {
       dialog.alert({
         title: "Validación",
         message: "Debes seleccionar un proveedor.",
+      });
+      return;
+    }
+
+    if (!isEditing && !imageAsset) {
+      dialog.alert({
+        title: "Validación",
+        message: "La foto del mueble es obligatoria.",
       });
       return;
     }
