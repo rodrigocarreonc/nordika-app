@@ -337,6 +337,12 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
     await page.getByPlaceholder("Ej. 14999.00").fill("2890.00");
     await page.getByPlaceholder("Ej. 5").fill("15");
 
+    // La foto es obligatoria al crear; expo-image-picker en Web abre un <input type="file">.
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.getByLabel("Subir o cambiar foto del mueble").click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles("assets/images/favicon.png");
+
     await page
       .getByRole("checkbox", { name: /Categoría/ })
       .first()
