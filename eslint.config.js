@@ -1,4 +1,4 @@
-// Configuración flat de ESLint basada en las reglas oficiales de Expo, excluyendo el build dist/.
+// ESLint flat config based on Expo's official rules, ignoring the dist/ build.
 
 const { defineConfig, globalIgnores } = require("eslint/config");
 const expoConfig = require("eslint-config-expo/flat");

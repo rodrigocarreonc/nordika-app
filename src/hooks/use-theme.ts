@@ -1,4 +1,4 @@
-// Devuelve la paleta activa (claro u oscuro) según el esquema del sistema o la preferencia elegida.
+// Returns the active palette (light or dark) based on the system scheme or the chosen preference.
 
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";

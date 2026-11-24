@@ -1,4 +1,4 @@
-// Insignia de versión de Expo incluida en la plantilla base para la vista Web.
+// Expo version badge included in the base template for the Web view.
 
 import { version } from "expo/package.json";
 import { Image } from "expo-image";

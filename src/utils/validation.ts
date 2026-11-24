@@ -1,5 +1,5 @@
-// Validación compartida de nombres/apellidos en registro, perfil y alta de clientes.
-// Letras (incluye acentos, ñ y ü), espacios, apóstrofo y guion. Vacío es válido: los campos son opcionales.
+// Shared first/last name validation for sign-up, profile and customer creation.
+// Letters (including accents, ñ and ü), spaces, apostrophe and hyphen. Empty is valid: the fields are optional.
 const NAME_REGEX = /^[A-Za-zÀ-ÖØ-öø-ÿ' -]*$/;
 
 export const isValidName = (value: string) => NAME_REGEX.test(value.trim());

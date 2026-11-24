@@ -1,10 +1,10 @@
-// Suite E2E en Playwright: válida flujos críticos (auth, filtros, CRUD muebles, apartados y permisos por rol).
+// Playwright E2E suite: checks critical flows (auth, filters, furniture CRUD, reservations and role permissions).
 
 import { test, expect, Page } from "@playwright/test";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-// Obtiene token admin directo contra la API para crear/limpiar fixtures de prueba de forma aislada.
+// Gets an admin token straight from the API to create/clean up test fixtures in isolation.
 async function getAdminToken(): Promise<string> {
   const res = await fetch(`${API_URL}/api-token-auth/`, {
     method: "POST",
@@ -16,15 +16,37 @@ async function getAdminToken(): Promise<string> {
   return data.token;
 }
 
-// Limpieza idempotente en bloque finally para no dejar muebles de prueba en la base local.
-async function apiDeleteMuebleById(token: string, id: number) {
-  await fetch(`${API_URL}/muebles/${id}/`, {
+// Creates test furniture through the API; the photo is required, so a 1x1 GIF is attached.
+async function createFurnitureFixture(
+  token: string,
+  fields: Record<string, string | number>,
+): Promise<{ id: number }> {
+  const gif = Uint8Array.from(
+    "47494638396101000100800000000000ffffff21f90401000000002c00000000010001000002024401003b"
+      .match(/../g)!
+      .map((h) => parseInt(h, 16)),
+  );
+  const form = new FormData();
+  Object.entries(fields).forEach(([key, value]) => form.append(key, String(value)));
+  form.append("image", new Blob([gif], { type: "image/gif" }), "fixture.gif");
+  const res = await fetch(`${API_URL}/furniture/`, {
+    method: "POST",
+    headers: { Authorization: `Token ${token}` },
+    body: form,
+  });
+  if (!res.ok) throw new Error(`Fixture creation failed: ${res.status}`);
+  return res.json();
+}
+
+// Idempotent cleanup in a finally block so no test furniture is left in the local database.
+async function apiDeleteFurnitureById(token: string, id: number) {
+  await fetch(`${API_URL}/furniture/${id}/`, {
     method: "DELETE",
     headers: { Authorization: `Token ${token}` },
   }).catch(() => {});
 }
 
-// Limpia localStorage e inicia sesión por UI con la cuenta demo indicada hasta que carguen las pestañas.
+// Clears localStorage and logs in through the UI with the given demo account until the tabs load.
 async function loginAs(page: Page, role: "admin" | "gael") {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -158,12 +180,12 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
     page,
   }) => {
     const token = await getAdminToken();
-    const provRes = await fetch(`${API_URL}/proveedores/`, {
+    const supplierRes = await fetch(`${API_URL}/suppliers/`, {
       headers: { Authorization: `Token ${token}` },
     });
-    const provs = await provRes.json();
-    const provList = Array.isArray(provs) ? provs : provs.results;
-    const catRes = await fetch(`${API_URL}/categorias/`, {
+    const supplierData = await supplierRes.json();
+    const supplierList = Array.isArray(supplierData) ? supplierData : supplierData.results;
+    const catRes = await fetch(`${API_URL}/categories/`, {
       headers: { Authorization: `Token ${token}` },
     });
     const cats = await catRes.json();
@@ -175,38 +197,24 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
 
     const createdIds: number[] = [];
     try {
-      const m1 = await fetch(`${API_URL}/muebles/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${token}`,
-        },
-        body: JSON.stringify({
-          nombre: inStockName,
-          descripcion: "Filtro en stock E2E",
-          precio: "5000.00",
+      const m1 = await createFurnitureFixture(token, {
+          name: inStockName,
+          description: "Filtro en stock E2E",
+          price: "5000.00",
           stock: 5,
-          proveedor_id: provList[0].id,
-          categoria_id: catList[0].id,
-        }),
-      }).then((r) => r.json());
+          supplier_id: supplierList[0].id,
+          category_id: catList[0].id,
+        });
       createdIds.push(m1.id);
 
-      const m2 = await fetch(`${API_URL}/muebles/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${token}`,
-        },
-        body: JSON.stringify({
-          nombre: outOfStockName,
-          descripcion: "Filtro agotado E2E",
-          precio: "12000.00",
+      const m2 = await createFurnitureFixture(token, {
+          name: outOfStockName,
+          description: "Filtro agotado E2E",
+          price: "12000.00",
           stock: 0,
-          proveedor_id: provList[0].id,
-          categoria_id: catList[0].id,
-        }),
-      }).then((r) => r.json());
+          supplier_id: supplierList[0].id,
+          category_id: catList[0].id,
+        });
       createdIds.push(m2.id);
 
       await loginAs(page, "admin");
@@ -250,7 +258,7 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
 
       // 2.3 Category chip filter + "Todas"
       const catChip = page
-        .locator(`[title="Categoría: ${catList[0].nombre}"]`)
+        .locator(`[title="Categoría: ${catList[0].name}"]`)
         .first();
       await expect(catChip).toBeVisible();
       await catChip.click();
@@ -306,7 +314,7 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
       ).toBeVisible({ timeout: 10000 });
     } finally {
       for (const id of createdIds) {
-        await apiDeleteMuebleById(token, id);
+        await apiDeleteFurnitureById(token, id);
       }
     }
   });
@@ -316,28 +324,28 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
   }) => {
     await loginAs(page, "admin");
 
-    const nuevoBtn = page
+    const newButton = page
       .locator('[title="Nuevo mueble"]')
       .or(page.getByText("Nuevo", { exact: true }))
       .first();
-    await expect(nuevoBtn).toBeVisible({ timeout: 10000 });
-    await nuevoBtn.click();
+    await expect(newButton).toBeVisible({ timeout: 10000 });
+    await newButton.click();
 
     await expect(page.getByText("Nuevo Mueble").first()).toBeVisible({
       timeout: 10000,
     });
 
-    const uniqueMuebleName = `Silla E2E Nordic ${Date.now().toString().slice(-5)}`;
+    const uniqueFurnitureName = `Silla E2E Nordic ${Date.now().toString().slice(-5)}`;
     await page
       .getByPlaceholder("Ej. Sofá Nórdico Oslo 3 Plazas")
-      .fill(uniqueMuebleName);
+      .fill(uniqueFurnitureName);
     await page
       .getByPlaceholder("Escribe características, materiales, dimensiones...")
       .fill("Madera maciza de pino nórdico.");
     await page.getByPlaceholder("Ej. 14999.00").fill("2890.00");
     await page.getByPlaceholder("Ej. 5").fill("15");
 
-    // La foto es obligatoria al crear; expo-image-picker en Web abre un <input type="file">.
+    // The photo is required on create; expo-image-picker on Web opens an <input type="file">.
     const fileChooserPromise = page.waitForEvent("filechooser");
     await page.getByLabel("Subir o cambiar foto del mueble").click();
     const fileChooser = await fileChooserPromise;
@@ -374,11 +382,11 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
     const searchInput = page.getByPlaceholder(
       "Buscar sofás, mesas, recámaras...",
     );
-    await searchInput.fill(uniqueMuebleName);
+    await searchInput.fill(uniqueFurnitureName);
     await searchInput.press("Enter");
 
     const createdCard = page
-      .locator(`[title^="${uniqueMuebleName}, precio "]`)
+      .locator(`[title^="${uniqueFurnitureName}, precio "]`)
       .first();
     await expect(createdCard).toBeVisible({ timeout: 15000 });
     await createdCard.click();
@@ -409,72 +417,65 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
     page,
   }) => {
     const token = await getAdminToken();
-    const provRes = await fetch(`${API_URL}/proveedores/`, {
+    const supplierRes = await fetch(`${API_URL}/suppliers/`, {
       headers: { Authorization: `Token ${token}` },
     });
-    const provs = await provRes.json();
-    const provList = Array.isArray(provs) ? provs : provs.results;
-    const catRes = await fetch(`${API_URL}/categorias/`, {
+    const supplierData = await supplierRes.json();
+    const supplierList = Array.isArray(supplierData) ? supplierData : supplierData.results;
+    const catRes = await fetch(`${API_URL}/categories/`, {
       headers: { Authorization: `Token ${token}` },
     });
     const cats = await catRes.json();
     const catList = Array.isArray(cats) ? cats : cats.results;
 
     const ts = Date.now().toString().slice(-6);
-    const targetMuebleName = `Sillón E2E Apartado ${ts}`;
-    let createdMuebleId: number | null = null;
+    const targetFurnitureName = `Sillón E2E Apartado ${ts}`;
+    let createdFurnitureId: number | null = null;
 
     try {
-      const m = await fetch(`${API_URL}/muebles/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${token}`,
-        },
-        body: JSON.stringify({
-          nombre: targetMuebleName,
-          descripcion: "Prueba pipeline apartado rechazado + eliminar mueble",
-          precio: "4500.00",
+      const m = await createFurnitureFixture(token, {
+          name: targetFurnitureName,
+          description: "Prueba pipeline apartado rechazado + eliminar mueble",
+          price: "4500.00",
           stock: 4,
-          proveedor_id: provList[0].id,
-          categoria_id: catList[0].id,
-        }),
-      }).then((r) => r.json());
-      createdMuebleId = m.id;
+          supplier_id: supplierList[0].id,
+          category_id: catList[0].id,
+        });
+      createdFurnitureId = m.id;
 
-      // 4.1 Client 'gael' reserves the specific mueble
+      // 4.1 Customer 'gael' reserves the specific furniture
       await loginAs(page, "gael");
       const searchInput = page.getByPlaceholder(
         "Buscar sofás, mesas, recámaras...",
       );
-      await searchInput.fill(targetMuebleName);
+      await searchInput.fill(targetFurnitureName);
       await searchInput.press("Enter");
 
-      const card = page.getByText(targetMuebleName).first();
+      const card = page.getByText(targetFurnitureName).first();
       await expect(card).toBeVisible({ timeout: 10000 });
       await card.click();
 
-      const apartarBtn = page
+      const reserveButton = page
         .getByLabel("Apartar mueble")
         .or(page.locator('[title="Apartar mueble"]'))
         .first();
-      await expect(apartarBtn).toBeVisible({ timeout: 10000 });
-      await apartarBtn.click();
+      await expect(reserveButton).toBeVisible({ timeout: 10000 });
+      await reserveButton.click();
 
       await expect(page.getByText("Mueble apartado")).toBeVisible({
         timeout: 10000,
       });
       await page.getByRole("button", { name: "Aceptar" }).last().click();
 
-      // 4.2 Admin tries to delete while PENDIENTE -> must block with 409 dialog
+      // 4.2 Admin tries to delete while PENDING -> must block with a 409 dialog
       await loginAs(page, "admin");
       const adminSearch = page.getByPlaceholder(
         "Buscar sofás, mesas, recámaras...",
       );
-      await adminSearch.fill(targetMuebleName);
+      await adminSearch.fill(targetFurnitureName);
       await adminSearch.press("Enter");
 
-      await page.getByText(targetMuebleName).first().click();
+      await page.getByText(targetFurnitureName).first().click();
       const deleteBtn = page.locator('[title="Eliminar mueble"]').first();
       await expect(deleteBtn).toBeVisible({ timeout: 10000 });
       await deleteBtn.click();
@@ -487,19 +488,19 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
       await page.getByRole("button", { name: "Aceptar" }).last().click();
       await expect(blockedMsg).not.toBeVisible({ timeout: 5000 });
 
-      // 4.3 Admin goes to Apartados, verifies contact info, and REJECTS the apartado
+      // 4.3 Admin goes to Apartados, verifies contact info, and REJECTS the reservation
       await page.locator('[title="Regresar al catálogo"]').first().click();
-      const apartadosTab = page
+      const reservationsTab = page
         .getByLabel("Apartados de muebles")
         .or(page.getByRole("tab", { name: /apartados/i }));
-      await apartadosTab.first().click();
+      await reservationsTab.first().click();
       await expect(page.getByText("Gestión de Apartados")).toBeVisible({
         timeout: 10000,
       });
 
       const targetCard = page
         .locator("div")
-        .filter({ hasText: targetMuebleName })
+        .filter({ hasText: targetFurnitureName })
         .filter({ hasText: "Rechazar" })
         .last();
       await expect(targetCard).toBeVisible({ timeout: 15000 });
@@ -508,32 +509,32 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
 
       // Click Rechazar -> ConfirmDialog
       await targetCard.getByText("Rechazar", { exact: true }).click();
-      const confirmRechazarTitle = page.getByText("Rechazar apartado");
-      await expect(confirmRechazarTitle).toBeVisible({ timeout: 5000 });
+      const confirmRejectTitle = page.getByText("Rechazar apartado");
+      await expect(confirmRejectTitle).toBeVisible({ timeout: 5000 });
       await page.getByRole("button", { name: "Rechazar" }).last().click();
-      await expect(confirmRechazarTitle).not.toBeVisible({ timeout: 10000 });
+      await expect(confirmRejectTitle).not.toBeVisible({ timeout: 10000 });
 
       // Disappears from Activos filter
       const activeTargetCard = page
         .locator("div")
-        .filter({ hasText: targetMuebleName })
+        .filter({ hasText: targetFurnitureName })
         .filter({ hasText: "Rechazar" });
       await expect(activeTargetCard).not.toBeVisible({ timeout: 10000 });
 
       // Appears under Historial filter as Rechazado
-      const tabHistorial = page
+      const tabHistory = page
         .getByRole("tab", { name: /Historial/i })
         .or(page.getByText("Historial", { exact: true }))
         .first();
-      await tabHistorial.click();
+      await tabHistory.click();
       const historyCard = page
         .locator("div")
-        .filter({ hasText: targetMuebleName })
+        .filter({ hasText: targetFurnitureName })
         .filter({ hasText: "Rechazado" })
         .last();
       await expect(historyCard).toBeVisible({ timeout: 10000 });
 
-      // 4.4 Now Admin deletes that mueble -> MUST succeed cleanly (204)
+      // 4.4 Now Admin deletes that furniture -> MUST succeed cleanly (204)
       const catalogTab = page
         .getByLabel("Catálogo de muebles")
         .or(page.getByRole("tab", { name: /Catálogo/i }));
@@ -542,10 +543,10 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
       const adminSearch2 = page.getByPlaceholder(
         "Buscar sofás, mesas, recámaras...",
       );
-      await adminSearch2.fill(targetMuebleName);
+      await adminSearch2.fill(targetFurnitureName);
       await adminSearch2.press("Enter");
       const catalogCardAfter = page
-        .locator(`[title^="${targetMuebleName}, precio "]`)
+        .locator(`[title^="${targetFurnitureName}, precio "]`)
         .first();
       await expect(catalogCardAfter).toBeVisible({ timeout: 10000 });
       await catalogCardAfter.click();
@@ -558,10 +559,10 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
       const deletedSuccess = page.getByText("El mueble ha sido eliminado.");
       await expect(deletedSuccess).toBeVisible({ timeout: 15000 });
       await page.getByRole("button", { name: "Aceptar" }).last().click();
-      createdMuebleId = null; // deleted via UI
+      createdFurnitureId = null; // deleted via UI
     } finally {
-      if (createdMuebleId !== null) {
-        await apiDeleteMuebleById(token, createdMuebleId);
+      if (createdFurnitureId !== null) {
+        await apiDeleteFurnitureById(token, createdFurnitureId);
       }
     }
   });
@@ -577,10 +578,10 @@ test.describe("Nordika E2E Full Issue Verification Suite", () => {
     await catalogTab.first().click();
     await expect(page.locator('[title="Nuevo mueble"]')).not.toBeVisible();
 
-    const apartadosTab = page
+    const reservationsTab = page
       .getByLabel("Apartados de muebles")
       .or(page.getByRole("tab", { name: /apartados/i }));
-    await apartadosTab.first().click();
+    await reservationsTab.first().click();
     await expect(page.getByText("Mis Apartados")).toBeVisible({
       timeout: 10000,
     });

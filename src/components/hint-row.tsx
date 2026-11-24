@@ -1,4 +1,4 @@
-// Fila de sugerencia de la plantilla inicial de Expo (etiqueta + fragmento de código).
+// Hint row from Expo's starter template (label + code snippet).
 
 import type { ReactNode } from "react";
 import { View, StyleSheet } from "react-native";

@@ -1,4 +1,4 @@
-// Etiqueta tipo píldora con variantes semánticas (stock, categoría y estado de apartado).
+// Pill-shaped label with semantic variants (stock, category and reservation status).
 
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";

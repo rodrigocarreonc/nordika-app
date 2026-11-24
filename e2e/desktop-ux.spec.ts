@@ -1,8 +1,8 @@
-// Suite E2E en Playwright para validar diseño responsive en escritorio/móvil, visor fullscreen y skeleton loaders.
+// Playwright E2E suite that checks responsive desktop/mobile layout, the fullscreen viewer and skeleton loaders.
 
 import { expect, Page, test } from "@playwright/test";
 
-// Limpia el estado local e inicia sesión desde la pantalla de login hasta que aparezcan las pestañas.
+// Clears local state and logs in from the login screen until the tabs appear.
 async function loginAs(page: Page, role: "admin" | "gael") {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -29,12 +29,12 @@ async function loginAs(page: Page, role: "admin" | "gael") {
   await expect(settingsTab.first()).toBeVisible({ timeout: 15000 });
 }
 
-// Selector tolerante a cómo React Native Web proyecta accessibilityLabel (aria-label o title).
+// Selector tolerant of how React Native Web renders accessibilityLabel (aria-label or title).
 function getCatalogCardsLocator(page: Page) {
   return page.locator('[aria-label*=", precio "], [title*=", precio "]');
 }
 
-// Espera a que las imágenes dentro del contenedor hayan cargado con ancho natural positivo y devuelve sus métricas.
+// Waits for the images in the container to load with a positive natural width and returns their metrics.
 async function waitForLoadedImages(
   page: Page,
   selector: string,
@@ -83,7 +83,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
       .poll(async () => cards.count(), { timeout: 15000 })
       .toBeGreaterThanOrEqual(2);
 
-    // Verifica que existan al menos 2 tarjetas compartiendo la misma fila (cuadrícula multi-columna en escritorio).
+    // Checks that at least 2 cards share the same row (multi-column grid on desktop).
     await expect
       .poll(
         async () => {
@@ -104,7 +104,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
       )
       .toBe(true);
 
-    // Verifica imágenes de catálogo cargadas con object-fit: contain y sin desbordamiento horizontal.
+    // Checks catalog images loaded with object-fit: contain and no horizontal overflow.
     const catalogImgSelector =
       '[aria-label*=", precio "] img, [title*=", precio "] img';
     const desktopImgs = await waitForLoadedImages(page, catalogImgSelector);
@@ -118,7 +118,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
     );
     expect(desktopOverflow).toBe(true);
 
-    // Abre la primera tarjeta que contenga imagen para validar la ficha de detalle en escritorio.
+    // Opens the first card with an image to check the detail screen on desktop.
     const cardWithImage = cards.filter({ has: page.locator("img") }).first();
     await expect(cardWithImage).toBeVisible({ timeout: 10000 });
     await cardWithImage.click();
@@ -139,7 +139,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
     expect(heroImgs.count).toBe(1);
     expect(heroImgs.objectFits[0]).toBe("contain");
 
-    // Confirma que el contenedor hero está acotado y centrado en 1280px (no estirado borde a borde).
+    // Confirms the hero container is bounded and centered at 1280px (not stretched edge to edge).
     const heroBox = await heroTrigger.boundingBox();
     expect(heroBox).not.toBeNull();
     if (heroBox) {
@@ -154,7 +154,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
     );
     expect(detailOverflow).toBe(true);
 
-    // Regresa al catálogo y cambia a viewport móvil (390x844) para confirmar diseño 1 columna + cover.
+    // Goes back to the catalog and switches to a mobile viewport (390x844) to confirm a 1-column + cover layout.
     const backBtn = page
       .getByLabel("Regresar al catálogo")
       .or(page.locator('[title="Regresar al catálogo"]'))
@@ -166,7 +166,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
 
-    // Verifica diseño de 1 sola columna: cada tarjeta debe apilarse verticalmente sin compartir fila.
+    // Checks the single-column layout: each card must stack vertically without sharing a row.
     await expect
       .poll(
         async () => {
@@ -181,7 +181,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
       )
       .toBe(true);
 
-    // En móvil se preserva object-fit: cover en las fotografías del catálogo.
+    // On mobile, object-fit: cover is kept for catalog photos.
     await expect
       .poll(
         async () => {
@@ -216,7 +216,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
       .first();
     await expect(heroTrigger).toBeVisible({ timeout: 15000 });
 
-    // Abre el visor fullscreen haciendo clic en la imagen principal.
+    // Opens the fullscreen viewer by clicking the main image.
     await heroTrigger.click();
     const modal = page.getByTestId("fullscreen-image-modal");
     await expect(modal).toBeVisible({ timeout: 5000 });
@@ -228,11 +228,11 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
     expect(modalImgs.count).toBeGreaterThan(0);
     expect(modalImgs.objectFits[0]).toBe("contain");
 
-    // Cierra con la tecla Escape en Web.
+    // Closes with the Escape key on Web.
     await page.keyboard.press("Escape");
     await expect(modal).not.toBeVisible({ timeout: 5000 });
 
-    // Vuelve a abrir y cierra mediante el botón accesible de cierre.
+    // Reopens and closes with the accessible close button.
     await heroTrigger.click();
     await expect(modal).toBeVisible({ timeout: 5000 });
 
@@ -254,7 +254,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
       timeout: 15000,
     });
 
-    // 3.1 Catálogo: retiene GET /muebles/ con una promesa controlada para asegurar que CatalogSkeleton sea visible sin carreras de tiempo.
+    // 3.1 Catalog: holds GET /furniture/ with a controlled promise so CatalogSkeleton is visible without timing races.
     let releaseCatalog: (() => void) | null = null;
     const catalogDelayHandler = async (route: any) => {
       if (route.request().method() === "GET") {
@@ -264,7 +264,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
       }
       await route.continue();
     };
-    await page.route(/\/muebles\/(\?.*)?$/, catalogDelayHandler);
+    await page.route(/\/furniture\/(\?.*)?$/, catalogDelayHandler);
 
     const stockToggle = page
       .getByLabel("Filtro en stock")
@@ -276,16 +276,16 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
     await expect(skeleton).toBeVisible({ timeout: 10000 });
     (releaseCatalog as (() => void) | null)?.();
 
-    // Una vez liberada la respuesta real, el skeleton desaparece y se muestran las tarjetas.
+    // Once the real response is released, the skeleton disappears and the cards show up.
     await expect(page.getByTestId("skeleton-loader")).toHaveCount(0, {
       timeout: 15000,
     });
     await expect(getCatalogCardsLocator(page).first()).toBeVisible({
       timeout: 10000,
     });
-    await page.unroute(/\/muebles\/(\?.*)?$/, catalogDelayHandler);
+    await page.unroute(/\/furniture\/(\?.*)?$/, catalogDelayHandler);
 
-    // 3.2 Detalle de mueble: retiene GET /muebles/:id/ para comprobar el MuebleDetailSkeleton.
+    // 3.2 Furniture detail: holds GET /furniture/:id/ to check FurnitureDetailSkeleton.
     let releaseDetail: (() => void) | null = null;
     const detailDelayHandler = async (route: any) => {
       if (route.request().method() === "GET") {
@@ -295,7 +295,7 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
       }
       await route.continue();
     };
-    await page.route(/\/muebles\/\d+\/?$/, detailDelayHandler);
+    await page.route(/\/furniture\/\d+\/?$/, detailDelayHandler);
 
     await getCatalogCardsLocator(page).first().click();
     await expect(page.getByTestId("skeleton-loader").first()).toBeVisible({
@@ -309,35 +309,35 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
     await expect(page.getByText("Detalle de Producto")).toBeVisible({
       timeout: 10000,
     });
-    await page.unroute(/\/muebles\/\d+\/?$/, detailDelayHandler);
+    await page.unroute(/\/furniture\/\d+\/?$/, detailDelayHandler);
 
-    // 3.3 Apartados: retiene GET /apartados/ para comprobar el ApartadosSkeleton al entrar a la pestaña.
+    // 3.3 Reservations: holds GET /reservations/ to check ReservationsSkeleton when entering the tab.
     const backBtn = page
       .getByLabel("Regresar al catálogo")
       .or(page.locator('[title="Regresar al catálogo"]'))
       .first();
     await backBtn.click();
 
-    let releaseApartados: (() => void) | null = null;
-    const apartadosDelayHandler = async (route: any) => {
+    let releaseReservations: (() => void) | null = null;
+    const reservationsDelayHandler = async (route: any) => {
       if (route.request().method() === "GET") {
         await new Promise<void>((resolve) => {
-          releaseApartados = resolve;
+          releaseReservations = resolve;
         });
       }
       await route.continue();
     };
-    await page.route(/\/apartados\/(\?.*)?$/, apartadosDelayHandler);
+    await page.route(/\/reservations\/(\?.*)?$/, reservationsDelayHandler);
 
-    const apartadosTab = page
+    const reservationsTab = page
       .getByLabel("Apartados de muebles")
       .or(page.getByRole("tab", { name: /apartados/i }))
       .first();
-    await apartadosTab.click();
+    await reservationsTab.click();
     await expect(page.getByTestId("skeleton-loader").first()).toBeVisible({
       timeout: 10000,
     });
-    (releaseApartados as (() => void) | null)?.();
+    (releaseReservations as (() => void) | null)?.();
 
     await expect(page.getByTestId("skeleton-loader")).toHaveCount(0, {
       timeout: 15000,
@@ -345,6 +345,6 @@ test.describe("Nordika Desktop UX, Responsive, Fullscreen & Skeletons", () => {
     await expect(page.getByText("Gestión de Apartados")).toBeVisible({
       timeout: 10000,
     });
-    await page.unroute(/\/apartados\/(\?.*)?$/, apartadosDelayHandler);
+    await page.unroute(/\/reservations\/(\?.*)?$/, reservationsDelayHandler);
   });
 });

@@ -1,4 +1,4 @@
-// Puerta de entrada ("/"): revisa si hay token guardado y redirige al catálogo o al login.
+// Entry point ("/"): checks for a saved token and redirects to the catalog or to login.
 
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";

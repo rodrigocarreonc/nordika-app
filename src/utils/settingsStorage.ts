@@ -1,4 +1,4 @@
-// Persistencia local de preferencias del usuario (tamaño de página y tema visual).
+// Local storage of user preferences (page size and visual theme).
 
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
@@ -8,7 +8,7 @@ const THEME_KEY = "nordika_theme";
 
 export const DEFAULT_PAGE_SIZE = 10;
 
-// Misma abstracción Web/móvil que tokenStorage porque SecureStore no corre en navegador.
+// Same Web/mobile abstraction as tokenStorage because SecureStore doesn't run in the browser.
 function isWebStorage(): boolean {
   return Platform.OS === "web" && typeof localStorage !== "undefined";
 }
@@ -28,7 +28,7 @@ async function setItem(key: string, value: string): Promise<void> {
   await SecureStore.setItemAsync(key, value);
 }
 
-// Valida que el valor guardado sea un entero positivo; si esta corrupto vuelve al default.
+// Checks that the stored value is a positive integer; falls back to the default if it is corrupt.
 export async function getStoredPageSize(): Promise<number> {
   const val = await getItem(PAGE_SIZE_KEY);
   if (!val) return DEFAULT_PAGE_SIZE;

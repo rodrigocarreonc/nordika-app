@@ -1,4 +1,4 @@
-// Contratos TypeScript alineados con los serializers REST del backend de Nordika.
+// TypeScript contracts aligned with the Nordika backend REST serializers.
 
 export interface User {
   id: number;
@@ -10,7 +10,7 @@ export interface User {
   date_joined?: string;
 }
 
-// Respuesta de login y registro: trae el token y el perfil en un solo viaje para ahorrar /me/.
+// Login and sign-up response: brings the token and profile in one trip to save a call to /me/.
 export interface AuthResponse {
   token: string;
   user_id: number;
@@ -22,85 +22,87 @@ export interface AuthResponse {
   detail?: string;
 }
 
-export interface Categoria {
+export interface Category {
   id: number;
-  nombre: string;
-  descripcion?: string;
-  muebles_count?: number;
+  name: string;
+  description?: string;
+  furniture_count?: number;
 }
 
-export interface Proveedor {
+export interface Supplier {
   id: number;
-  nombre: string;
-  contacto?: string;
-  telefono?: string;
+  name: string;
+  contact_name?: string;
+  phone?: string;
   email?: string;
-  creado_en?: string;
-  muebles_count?: number;
+  created_at?: string;
+  furniture_count?: number;
 }
 
-// Al leer llega con categoría/proveedor anidados; al escribir se usan categoria_id/proveedor_id.
-export interface Mueble {
+// On read it comes with nested category/supplier; on write category_id/supplier_id are used.
+export interface Furniture {
   id: number;
-  nombre: string;
-  descripcion: string;
-  precio: string | number;
+  name: string;
+  description: string;
+  price: string | number;
   stock: number;
-  imagen: string | null;
-  categoria?: {
+  image: string | null;
+  category?: {
     id: number;
-    nombre: string;
-    descripcion?: string;
+    name: string;
+    description?: string;
   } | null;
-  proveedor?: {
+  supplier?: {
     id: number;
-    nombre: string;
-    contacto?: string;
-    telefono?: string;
+    name: string;
+    contact_name?: string;
+    phone?: string;
     email?: string;
   };
-  categoria_id?: number | null;
-  proveedor_id?: number;
-  is_favorito?: boolean;
-  favoritos_count?: number;
-  creado_en: string;
-  actualizado_en: string;
+  category_id?: number | null;
+  supplier_id?: number;
+  is_favorite?: boolean;
+  favorites_count?: number;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface Favorito {
+export interface Favorite {
   id: number;
-  usuario: number;
-  mueble: Mueble;
-  fecha_agregado: string;
+  user: number;
+  furniture: Furniture;
+  added_at: string;
 }
 
-// Registro contable generado por el backend solo cuando un apartado pasa a ACEPTADO.
-export interface Venta {
+// Accounting record the backend creates only when a reservation becomes ACCEPTED.
+export interface Sale {
   id: number;
-  precio_unitario: string;
+  unit_price: string;
   total: string;
-  fecha_venta: string;
+  sold_at: string;
 }
 
-// Reserva temporal de stock; expone datos de contacto del cliente para que el staff lo contacte.
-export interface Apartado {
+export type ReservationStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED";
+
+// Temporary stock hold; exposes the customer's contact data so staff can reach them.
+export interface Reservation {
   id: number;
-  codigo: string;
-  usuario: number;
-  usuario_username: string;
-  usuario_email?: string;
-  usuario_nombre?: string;
-  usuario_activo?: boolean;
-  mueble: Mueble;
-  cantidad: number;
-  estado: "PENDIENTE" | "ACEPTADO" | "RECHAZADO" | "CANCELADO";
-  venta: Venta | null;
-  expira_en: string;
-  creado_en: string;
-  actualizado_en: string;
+  code: string;
+  user: number;
+  user_username: string;
+  user_email?: string;
+  user_full_name?: string;
+  user_active?: boolean;
+  furniture: Furniture;
+  quantity: number;
+  status: ReservationStatus;
+  sale: Sale | null;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
 }
 
-// Envoltorio devuelto por ConfigurablePageNumberPagination para dibujar la barra de páginas.
+// Wrapper returned by ConfigurablePageNumberPagination to draw the page bar.
 export interface PaginatedResponse<T> {
   count: number;
   total_pages: number;
@@ -111,15 +113,15 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// Query params aceptados por GET /muebles/ (filtros, búsqueda, orden y tamaño de página).
-export interface MuebleFilterParams {
+// Query params accepted by GET /furniture/ (filters, search, ordering and page size).
+export interface FurnitureFilterParams {
   page?: number;
   page_size?: number;
   search?: string;
-  categoria?: number;
-  proveedor?: number;
-  precio_min?: number;
-  precio_max?: number;
-  en_stock?: boolean;
+  category?: number;
+  supplier?: number;
+  price_min?: number;
+  price_max?: number;
+  in_stock?: boolean;
   ordering?: string;
 }

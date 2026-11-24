@@ -1,4 +1,4 @@
-// Contenedor View que aplica el color de fondo correspondiente al tema activo.
+// View container that applies the background color of the active theme.
 
 import { View, type ViewProps } from "react-native";
 

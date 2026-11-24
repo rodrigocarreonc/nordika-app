@@ -1,4 +1,4 @@
-// Vista de estado vacío con ícono, mensaje y botón de acción opcional para listas sin resultados.
+// Empty-state view with an icon, message and optional action button for lists without results.
 
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";

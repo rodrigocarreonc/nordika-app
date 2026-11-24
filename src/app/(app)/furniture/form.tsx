@@ -1,4 +1,4 @@
-// Formulario exclusivo de staff para crear o editar muebles, con carga de imagen compatible Web/móvil.
+// Staff-only form to create or edit furniture, with Web/mobile-compatible image upload.
 
 import { Ionicons } from "@expo/vector-icons";
 import { File as FsFile } from "expo-file-system";
@@ -23,19 +23,19 @@ import { FormSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
 import { useResponsive } from "../../../hooks/use-responsive";
-import { Categoria, Proveedor } from "../../../types";
+import { Category, Supplier } from "../../../types";
 import {
-  apiCreateMueble,
-  apiGetCategorias,
-  apiGetMueble,
-  apiGetProveedores,
-  apiUpdateMueble,
+  apiCreateFurniture,
+  apiGetCategories,
+  apiGetFurniture,
+  apiGetSuppliers,
+  apiUpdateFurniture,
   resolveImageUrl,
 } from "../../../utils/api";
 import { safeBack } from "../../../utils/navigation";
 import { getUser } from "../../../utils/tokenStorage";
 
-export default function MuebleFormScreen() {
+export default function FurnitureFormScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
@@ -48,25 +48,25 @@ export default function MuebleFormScreen() {
   const [loadingInitial, setLoadingInitial] = useState(isEditing);
   const [submitting, setSubmitting] = useState(false);
 
-  // Categorías y Proveedores disponibles
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  // Available categories and suppliers
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
-  // Campos de formulario
-  const [nombre, setNombre] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [precio, setPrecio] = useState("");
+  // Form fields
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
   const [stock, setStock] = useState("0");
-  const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
     null,
   );
-  const [selectedProveedorId, setSelectedProveedorId] = useState<number | null>(
+  const [selectedSupplierId, setSelectedSupplierId] = useState<number | null>(
     null,
   );
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageAsset, setImageAsset] = useState<any>(null);
 
-  // Guardia de rol: impide que un cliente abra el formulario escribiendo la ruta directo en Web.
+  // Role guard: keeps a customer from opening the form by typing the route directly on Web.
   useEffect(() => {
     getUser().then((u) => {
       if (!u?.is_staff) {
@@ -75,30 +75,30 @@ export default function MuebleFormScreen() {
     });
   }, [router]);
 
-  // Carga catálogos auxiliares (categorías/proveedores) y, si es edición, precarga el mueble.
+  // Loads the helper catalogs (categories/suppliers) and, when editing, preloads the furniture.
   useEffect(() => {
-    Promise.all([apiGetCategorias(), apiGetProveedores()])
-      .then(([cats, provs]) => {
-        setCategorias(cats);
-        setProveedores(provs);
-        if (provs.length > 0) {
-          setSelectedProveedorId((prev) => prev ?? provs[0].id);
+    Promise.all([apiGetCategories(), apiGetSuppliers()])
+      .then(([categoryList, supplierList]) => {
+        setCategories(categoryList);
+        setSuppliers(supplierList);
+        if (supplierList.length > 0) {
+          setSelectedSupplierId((prev) => prev ?? supplierList[0].id);
         }
       })
       .catch(() => {});
 
-    // Si es edición, cargar mueble existente
+    // When editing, load the existing furniture
     if (editId) {
-      apiGetMueble(editId)
+      apiGetFurniture(editId)
         .then(async (m) => {
-          setNombre(m.nombre);
-          setDescripcion(m.descripcion || "");
-          setPrecio(m.precio.toString());
+          setName(m.name);
+          setDescription(m.description || "");
+          setPrice(m.price.toString());
           setStock(m.stock.toString());
-          if (m.categoria?.id) setSelectedCategoriaId(m.categoria.id);
-          if (m.proveedor?.id) setSelectedProveedorId(m.proveedor.id);
-          if (m.imagen) {
-            const url = await resolveImageUrl(m.imagen);
+          if (m.category?.id) setSelectedCategoryId(m.category.id);
+          if (m.supplier?.id) setSelectedSupplierId(m.supplier.id);
+          if (m.image) {
+            const url = await resolveImageUrl(m.image);
             setImageUri(url);
           }
         })
@@ -137,8 +137,8 @@ export default function MuebleFormScreen() {
   };
 
   const handleSubmit = async () => {
-    const trimmedNombre = nombre.trim();
-    if (!trimmedNombre) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       dialog.alert({
         title: "Validación",
         message: "El nombre del mueble es obligatorio.",
@@ -146,8 +146,8 @@ export default function MuebleFormScreen() {
       return;
     }
 
-    const numPrecio = parseFloat(precio);
-    if (isNaN(numPrecio) || numPrecio <= 0) {
+    const numPrice = parseFloat(price);
+    if (isNaN(numPrice) || numPrice <= 0) {
       dialog.alert({
         title: "Validación",
         message: "Ingresa un precio válido mayor a 0.",
@@ -155,7 +155,7 @@ export default function MuebleFormScreen() {
       return;
     }
 
-    // parseInt aceptaba "2.5" como 2; solo se permiten dígitos.
+    // parseInt accepted "2.5" as 2; only digits are allowed.
     const numStock = parseInt(stock.trim(), 10);
     if (!/^\d+$/.test(stock.trim())) {
       dialog.alert({
@@ -165,7 +165,7 @@ export default function MuebleFormScreen() {
       return;
     }
 
-    if (!selectedProveedorId) {
+    if (!selectedSupplierId) {
       dialog.alert({
         title: "Validación",
         message: "Debes seleccionar un proveedor.",
@@ -184,45 +184,45 @@ export default function MuebleFormScreen() {
     try {
       setSubmitting(true);
 
-      // Si hay una nueva imagen seleccionada, usamos FormData
+      // If a new image was picked, FormData is used
       if (imageAsset) {
         const formData = new FormData();
-        formData.append("nombre", trimmedNombre);
-        formData.append("descripcion", descripcion.trim());
-        formData.append("precio", numPrecio.toFixed(2));
+        formData.append("name", trimmedName);
+        formData.append("description", description.trim());
+        formData.append("price", numPrice.toFixed(2));
         formData.append("stock", numStock.toString());
-        formData.append("proveedor_id", selectedProveedorId.toString());
-        if (selectedCategoriaId) {
-          formData.append("categoria_id", selectedCategoriaId.toString());
+        formData.append("supplier_id", selectedSupplierId.toString());
+        if (selectedCategoryId) {
+          formData.append("category_id", selectedCategoryId.toString());
         }
 
-        // FormData solo sube Blobs: en web el File del navegador, en el celular el File de expo-file-system.
-        // Un objeto {uri, name, type} se envía como "[object Object]" (el fetch global del SDK 58 es expo/fetch).
+        // FormData only uploads Blobs: the browser's File on web, expo-file-system's File on the phone.
+        // A {uri, name, type} object is sent as "[object Object]" (the global fetch in SDK 58 is expo/fetch).
         formData.append(
-          "imagen",
+          "image",
           imageAsset.file ?? new FsFile(imageAsset.uri),
         );
 
         if (isEditing) {
-          await apiUpdateMueble(editId, formData);
+          await apiUpdateFurniture(editId, formData);
         } else {
-          await apiCreateMueble(formData);
+          await apiCreateFurniture(formData);
         }
       } else {
-        // Enviar JSON convencional
+        // Send plain JSON
         const payload: Record<string, any> = {
-          nombre: trimmedNombre,
-          descripcion: descripcion.trim(),
-          precio: numPrecio.toFixed(2),
+          name: trimmedName,
+          description: description.trim(),
+          price: numPrice.toFixed(2),
           stock: numStock,
-          proveedor_id: selectedProveedorId,
-          categoria_id: selectedCategoriaId || null,
+          supplier_id: selectedSupplierId,
+          category_id: selectedCategoryId || null,
         };
 
         if (isEditing) {
-          await apiUpdateMueble(editId, payload);
+          await apiUpdateFurniture(editId, payload);
         } else {
-          await apiCreateMueble(payload);
+          await apiCreateFurniture(payload);
         }
       }
 
@@ -256,7 +256,7 @@ export default function MuebleFormScreen() {
     );
   }
 
-  // En tablet/escritorio centramos el formulario para evitar campos excesivamente anchos.
+  // On tablet/desktop the form is centered to avoid overly wide fields.
   const desktopContainerStyle = !isMobile
     ? {
         maxWidth: contentMaxWidth,
@@ -270,7 +270,7 @@ export default function MuebleFormScreen() {
       style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={["top", "left", "right"]}
     >
-      {/* Barra de navegación con separador completo y contenido centrado en escritorio */}
+      {/* Navigation bar with a full divider and centered content on desktop */}
       <View
         style={[styles.navBarWrapper, { borderBottomColor: colors.border }]}
       >
@@ -323,7 +323,7 @@ export default function MuebleFormScreen() {
           contentContainerStyle={[styles.scrollContent, desktopContainerStyle]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Selector de Imagen: en escritorio usa contain sobre fondo neutro para previsualizar la foto completa */}
+          {/* Image picker: on desktop uses contain on a neutral background to preview the whole photo */}
           <View style={styles.imageSection}>
             <Pressable
               style={[
@@ -381,14 +381,14 @@ export default function MuebleFormScreen() {
             </Pressable>
           </View>
 
-          {/* Formulario de Datos */}
+          {/* Data form */}
           <View
             style={[
               styles.card,
               { backgroundColor: colors.card, borderColor: colors.border },
             ]}
           >
-            {/* Nombre */}
+            {/* Name */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.text }]}>
                 Nombre del mueble *
@@ -404,12 +404,12 @@ export default function MuebleFormScreen() {
                 ]}
                 placeholder="Ej. Sofá Nórdico Oslo 3 Plazas"
                 placeholderTextColor={colors.textMuted}
-                value={nombre}
-                onChangeText={setNombre}
+                value={name}
+                onChangeText={setName}
               />
             </View>
 
-            {/* Precio & Stock en fila */}
+            {/* Price & stock in a row */}
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
                 <Text style={[styles.label, { color: colors.text }]}>
@@ -427,8 +427,8 @@ export default function MuebleFormScreen() {
                   placeholder="Ej. 14999.00"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="decimal-pad"
-                  value={precio}
-                  onChangeText={setPrecio}
+                  value={price}
+                  onChangeText={setPrice}
                 />
               </View>
 
@@ -454,7 +454,7 @@ export default function MuebleFormScreen() {
               </View>
             </View>
 
-            {/* Categoría */}
+            {/* Category */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.text }]}>
                 Categoría
@@ -464,8 +464,8 @@ export default function MuebleFormScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.chipsScroll}
               >
-                {categorias.map((c) => {
-                  const isSelected = selectedCategoriaId === c.id;
+                {categories.map((c) => {
+                  const isSelected = selectedCategoryId === c.id;
                   return (
                     <Pressable
                       key={c.id}
@@ -482,11 +482,11 @@ export default function MuebleFormScreen() {
                             },
                       ]}
                       onPress={() =>
-                        setSelectedCategoriaId(isSelected ? null : c.id)
+                        setSelectedCategoryId(isSelected ? null : c.id)
                       }
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: isSelected }}
-                      accessibilityLabel={`Categoría ${c.nombre}`}
+                      accessibilityLabel={`Categoría ${c.name}`}
                     >
                       <Text
                         style={[
@@ -496,7 +496,7 @@ export default function MuebleFormScreen() {
                             : { color: colors.text },
                         ]}
                       >
-                        {c.nombre}
+                        {c.name}
                       </Text>
                     </Pressable>
                   );
@@ -504,7 +504,7 @@ export default function MuebleFormScreen() {
               </ScrollView>
             </View>
 
-            {/* Proveedor */}
+            {/* Supplier */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.text }]}>
                 Proveedor *
@@ -514,8 +514,8 @@ export default function MuebleFormScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.chipsScroll}
               >
-                {proveedores.map((p) => {
-                  const isSelected = selectedProveedorId === p.id;
+                {suppliers.map((p) => {
+                  const isSelected = selectedSupplierId === p.id;
                   return (
                     <Pressable
                       key={p.id}
@@ -531,10 +531,10 @@ export default function MuebleFormScreen() {
                               borderColor: colors.border,
                             },
                       ]}
-                      onPress={() => setSelectedProveedorId(p.id)}
+                      onPress={() => setSelectedSupplierId(p.id)}
                       accessibilityRole="radio"
                       accessibilityState={{ selected: isSelected }}
-                      accessibilityLabel={`Proveedor ${p.nombre}`}
+                      accessibilityLabel={`Proveedor ${p.name}`}
                     >
                       <Text
                         style={[
@@ -544,7 +544,7 @@ export default function MuebleFormScreen() {
                             : { color: colors.text },
                         ]}
                       >
-                        {p.nombre}
+                        {p.name}
                       </Text>
                     </Pressable>
                   );
@@ -552,7 +552,7 @@ export default function MuebleFormScreen() {
               </ScrollView>
             </View>
 
-            {/* Descripción */}
+            {/* Description */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.text }]}>
                 Descripción detallada
@@ -570,8 +570,8 @@ export default function MuebleFormScreen() {
                 placeholderTextColor={colors.textMuted}
                 multiline
                 numberOfLines={4}
-                value={descripcion}
-                onChangeText={setDescripcion}
+                value={description}
+                onChangeText={setDescription}
                 textAlignVertical="top"
               />
             </View>

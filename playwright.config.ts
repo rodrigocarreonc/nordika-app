@@ -1,4 +1,4 @@
-// Configuración de pruebas E2E en Playwright: corre en serie (1 worker) para evitar choques de datos en SQLite.
+// Playwright E2E config: runs serially (1 worker) to avoid data clashes in SQLite.
 
 import { defineConfig, devices } from "@playwright/test";
 

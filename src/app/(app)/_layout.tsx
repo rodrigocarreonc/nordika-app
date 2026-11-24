@@ -1,4 +1,4 @@
-// Guardia de autenticación del grupo privado (app): bloquea acceso sin token y envuelve tabs + pantallas de mueble.
+// Auth guard of the private (app) group: blocks access without a token and wraps the tabs + furniture screens.
 
 import { Redirect, Stack } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -49,7 +49,7 @@ export default function AppLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  // Stack sobre las pestañas: detalle y formulario se montan limpios al abrirse y "atrás" regresa a la pantalla de origen.
+  // Stack over the tabs: detail and form mount fresh when opened and "back" returns to the source screen.
   return (
     <Stack
       screenOptions={{
@@ -58,8 +58,8 @@ export default function AppLayout() {
       }}
     >
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="mueble/[id]" />
-      <Stack.Screen name="mueble/form" />
+      <Stack.Screen name="furniture/[id]" />
+      <Stack.Screen name="furniture/form" />
     </Stack>
   );
 }

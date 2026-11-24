@@ -1,15 +1,15 @@
-// Hook de diseño adaptable: calcula breakpoints, columnas del catálogo y anchos máximos sin alterar el móvil.
+// Responsive layout hook: computes breakpoints, catalog columns and max widths without changing mobile.
 
 import { useMemo } from "react";
 import { Platform, useWindowDimensions } from "react-native";
 
-// Puntos de corte estándar para distinguir móvil, tablet y escritorio.
+// Standard breakpoints to tell mobile, tablet and desktop apart.
 export const BREAKPOINTS = {
   tablet: 768,
   desktop: 1024,
 } as const;
 
-// Anchos máximos de contenedor en pantallas amplias para mejorar legibilidad y proporción visual.
+// Max container widths on wide screens to improve readability and visual proportion.
 export const LAYOUT_MAX_WIDTH = {
   catalog: 1140,
   content: 860,
@@ -31,8 +31,8 @@ export interface ResponsiveInfo {
 }
 
 /**
- * Devuelve métricas responsivas reactivas al redimensionar la ventana.
- * En móvil (`width < 768`) mantiene una sola columna y ancho completo.
+ * Returns responsive metrics that react to window resizing.
+ * On mobile (`width < 768`) it keeps a single column and full width.
  */
 export function useResponsive(
   variant: ContainerVariant = "catalog",

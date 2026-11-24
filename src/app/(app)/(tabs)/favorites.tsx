@@ -1,4 +1,4 @@
-// Lista paginada de muebles guardados como favoritos por el usuario autenticado.
+// Paginated list of the furniture the authenticated user saved as favorites.
 
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -15,25 +15,25 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyView } from "../../../components/EmptyView";
 import { ErrorView } from "../../../components/ErrorView";
-import { MuebleCard } from "../../../components/MuebleCard";
+import { FurnitureCard } from "../../../components/FurnitureCard";
 import { Pagination } from "../../../components/Pagination";
 import { CatalogSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { useResponsive } from "../../../hooks/use-responsive";
-import { Mueble } from "../../../types";
-import { apiGetMisFavoritos, apiToggleFavorito } from "../../../utils/api";
+import { Furniture } from "../../../types";
+import { apiGetMyFavorites, apiToggleFavorite } from "../../../utils/api";
 import { getStoredPageSize } from "../../../utils/settingsStorage";
 
-type FavoritoGridItem = Mueble | { id: number; __spacer: true };
+type FavoriteGridItem = Furniture | { id: number; __spacer: true };
 
-export default function FavoritosScreen() {
+export default function FavoritesScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
   const { isMobile, catalogColumns, catalogMaxWidth } =
     useResponsive("catalog");
 
-  const [favoritos, setFavoritos] = useState<Mueble[]>([]);
+  const [favorites, setFavorites] = useState<Furniture[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,17 +42,17 @@ export default function FavoritosScreen() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchFavoritos = useCallback(
+  const fetchFavorites = useCallback(
     async (targetPage = 1, isRefresh = false) => {
       try {
         if (!isRefresh) setLoading(true);
         setError(null);
         const pageSize = await getStoredPageSize();
-        const res = await apiGetMisFavoritos({
+        const res = await apiGetMyFavorites({
           page: targetPage,
           page_size: pageSize,
         });
-        setFavoritos(res.results || []);
+        setFavorites(res.results || []);
         setTotalPages(res.total_pages || 1);
         setTotalCount(res.count ?? (res.results ? res.results.length : 0));
         setPage(res.current_page || targetPage);
@@ -68,49 +68,49 @@ export default function FavoritosScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchFavoritos(page);
-    }, [fetchFavoritos, page]),
+      fetchFavorites(page);
+    }, [fetchFavorites, page]),
   );
 
-  // Completa la última fila con espaciadores para mantener proporciones homogéneas en cuadrícula.
-  const gridItems = useMemo<FavoritoGridItem[]>(() => {
-    if (catalogColumns <= 1 || favoritos.length === 0) return favoritos;
-    const remainder = favoritos.length % catalogColumns;
-    if (remainder === 0) return favoritos;
-    const spacers: FavoritoGridItem[] = Array.from(
+  // Fills the last row with spacers to keep grid proportions even.
+  const gridItems = useMemo<FavoriteGridItem[]>(() => {
+    if (catalogColumns <= 1 || favorites.length === 0) return favorites;
+    const remainder = favorites.length % catalogColumns;
+    if (remainder === 0) return favorites;
+    const spacers: FavoriteGridItem[] = Array.from(
       { length: catalogColumns - remainder },
       (_, idx) => ({ id: -(idx + 1), __spacer: true as const }),
     );
-    return [...favoritos, ...spacers];
-  }, [favoritos, catalogColumns]);
+    return [...favorites, ...spacers];
+  }, [favorites, catalogColumns]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchFavoritos(1, true);
+    fetchFavorites(1, true);
   };
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
-    fetchFavoritos(newPage);
+    fetchFavorites(newPage);
   };
 
-  const handleRemoveFavorito = async (mueble: Mueble) => {
+  const handleRemoveFavorite = async (furniture: Furniture) => {
     try {
-      await apiToggleFavorito(mueble.id);
-      // Si la página actual solo tenía este elemento y estamos más allá de la pág 1, retroceder
-      if (favoritos.length === 1 && page > 1) {
+      await apiToggleFavorite(furniture.id);
+      // If the current page only had this item and we are past page 1, go back one page
+      if (favorites.length === 1 && page > 1) {
         const prevPage = page - 1;
         setPage(prevPage);
-        fetchFavoritos(prevPage, true);
+        fetchFavorites(prevPage, true);
       } else {
-        fetchFavoritos(page, true);
+        fetchFavorites(page, true);
       }
     } catch {
-      // Ignorar error
+      // Ignore the error
     }
   };
 
-  // Ancho máximo centrado en tablet/escritorio; en móvil se mantiene el layout original completo.
+  // Centered max width on tablet/desktop; mobile keeps the original full layout.
   const desktopContainerStyle = !isMobile
     ? {
         maxWidth: catalogMaxWidth,
@@ -124,7 +124,7 @@ export default function FavoritosScreen() {
       style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={["top", "left", "right"]}
     >
-      {/* Header con separador de ancho completo y contenido centrado en escritorio */}
+      {/* Header with a full-width divider and centered content on desktop */}
       <View
         style={[styles.headerWrapper, { borderBottomColor: colors.border }]}
       >
@@ -152,7 +152,7 @@ export default function FavoritosScreen() {
           <CatalogSkeleton columns={catalogColumns} />
         </ScrollView>
       ) : error ? (
-        <ErrorView message={error} onRetry={() => fetchFavoritos(page)} />
+        <ErrorView message={error} onRetry={() => fetchFavorites(page)} />
       ) : (
         <FlatList
           key={`grid-${catalogColumns}`}
@@ -168,12 +168,12 @@ export default function FavoritosScreen() {
             "__spacer" in item ? (
               <View style={styles.gridSpacer} pointerEvents="none" />
             ) : (
-              <MuebleCard
-                mueble={item}
-                isFavorito={true}
+              <FurnitureCard
+                furniture={item}
+                isFavorite={true}
                 isGridItem={catalogColumns > 1}
-                onPress={() => router.push(`/(app)/mueble/${item.id}`)}
-                onToggleFavorito={handleRemoveFavorito}
+                onPress={() => router.push(`/(app)/furniture/${item.id}`)}
+                onToggleFavorite={handleRemoveFavorite}
               />
             )
           }

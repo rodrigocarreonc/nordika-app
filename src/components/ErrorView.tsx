@@ -1,4 +1,4 @@
-// Vista de error recuperable para fallos de red o servidor con botón de reintento.
+// Recoverable error view for network or server failures, with a retry button.
 
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";

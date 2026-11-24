@@ -1,4 +1,4 @@
-// Indicador de carga centrado usado mientras se obtienen datos iniciales de una pantalla.
+// Centered loading indicator used while a screen's initial data is fetched.
 
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";

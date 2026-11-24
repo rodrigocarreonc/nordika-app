@@ -1,4 +1,4 @@
-// Barra de pestañas inferiores; oculta la pestaña Administración (`href: null`) a usuarios no staff.
+// Bottom tab bar; hides the Administration tab (`href: null`) from non-staff users.
 
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
@@ -35,7 +35,7 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
-          // La altura fija anula el margen inferior automático; se suma el de la barra del sistema.
+          // A fixed height cancels the automatic bottom inset, so the system bar inset is added.
           height: 60 + insets.bottom,
           paddingBottom: 8 + insets.bottom,
           paddingTop: 8,
@@ -61,7 +61,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="favoritos"
+        name="favorites"
         options={{
           title: "Favoritos",
           tabBarAccessibilityLabel: "Muebles favoritos",
@@ -75,7 +75,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="apartados"
+        name="reservations"
         options={{
           title: "Apartados",
           tabBarAccessibilityLabel: "Apartados de muebles",

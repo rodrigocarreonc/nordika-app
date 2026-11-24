@@ -1,4 +1,4 @@
-// Prueba rápida (smoke) que verifica que Expo Web arranca y renderiza la pantalla inicial de NORDIKA.
+// Smoke test that checks Expo Web boots and renders NORDIKA's initial screen.
 
 import { test, expect } from "@playwright/test";
 

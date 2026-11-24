@@ -1,4 +1,4 @@
-// Pantalla de inicio de sesión con autenticación por token y atajos de cuentas demo.
+// Login screen with token authentication and demo account shortcuts.
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -30,7 +30,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Valida campos requeridos, solicita el token al backend y reemplaza el stack hacia las pestañas.
+  // Validates required fields, requests the token from the backend and replaces the stack with the tabs.
   const handleLogin = async () => {
     const trimmedUsername = username.trim();
     if (!trimmedUsername || !password) {
@@ -73,7 +73,7 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header Marca */}
+          {/* Brand header */}
           <View style={styles.brandContainer}>
             <View
               style={[
@@ -91,7 +91,7 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* Formulario */}
+          {/* Form */}
           <View
             style={[
               styles.card,
@@ -105,7 +105,7 @@ export default function LoginScreen() {
               Ingresa tus credenciales para acceder al catálogo
             </Text>
 
-            {/* Input Usuario */}
+            {/* Username input */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.text }]}>
                 Usuario
@@ -138,7 +138,7 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Input Contraseña */}
+            {/* Password input */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.text }]}>
                 Contraseña
@@ -185,7 +185,7 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Botón Entrar */}
+            {/* Log in button */}
             <Pressable
               style={({ pressed }) => [
                 styles.submitButton,
@@ -207,7 +207,7 @@ export default function LoginScreen() {
               )}
             </Pressable>
 
-            {/* Atajos de prueba para evaluación rápida */}
+            {/* Test shortcuts for quick evaluation */}
             <View style={styles.quickFillContainer}>
               <Text
                 style={[styles.quickFillLabel, { color: colors.textMuted }]}
@@ -251,7 +251,7 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          {/* Enlace a Registro */}
+          {/* Link to sign-up */}
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: colors.textMuted }]}>
               ¿Aún no tienes una cuenta?

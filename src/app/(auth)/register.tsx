@@ -1,4 +1,4 @@
-// Pantalla de autoregistro de clientes con validación previa de nombre y contraseña antes de llamar al API.
+// Customer sign-up screen that validates name and password before calling the API.
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -36,7 +36,7 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Valida en cliente para dar feedback inmediato; apiRegister guarda el token y deja sesión abierta.
+  // Validates on the client for instant feedback; apiRegister saves the token and leaves the session open.
   const handleRegister = async () => {
     const trimmedUser = username.trim();
     const trimmedEmail = email.trim();
@@ -108,7 +108,7 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header con botón atrás */}
+          {/* Header with back button */}
           <Pressable
             style={[
               styles.backButton,
@@ -132,14 +132,14 @@ export default function RegisterScreen() {
             </Text>
           </View>
 
-          {/* Formulario */}
+          {/* Form */}
           <View
             style={[
               styles.card,
               { backgroundColor: colors.card, borderColor: colors.border },
             ]}
           >
-            {/* Usuario */}
+            {/* Username */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.text }]}>
                 Nombre de Usuario *
@@ -204,7 +204,7 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            {/* Nombre y Apellido */}
+            {/* First and last name */}
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 6 }]}>
                 <Text style={[styles.inputLabel, { color: colors.text }]}>
@@ -255,7 +255,7 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            {/* Contraseña */}
+            {/* Password */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.text }]}>
                 Contraseña *
@@ -302,7 +302,7 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            {/* Confirmar Contraseña */}
+            {/* Confirm password */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.text }]}>
                 Confirmar Contraseña *
@@ -335,7 +335,7 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            {/* Botón Registrarse */}
+            {/* Sign-up button */}
             <Pressable
               style={({ pressed }) => [
                 styles.submitButton,
@@ -358,7 +358,7 @@ export default function RegisterScreen() {
             </Pressable>
           </View>
 
-          {/* Enlace a Login */}
+          {/* Link to login */}
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: colors.textMuted }]}>
               ¿Ya tienes una cuenta?

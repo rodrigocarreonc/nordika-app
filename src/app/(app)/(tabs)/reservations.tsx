@@ -1,4 +1,4 @@
-// Gestión y consulta de apartados: separa activos/historial, muestra vigencia y permite al staff aceptar o rechazar.
+// Reservation management: splits active/history, shows time left and lets staff accept or reject.
 
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -18,29 +18,29 @@ import { Badge } from "../../../components/Badge";
 import { EmptyView } from "../../../components/EmptyView";
 import { ErrorView } from "../../../components/ErrorView";
 import { Pagination } from "../../../components/Pagination";
-import { ApartadosSkeleton } from "../../../components/Skeleton";
+import { ReservationsSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
 import { useResponsive } from "../../../hooks/use-responsive";
-import { Apartado } from "../../../types";
+import { Reservation } from "../../../types";
 import {
-  apiAceptarApartado,
-  apiGetApartados,
-  apiRechazarApartado,
+  apiAcceptReservation,
+  apiGetReservations,
+  apiRejectReservation,
 } from "../../../utils/api";
 import { getStoredPageSize } from "../../../utils/settingsStorage";
 import { getUser } from "../../../utils/tokenStorage";
 
-// Mapa visual de cada estado de negocio a etiqueta y variante de color del Badge.
-const ESTADO_BADGE = {
-  PENDIENTE: { label: "Pendiente", variant: "warning" },
-  ACEPTADO: { label: "Aceptado", variant: "success" },
-  RECHAZADO: { label: "Rechazado", variant: "danger" },
-  CANCELADO: { label: "Vencido", variant: "neutral" },
+// Maps each business status to a label and a Badge color variant.
+const STATUS_BADGE = {
+  PENDING: { label: "Pendiente", variant: "warning" },
+  ACCEPTED: { label: "Aceptado", variant: "success" },
+  REJECTED: { label: "Rechazado", variant: "danger" },
+  CANCELLED: { label: "Vencido", variant: "neutral" },
 } as const;
 
-/** Formatea los milisegundos restantes antes de la expiración ("4d 6h", "5h 20m", "12m"). */
-const formatRestante = (ms: number) => {
+/** Formats the milliseconds left before expiration ("4d 6h", "5h 20m", "12m"). */
+const formatTimeLeft = (ms: number) => {
   const min = Math.floor(ms / 60000);
   const d = Math.floor(min / 1440);
   const h = Math.floor((min % 1440) / 60);
@@ -57,13 +57,13 @@ const formatPrice = (price: string | number) => {
     : `$${num.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
 };
 
-export default function ApartadosScreen() {
+export default function ReservationsScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
   const { isMobile, contentMaxWidth } = useResponsive("content");
 
-  // En tablet/escritorio acota y centra la columna de contenido; en móvil conserva el ancho completo original.
+  // On tablet/desktop it narrows and centers the content column; mobile keeps the original full width.
   const desktopContainerStyle = !isMobile
     ? {
         maxWidth: contentMaxWidth,
@@ -73,30 +73,30 @@ export default function ApartadosScreen() {
     : undefined;
 
   const [isStaff, setIsStaff] = useState(false);
-  const [apartados, setApartados] = useState<Apartado[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
-  const [vista, setVista] = useState<"activos" | "historial">("activos");
+  const [view, setView] = useState<"active" | "history">("active");
   const [now, setNow] = useState(() => Date.now());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Refresca el reloj local cada minuto para actualizar el contador de vigencia sin consultar la API.
+  // Refreshes the local clock every minute to update the countdown without calling the API.
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);
   }, []);
 
-  const fetchApartados = useCallback(
+  const fetchReservations = useCallback(
     async (
       targetPage = 1,
       size = pageSize,
       isRefresh = false,
-      currentVista = vista,
+      currentView = view,
     ) => {
       try {
         if (!isRefresh) setLoading(true);
@@ -104,18 +104,18 @@ export default function ApartadosScreen() {
         const staff = !!(await getUser())?.is_staff;
         setIsStaff(staff);
 
-        const params: Parameters<typeof apiGetApartados>[0] = {
+        const params: Parameters<typeof apiGetReservations>[0] = {
           page: targetPage,
           page_size: size,
         };
-        if (currentVista === "activos") {
-          params.estado = "PENDIENTE";
+        if (currentView === "active") {
+          params.status = "PENDING";
         } else {
-          params.historial = true;
+          params.history = true;
         }
 
-        const res = await apiGetApartados(params);
-        setApartados(res.results || []);
+        const res = await apiGetReservations(params);
+        setReservations(res.results || []);
         setTotalCount(res.count);
         setTotalPages(Math.max(1, Math.ceil(res.count / size)));
         setPage(targetPage);
@@ -126,7 +126,7 @@ export default function ApartadosScreen() {
         setRefreshing(false);
       }
     },
-    [pageSize, vista],
+    [pageSize, view],
   );
 
   useFocusEffect(
@@ -135,54 +135,54 @@ export default function ApartadosScreen() {
       getStoredPageSize().then((storedSize) => {
         if (!isMounted) return;
         setPageSize(storedSize);
-        fetchApartados(1, storedSize, false, vista);
+        fetchReservations(1, storedSize, false, view);
       });
       return () => {
         isMounted = false;
       };
-    }, [fetchApartados, vista]),
+    }, [fetchReservations, view]),
   );
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchApartados(page, pageSize, true, vista);
+    fetchReservations(page, pageSize, true, view);
   };
 
-  const handleSelectVista = (newVista: "activos" | "historial") => {
-    if (newVista === vista) return;
-    setVista(newVista);
+  const handleSelectView = (newView: "active" | "history") => {
+    if (newView === view) return;
+    setView(newView);
     setPage(1);
-    fetchApartados(1, pageSize, false, newVista);
+    fetchReservations(1, pageSize, false, newView);
   };
 
-  // Pide confirmación antes de aceptar (genera Venta) o rechazar (devuelve piezas al stock).
-  const resolver = async (
-    apartado: Apartado,
-    accion: "aceptar" | "rechazar",
+  // Asks for confirmation before accepting (creates a Sale) or rejecting (returns pieces to stock).
+  const resolveReservation = async (
+    reservation: Reservation,
+    action: "accept" | "reject",
   ) => {
-    const aceptar = accion === "aceptar";
+    const accept = action === "accept";
     const confirmed = await dialog.confirm({
-      title: aceptar ? "Aceptar apartado" : "Rechazar apartado",
-      message: aceptar
-        ? `${apartado.codigo}: se registrará la venta de ${apartado.cantidad} x "${apartado.mueble.nombre}".`
-        : `${apartado.codigo}: se liberarán ${apartado.cantidad} unidades de "${apartado.mueble.nombre}" al stock.`,
-      confirmText: aceptar ? "Aceptar" : "Rechazar",
+      title: accept ? "Aceptar apartado" : "Rechazar apartado",
+      message: accept
+        ? `${reservation.code}: se registrará la venta de ${reservation.quantity} x "${reservation.furniture.name}".`
+        : `${reservation.code}: se liberarán ${reservation.quantity} unidades de "${reservation.furniture.name}" al stock.`,
+      confirmText: accept ? "Aceptar" : "Rechazar",
       cancelText: "Cancelar",
-      confirmStyle: aceptar ? "default" : "destructive",
+      confirmStyle: accept ? "default" : "destructive",
     });
 
     if (!confirmed) return;
 
     try {
-      setResolvingId(apartado.id);
-      if (aceptar) {
-        await apiAceptarApartado(apartado.id);
+      setResolvingId(reservation.id);
+      if (accept) {
+        await apiAcceptReservation(reservation.id);
       } else {
-        await apiRechazarApartado(apartado.id);
+        await apiRejectReservation(reservation.id);
       }
-      // Si la página actual queda vacía tras resolver un apartado, regresar a la página anterior si existe
-      const targetPage = apartados.length === 1 && page > 1 ? page - 1 : page;
-      await fetchApartados(targetPage, pageSize, false, vista);
+      // If the current page is empty after resolving a reservation, go back to the previous page if there is one
+      const targetPage = reservations.length === 1 && page > 1 ? page - 1 : page;
+      await fetchReservations(targetPage, pageSize, false, view);
     } catch (err: any) {
       dialog.alert({
         title: "Error",
@@ -193,12 +193,12 @@ export default function ApartadosScreen() {
     }
   };
 
-  const lista = apartados;
+  const list = reservations;
 
-  const renderItem = ({ item }: { item: Apartado }) => {
-    const badge = ESTADO_BADGE[item.estado];
+  const renderItem = ({ item }: { item: Reservation }) => {
+    const badge = STATUS_BADGE[item.status];
     const total =
-      item.venta?.total ?? Number(item.mueble.precio) * item.cantidad;
+      item.sale?.total ?? Number(item.furniture.price) * item.quantity;
     const resolving = resolvingId === item.id;
 
     return (
@@ -209,9 +209,9 @@ export default function ApartadosScreen() {
         ]}
       >
         <Pressable
-          onPress={() => router.push(`/(app)/mueble/${item.mueble.id}`)}
+          onPress={() => router.push(`/(app)/furniture/${item.furniture.id}`)}
           accessibilityRole="button"
-          accessibilityLabel={`Apartado ${item.codigo} para ${item.mueble.nombre}`}
+          accessibilityLabel={`Apartado ${item.code} para ${item.furniture.name}`}
           accessibilityHint="Toca para ver el detalle de este mueble"
         >
           <View style={styles.cardHeader}>
@@ -219,16 +219,16 @@ export default function ApartadosScreen() {
               style={[styles.cardTitle, { color: colors.text }]}
               numberOfLines={1}
             >
-              {item.mueble.nombre}
+              {item.furniture.name}
             </Text>
             <Badge label={badge.label} variant={badge.variant} size="small" />
           </View>
           <Text style={[styles.cardCode, { color: colors.accent }]}>
-            {item.codigo}
+            {item.code}
           </Text>
 
           <Text style={[styles.cardDetail, { color: colors.textMuted }]}>
-            {item.cantidad} {item.cantidad === 1 ? "pieza" : "piezas"} · Total{" "}
+            {item.quantity} {item.quantity === 1 ? "pieza" : "piezas"} · Total{" "}
             {formatPrice(total)}
           </Text>
           {isStaff ? (
@@ -240,30 +240,30 @@ export default function ApartadosScreen() {
                 ]}
               >
                 Cliente:{" "}
-                {item.usuario_activo === false
-                  ? item.usuario_nombre
-                    ? `${item.usuario_nombre} (cuenta eliminada)`
+                {item.user_active === false
+                  ? item.user_full_name
+                    ? `${item.user_full_name} (cuenta eliminada)`
                     : "Cuenta eliminada"
-                  : item.usuario_nombre
-                    ? `${item.usuario_nombre} (@${item.usuario_username})`
-                    : item.usuario_username}
+                  : item.user_full_name
+                    ? `${item.user_full_name} (@${item.user_username})`
+                    : item.user_username}
               </Text>
-              {item.usuario_email ? (
+              {item.user_email ? (
                 <Text style={[styles.cardDetail, { color: colors.textMuted }]}>
-                  Contacto: {item.usuario_email}
+                  Contacto: {item.user_email}
                 </Text>
               ) : null}
             </View>
           ) : null}
           <Text style={[styles.cardDate, { color: colors.textMuted }]}>
-            {new Date(item.creado_en).toLocaleString("es-MX")}
+            {new Date(item.created_at).toLocaleString("es-MX")}
           </Text>
 
-          {item.estado === "PENDIENTE"
+          {item.status === "PENDING"
             ? (() => {
-                const restante = new Date(item.expira_en).getTime() - now;
-                const urgente = restante < 24 * 3600 * 1000;
-                const color = urgente ? colors.danger : colors.warning;
+                const timeLeft = new Date(item.expires_at).getTime() - now;
+                const isUrgent = timeLeft < 24 * 3600 * 1000;
+                const color = isUrgent ? colors.danger : colors.warning;
                 return (
                   <View
                     style={[
@@ -273,8 +273,8 @@ export default function ApartadosScreen() {
                   >
                     <Ionicons name="time-outline" size={14} color={color} />
                     <Text style={[styles.countdownText, { color }]}>
-                      {restante > 0
-                        ? `Vence en ${formatRestante(restante)}`
+                      {timeLeft > 0
+                        ? `Vence en ${formatTimeLeft(timeLeft)}`
                         : "Vencido, se cancelará al actualizar"}
                     </Text>
                   </View>
@@ -283,7 +283,7 @@ export default function ApartadosScreen() {
             : null}
         </Pressable>
 
-        {isStaff && item.estado === "PENDIENTE" ? (
+        {isStaff && item.status === "PENDING" ? (
           <View style={styles.actionsRow}>
             {resolving ? (
               <ActivityIndicator color={colors.accent} />
@@ -297,7 +297,7 @@ export default function ApartadosScreen() {
                       borderColor: `${colors.danger}40`,
                     },
                   ]}
-                  onPress={() => resolver(item, "rechazar")}
+                  onPress={() => resolveReservation(item, "reject")}
                   accessibilityRole="button"
                   accessibilityLabel="Rechazar apartado"
                   accessibilityHint="Cancela este apartado y regresa las unidades al inventario disponible"
@@ -315,7 +315,7 @@ export default function ApartadosScreen() {
                       borderColor: colors.accent,
                     },
                   ]}
-                  onPress={() => resolver(item, "aceptar")}
+                  onPress={() => resolveReservation(item, "accept")}
                   accessibilityRole="button"
                   accessibilityLabel="Aceptar apartado"
                   accessibilityHint="Aprueba el apartado y formaliza la venta de los muebles"
@@ -345,7 +345,7 @@ export default function ApartadosScreen() {
               {isStaff ? "Gestión de Apartados" : "Mis Apartados"}
             </Text>
             <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-              {vista === "activos"
+              {view === "active"
                 ? `${totalCount} ${totalCount === 1 ? "apartado activo" : "apartados activos"}`
                 : `${totalCount} ${totalCount === 1 ? "apartado resuelto" : "apartados resueltos"}`}
             </Text>
@@ -360,46 +360,46 @@ export default function ApartadosScreen() {
       </View>
 
       <View style={[styles.tabsRow, desktopContainerStyle]}>
-        {(["activos", "historial"] as const).map((v) => (
+        {(["active", "history"] as const).map((v) => (
           <Pressable
             key={v}
             style={[
               styles.tabChip,
-              vista === v
+              view === v
                 ? { backgroundColor: colors.accent, borderColor: colors.accent }
                 : { backgroundColor: colors.card, borderColor: colors.border },
             ]}
-            onPress={() => handleSelectVista(v)}
+            onPress={() => handleSelectView(v)}
             accessibilityRole="tab"
-            accessibilityState={{ selected: vista === v }}
+            accessibilityState={{ selected: view === v }}
             accessibilityLabel={
-              v === "activos" ? "Pestaña Activos" : "Pestaña Historial"
+              v === "active" ? "Pestaña Activos" : "Pestaña Historial"
             }
-            accessibilityHint={`Filtra la lista para mostrar apartados ${v === "activos" ? "pendientes" : "resueltos"}`}
+            accessibilityHint={`Filtra la lista para mostrar apartados ${v === "active" ? "pendientes" : "resueltos"}`}
           >
             <Text
               style={[
                 styles.tabChipText,
-                { color: vista === v ? "#FFFFFF" : colors.text },
+                { color: view === v ? "#FFFFFF" : colors.text },
               ]}
             >
-              {v === "activos" ? "Activos" : "Historial"}
+              {v === "active" ? "Activos" : "Historial"}
             </Text>
           </Pressable>
         ))}
       </View>
 
-      {/* Muestra skeleton en la carga inicial para mantener estabilidad visual antes de renderizar la lista. */}
+      {/* Shows a skeleton on the first load to keep the layout stable before the list renders. */}
       {loading && !refreshing ? (
-        <ApartadosSkeleton />
+        <ReservationsSkeleton />
       ) : error ? (
         <ErrorView
           message={error}
-          onRetry={() => fetchApartados(page, pageSize, false, vista)}
+          onRetry={() => fetchReservations(page, pageSize, false, view)}
         />
       ) : (
         <FlatList
-          data={lista}
+          data={list}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={[styles.listContent, desktopContainerStyle]}
@@ -417,21 +417,21 @@ export default function ApartadosScreen() {
               <Pagination
                 page={page}
                 totalPages={totalPages}
-                onPageChange={(p) => fetchApartados(p, pageSize, false, vista)}
+                onPageChange={(p) => fetchReservations(p, pageSize, false, view)}
               />
             ) : undefined
           }
           ListEmptyComponent={
             <EmptyView
               title={
-                vista === "historial"
+                view === "history"
                   ? "Sin historial"
                   : isStaff
                     ? "No hay apartados pendientes"
                     : "No tienes apartados activos"
               }
               description={
-                vista === "historial"
+                view === "history"
                   ? isStaff
                     ? "Aquí verás los apartados aceptados, rechazados o vencidos."
                     : "Aquí verás tus apartados aceptados, rechazados o vencidos."
@@ -439,14 +439,14 @@ export default function ApartadosScreen() {
                     ? "Cuando un cliente aparte un mueble aparecerá aquí para que lo revises."
                     : "Abre un mueble del catálogo y apártalo para reservar tus piezas."
               }
-              icon={vista === "historial" ? "time-outline" : "bookmark-outline"}
+              icon={view === "history" ? "time-outline" : "bookmark-outline"}
               actionLabel={
-                isStaff || vista === "historial"
+                isStaff || view === "history"
                   ? undefined
                   : "Explorar catálogo"
               }
               onAction={
-                isStaff || vista === "historial"
+                isStaff || view === "history"
                   ? undefined
                   : () => router.replace("/")
               }

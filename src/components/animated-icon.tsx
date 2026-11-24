@@ -1,4 +1,4 @@
-// Animaciones de splash e ícono nativo heredadas de la plantilla inicial de Expo.
+// Splash and native icon animations inherited from Expo's starter template.
 
 import { Image } from "expo-image";
 import * as SplashScreen from "expo-splash-screen";

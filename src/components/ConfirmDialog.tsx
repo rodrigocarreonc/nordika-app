@@ -1,4 +1,4 @@
-// Modal reutilizable para alertas, confirmaciones destructivas y acciones múltiples en Web y móvil.
+// Reusable modal for alerts, destructive confirmations and multiple actions on Web and mobile.
 
 import React, { useState } from "react";
 import {
@@ -53,7 +53,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const isLoading = externalLoading || internalLoading;
 
-  // Bloquea el cierre accidental tocando fuera mientras corre una acción asíncrona.
+  // Blocks accidental closing by tapping outside while an async action is running.
   const handleBackdropPress = () => {
     if (isLoading) return;
     if (onClose) {
@@ -63,7 +63,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     }
   };
 
-  // Mantiene el spinner activo y deshabilita botones mientras se resuelve la promesa de onPress.
+  // Keeps the spinner active and disables buttons while onPress's promise resolves.
   const handleAction = async (action?: () => void | Promise<void>) => {
     if (!action) {
       if (onClose) onClose();
@@ -116,14 +116,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onRequestClose={handleBackdropPress}
     >
       <View style={styles.overlay}>
-        {/* Fondo semitransparente que cierra el modal al pulsar fuera de la tarjeta */}
+        {/* Semi-transparent backdrop that closes the modal when tapping outside the card */}
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={handleBackdropPress}
           accessible={false}
         />
 
-        {/* Tarjeta del dialogo: captura toques internos para que no se propaguen al fondo */}
+        {/* Dialog card: captures inner taps so they don't reach the backdrop */}
         <View
           style={[
             styles.card,
@@ -149,7 +149,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             </Text>
           )}
 
-          {/* Soporta arreglo personalizado de botones (en columna si hay mas de 2) o par estandar */}
+          {/* Supports a custom button array (stacked when there are more than 2) or the standard pair */}
           {buttons && buttons.length > 0 ? (
             <View
               style={[

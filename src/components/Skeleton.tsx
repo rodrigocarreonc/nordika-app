@@ -1,4 +1,4 @@
-// Bloques y plantillas de carga tipo skeleton con pulso suave, adaptadas a tema claro/oscuro y responsive.
+// Skeleton loading blocks and templates with a soft pulse, adapted to light/dark theme and responsive layouts.
 
 import React, { useEffect, useState } from "react";
 import {
@@ -14,7 +14,7 @@ import { Colors } from "../constants/theme";
 import { useColorScheme } from "../hooks/use-color-scheme";
 import { useResponsive } from "../hooks/use-responsive";
 
-// En Web el driver nativo no existe y emite advertencias; en iOS/Android corre en el hilo nativo.
+// On Web the native driver doesn't exist and logs warnings; on iOS/Android it runs on the native thread.
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
 export interface SkeletonBoxProps {
@@ -26,7 +26,7 @@ export interface SkeletonBoxProps {
 }
 
 /**
- * Bloque rectangular con animación de pulso continuo para representar contenido en carga.
+ * Rectangular block with a continuous pulse animation that stands in for loading content.
  */
 export const SkeletonBox: React.FC<SkeletonBoxProps> = ({
   width = "100%",
@@ -37,7 +37,7 @@ export const SkeletonBox: React.FC<SkeletonBoxProps> = ({
 }) => {
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
-  // useState con inicializador perezoso evita recrear Animated.Value en cada render y cumple react-hooks/refs.
+  // useState with a lazy initializer avoids recreating Animated.Value on every render and satisfies react-hooks/refs.
   const [opacity] = useState(() => new Animated.Value(0.45));
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export interface CatalogSkeletonProps {
 }
 
 /**
- * Skeleton de la cuadrícula de catálogo; respeta el número de columnas en móvil, tablet y escritorio.
+ * Catalog grid skeleton; respects the column count on mobile, tablet and desktop.
  */
 export const CatalogSkeleton: React.FC<CatalogSkeletonProps> = ({
   count,
@@ -100,7 +100,7 @@ export const CatalogSkeleton: React.FC<CatalogSkeletonProps> = ({
   const itemCount =
     count ?? (effectiveColumns === 3 ? 6 : effectiveColumns === 2 ? 4 : 3);
 
-  // Agrupa en filas explícitas para mantener tarjetas alineadas en cualquier ancho sin desbordes.
+  // Groups into explicit rows to keep cards aligned at any width without overflow.
   const rows: number[][] = [];
   for (let i = 0; i < itemCount; i += effectiveColumns) {
     const row: number[] = [];
@@ -173,9 +173,9 @@ export interface SimpleSkeletonProps {
 }
 
 /**
- * Skeleton de la ficha de detalle de mueble con imagen principal y tarjeta de especificaciones.
+ * Furniture detail skeleton with the main image and the specs card.
  */
-export const MuebleDetailSkeleton: React.FC<SimpleSkeletonProps> = ({
+export const FurnitureDetailSkeleton: React.FC<SimpleSkeletonProps> = ({
   style,
 }) => {
   const scheme = useColorScheme() ?? "light";
@@ -258,9 +258,9 @@ export interface ListSkeletonProps {
 }
 
 /**
- * Skeleton para el listado de apartados (tarjetas con miniatura, estado y totales).
+ * Reservations list skeleton (cards with thumbnail, status and totals).
  */
-export const ApartadosSkeleton: React.FC<ListSkeletonProps> = ({
+export const ReservationsSkeleton: React.FC<ListSkeletonProps> = ({
   count = 4,
   style,
 }) => {
@@ -282,9 +282,9 @@ export const ApartadosSkeleton: React.FC<ListSkeletonProps> = ({
     >
       {Array.from({ length: count }).map((_, index) => (
         <View
-          key={`apartado-skeleton-${index}`}
+          key={`reservation-skeleton-${index}`}
           style={[
-            styles.apartadoCard,
+            styles.reservationCard,
             {
               backgroundColor: colors.card,
               borderColor: colors.border,
@@ -293,7 +293,7 @@ export const ApartadosSkeleton: React.FC<ListSkeletonProps> = ({
         >
           <View style={styles.inlineRow}>
             <SkeletonBox width={64} height={64} borderRadius={10} />
-            <View style={styles.apartadoTextCol}>
+            <View style={styles.reservationTextCol}>
               <SkeletonBox width="76%" height={18} borderRadius={6} />
               <SkeletonBox width="52%" height={14} borderRadius={6} />
               <SkeletonBox width="40%" height={16} borderRadius={6} />
@@ -310,7 +310,7 @@ export const ApartadosSkeleton: React.FC<ListSkeletonProps> = ({
 };
 
 /**
- * Skeleton para tablas y listados administrativos (miniatura, líneas de texto y botones de acción).
+ * Skeleton for admin tables and lists (thumbnail, text lines and action buttons).
  */
 export const AdminListSkeleton: React.FC<ListSkeletonProps> = ({
   count = 5,
@@ -359,7 +359,7 @@ export const AdminListSkeleton: React.FC<ListSkeletonProps> = ({
 };
 
 /**
- * Skeleton para el formulario de creación/edición de muebles (selector de imagen y campos).
+ * Skeleton for the furniture create/edit form (image picker and fields).
  */
 export const FormSkeleton: React.FC<SimpleSkeletonProps> = ({ style }) => {
   const { contentMaxWidth } = useResponsive("content");
@@ -415,7 +415,7 @@ export const FormSkeleton: React.FC<SimpleSkeletonProps> = ({ style }) => {
 };
 
 /**
- * Skeleton compacto para la cabecera de perfil en la pantalla de ajustes.
+ * Compact skeleton for the profile header on the settings screen.
  */
 export const SettingsProfileSkeleton: React.FC<SimpleSkeletonProps> = ({
   style,
@@ -511,13 +511,13 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  apartadoCard: {
+  reservationCard: {
     borderRadius: 14,
     borderWidth: 1,
     padding: 14,
     gap: 14,
   },
-  apartadoTextCol: {
+  reservationTextCol: {
     flex: 1,
     gap: 8,
   },

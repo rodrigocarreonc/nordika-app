@@ -1,4 +1,4 @@
-// Variante Web de useColorScheme: fija "light" antes de hidratar para evitar diferencias en SSR.
+// Web variant of useColorScheme: returns "light" before hydration to avoid SSR mismatches.
 
 import { useEffect, useState } from "react";
 import { useColorScheme as useRNColorScheme } from "react-native";
