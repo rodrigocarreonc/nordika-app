@@ -1,4 +1,4 @@
-// Declaraciones de tipos para importar hojas CSS y CSS Modules en Expo Web sin errores de TS.
+// Type declarations to import CSS files and CSS Modules in Expo Web without TS errors.
 
 declare module "*.module.css" {
   const classes: { [key: string]: string };

@@ -1,4 +1,4 @@
-// Texto con variantes tipográficas conectado automáticamente a la paleta claro/oscuro activa.
+// Text with typographic variants wired automatically to the active light/dark palette.
 
 import { Platform, StyleSheet, Text, type TextProps } from "react-native";
 

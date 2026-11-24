@@ -1,4 +1,4 @@
-// Visor modal en pantalla completa para imágenes de muebles sin recorte, con cierre por botón, fondo, atrás o Escape.
+// Full-screen modal viewer for uncropped furniture images, closable via button, backdrop, back or Escape.
 
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -22,8 +22,8 @@ export interface ImageViewerModalProps {
 }
 
 /**
- * Muestra una imagen completa con `contentFit="contain"` sobre fondo oscuro.
- * Permite cerrar pulsando el botón, tocando fuera de la foto, con el botón atrás o tecla Escape en Web.
+ * Shows a full image with `contentFit="contain"` on a dark background.
+ * It closes with the button, by tapping outside the photo, with the back button or the Escape key on Web.
  */
 export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
   visible,
@@ -36,7 +36,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
 
   const isOpen = visible && Boolean(imageUri);
 
-  // En Web escucha la tecla Escape para cerrar el visor de forma natural desde teclado.
+  // On Web it listens for the Escape key to close the viewer naturally from the keyboard.
   useEffect(() => {
     if (Platform.OS !== "web" || !isOpen) return;
 
@@ -52,7 +52,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
     };
   }, [isOpen, onClose]);
 
-  // Dimensiones explícitas con margen perimetral para que expo-image no colapse y quede área clicable para cerrar.
+  // Explicit dimensions with an outer margin so expo-image doesn't collapse and a clickable area remains to close.
   const frameWidth = Math.max(Math.min(width * 0.92, 1200), 200);
   const frameHeight = Math.max(Math.min(height * 0.78, 840), 200);
 
@@ -69,7 +69,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
         accessibilityViewIsModal
         style={styles.overlay}
       >
-        {/* Fondo oscuro clicable detrás de la imagen para cerrar al tocar fuera */}
+        {/* Clickable dark backdrop behind the image to close when tapping outside */}
         <Pressable
           testID="fullscreen-image-backdrop"
           style={StyleSheet.absoluteFill}
@@ -78,7 +78,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
           accessibilityLabel="Cerrar imagen tocando el fondo"
         />
 
-        {/* Barra superior con título opcional y botón de cierre siempre visible */}
+        {/* Top bar with an optional title and an always-visible close button */}
         <View
           style={[
             styles.topBar,
@@ -112,7 +112,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
           </Pressable>
         </View>
 
-        {/* Contenedor de imagen centrado; captura sus propios toques para no cerrar al tocar la foto */}
+        {/* Centered image container; captures its own taps so tapping the photo doesn't close it */}
         <View
           style={[
             styles.imageFrame,

@@ -1,4 +1,4 @@
-// Pantalla principal del catálogo: búsqueda, filtro por categoría/stock, ordenamiento y paginación.
+// Main catalog screen: search, category/stock filter, sorting and pagination.
 
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -18,21 +18,21 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyView } from "../../../components/EmptyView";
 import { ErrorView } from "../../../components/ErrorView";
-import { MuebleCard } from "../../../components/MuebleCard";
+import { FurnitureCard } from "../../../components/FurnitureCard";
 import { Pagination } from "../../../components/Pagination";
 import { CatalogSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { useResponsive } from "../../../hooks/use-responsive";
-import { Categoria, Mueble } from "../../../types";
+import { Category, Furniture } from "../../../types";
 import {
-  apiGetCategorias,
-  apiGetMuebles,
-  apiToggleFavorito,
+  apiGetCategories,
+  apiGetFurnitureList,
+  apiToggleFavorite,
 } from "../../../utils/api";
 import { getStoredPageSize } from "../../../utils/settingsStorage";
 import { getUser } from "../../../utils/tokenStorage";
 
-type CatalogGridItem = Mueble | { id: number; __spacer: true };
+type CatalogGridItem = Furniture | { id: number; __spacer: true };
 
 export default function CatalogScreen() {
   const router = useRouter();
@@ -41,52 +41,52 @@ export default function CatalogScreen() {
   const { isMobile, catalogColumns, catalogMaxWidth } =
     useResponsive("catalog");
 
-  // Estados de datos
-  const [muebles, setMuebles] = useState<Mueble[]>([]);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  // Data state
+  const [furnitureList, setFurnitureList] = useState<Furniture[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // Estados de filtros y paginación
+  // Filter and pagination state
   const [search, setSearch] = useState("");
-  const [selectedCategoria, setSelectedCategoria] = useState<number | null>(
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(
     null,
   );
-  const [ordering, setOrdering] = useState("-creado_en");
+  const [ordering, setOrdering] = useState("-created_at");
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Estados de interfaz y feedback
+  // UI and feedback state
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
 
-  // Cargar usuario
+  // Load the user
   useEffect(() => {
     getUser().then((u) => {
       if (u) setCurrentUser(u);
     });
   }, []);
 
-  // Recargar categorías al volver al catálogo, para ver las creadas/editadas en Administración
-  const fetchCategorias = useCallback(() => {
-    apiGetCategorias()
+  // Reload categories when returning to the catalog, to see the ones created/edited in Administration
+  const fetchCategories = useCallback(() => {
+    apiGetCategories()
       .then((cats) => {
-        setCategorias(cats);
-        // Si la categoría filtrada se eliminó, volver a "Todas"
-        setSelectedCategoria((sel) =>
+        setCategories(cats);
+        // If the filtered category was deleted, go back to "Todas"
+        setSelectedCategory((sel) =>
           sel !== null && !cats.some((c) => c.id === sel) ? null : sel,
         );
       })
       .catch(() => {});
   }, []);
 
-  useFocusEffect(fetchCategorias);
+  useFocusEffect(fetchCategories);
 
-  // Consulta paginada respetando el page_size elegido en Ajustes y todos los filtros activos.
-  const fetchMuebles = useCallback(
+  // Paginated query honoring the page_size chosen in Settings and every active filter.
+  const fetchFurniture = useCallback(
     async (currentPage = 1, isRefresh = false) => {
       try {
         if (!isRefresh) setLoading(true);
@@ -94,16 +94,16 @@ export default function CatalogScreen() {
 
         const currentSize = await getStoredPageSize();
 
-        const data = await apiGetMuebles({
+        const data = await apiGetFurnitureList({
           page: currentPage,
           page_size: currentSize,
           search: search.trim() || undefined,
-          categoria: selectedCategoria || undefined,
-          en_stock: onlyInStock ? true : undefined,
+          category: selectedCategory || undefined,
+          in_stock: onlyInStock ? true : undefined,
           ordering: ordering,
         });
 
-        setMuebles(data.results || []);
+        setFurnitureList(data.results || []);
         setTotalPages(data.total_pages || 1);
         setTotalCount(data.count || 0);
         setPage(data.current_page || 1);
@@ -114,76 +114,76 @@ export default function CatalogScreen() {
         setRefreshing(false);
       }
     },
-    [search, selectedCategoria, onlyInStock, ordering],
+    [search, selectedCategory, onlyInStock, ordering],
   );
 
-  // Refrescar al enfocar pantalla
+  // Refresh when the screen gains focus
   useFocusEffect(
     useCallback(() => {
       getUser().then((u) => {
         if (u) setCurrentUser(u);
       });
-      fetchMuebles(page);
-    }, [fetchMuebles, page]),
+      fetchFurniture(page);
+    }, [fetchFurniture, page]),
   );
 
-  // Rellena la última fila de la cuadrícula con celdas vacías para evitar que una tarjeta aislada se estire al 100 %.
+  // Fills the last grid row with empty cells so a lone card does not stretch to 100%.
   const gridItems = useMemo<CatalogGridItem[]>(() => {
-    if (catalogColumns <= 1 || muebles.length === 0) return muebles;
-    const remainder = muebles.length % catalogColumns;
-    if (remainder === 0) return muebles;
+    if (catalogColumns <= 1 || furnitureList.length === 0) return furnitureList;
+    const remainder = furnitureList.length % catalogColumns;
+    if (remainder === 0) return furnitureList;
     const spacers: CatalogGridItem[] = Array.from(
       { length: catalogColumns - remainder },
       (_, idx) => ({ id: -(idx + 1), __spacer: true as const }),
     );
-    return [...muebles, ...spacers];
-  }, [muebles, catalogColumns]);
+    return [...furnitureList, ...spacers];
+  }, [furnitureList, catalogColumns]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchCategorias();
-    fetchMuebles(1, true);
+    fetchCategories();
+    fetchFurniture(1, true);
   };
 
   const handleSearchSubmit = () => {
     setPage(1);
-    fetchMuebles(1);
+    fetchFurniture(1);
   };
 
   const handleClearSearch = () => {
     setSearch("");
     setPage(1);
-    // dispara fetch inmediato con search vacío
-    setTimeout(() => fetchMuebles(1), 50);
+    // triggers an immediate fetch with an empty search
+    setTimeout(() => fetchFurniture(1), 50);
   };
 
-  const handleToggleFavorito = async (mueble: Mueble) => {
+  const handleToggleFavorite = async (furniture: Furniture) => {
     try {
-      const res = await apiToggleFavorito(mueble.id);
-      setMuebles((prev) =>
+      const res = await apiToggleFavorite(furniture.id);
+      setFurnitureList((prev) =>
         prev.map((m) =>
-          m.id === mueble.id
+          m.id === furniture.id
             ? {
                 ...m,
-                is_favorito: res.is_favorito,
-                favoritos_count: res.total_favoritos,
+                is_favorite: res.is_favorite,
+                favorites_count: res.favorites_count,
               }
             : m,
         ),
       );
     } catch {
-      // Si falla, el MuebleCard ya revierte su estado interno
+      // If it fails, FurnitureCard already reverts its internal state
     }
   };
 
   const orderingOptions = [
-    { label: "Más recientes", value: "-creado_en" },
-    { label: "Precio: menor a mayor", value: "precio" },
-    { label: "Precio: mayor a menor", value: "-precio" },
-    { label: "Nombre: A - Z", value: "nombre" },
+    { label: "Más recientes", value: "-created_at" },
+    { label: "Precio: menor a mayor", value: "price" },
+    { label: "Precio: mayor a menor", value: "-price" },
+    { label: "Nombre: A - Z", value: "name" },
   ];
 
-  // Contenedor centrado con ancho máximo en tablet/escritorio; en móvil se mantiene de ancho completo.
+  // Centered container with a max width on tablet/desktop; full width on mobile.
   const desktopContainerStyle = !isMobile
     ? {
         maxWidth: catalogMaxWidth,
@@ -197,7 +197,7 @@ export default function CatalogScreen() {
       style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={["top", "left", "right"]}
     >
-      {/* Header Superior con borde a todo el ancho y contenido centrado en escritorio */}
+      {/* Top header with a full-width border and centered content on desktop */}
       <View
         style={[styles.headerWrapper, { borderBottomColor: colors.border }]}
       >
@@ -227,14 +227,14 @@ export default function CatalogScreen() {
               <Ionicons name="filter-outline" size={20} color={colors.text} />
             </Pressable>
 
-            {/* Botón Nuevo Mueble (Solo Staff) */}
+            {/* New furniture button (staff only) */}
             {currentUser?.is_staff ? (
               <Pressable
                 style={[
                   styles.headerCreateButton,
                   { backgroundColor: colors.accent },
                 ]}
-                onPress={() => router.push("/(app)/mueble/form")}
+                onPress={() => router.push("/(app)/furniture/form")}
                 accessibilityRole="button"
                 accessibilityLabel="Nuevo mueble"
                 accessibilityHint="Abre el formulario para dar de alta un mueble"
@@ -247,7 +247,7 @@ export default function CatalogScreen() {
         </View>
       </View>
 
-      {/* Barra de Búsqueda */}
+      {/* Search bar */}
       <View style={[styles.searchSection, desktopContainerStyle]}>
         <View
           style={[
@@ -288,7 +288,7 @@ export default function CatalogScreen() {
         </View>
       </View>
 
-      {/* Chips de Categorías (Horizontal Scroll) */}
+      {/* Category chips (horizontal scroll) */}
       <View style={[styles.categoriesSection, desktopContainerStyle]}>
         <ScrollView
           horizontal
@@ -298,7 +298,7 @@ export default function CatalogScreen() {
           <Pressable
             style={[
               styles.categoryChip,
-              selectedCategoria === null
+              selectedCategory === null
                 ? {
                     backgroundColor: colors.primary,
                     borderColor: colors.primary,
@@ -306,7 +306,7 @@ export default function CatalogScreen() {
                 : { backgroundColor: colors.card, borderColor: colors.border },
             ]}
             onPress={() => {
-              setSelectedCategoria(null);
+              setSelectedCategory(null);
               setPage(1);
             }}
             accessibilityRole="button"
@@ -316,7 +316,7 @@ export default function CatalogScreen() {
             <Text
               style={[
                 styles.categoryChipText,
-                selectedCategoria === null
+                selectedCategory === null
                   ? { color: colors.onPrimary }
                   : { color: colors.text },
               ]}
@@ -325,8 +325,8 @@ export default function CatalogScreen() {
             </Text>
           </Pressable>
 
-          {categorias.map((cat) => {
-            const isSelected = selectedCategoria === cat.id;
+          {categories.map((cat) => {
+            const isSelected = selectedCategory === cat.id;
             return (
               <Pressable
                 key={cat.id}
@@ -343,12 +343,12 @@ export default function CatalogScreen() {
                       },
                 ]}
                 onPress={() => {
-                  setSelectedCategoria(isSelected ? null : cat.id);
+                  setSelectedCategory(isSelected ? null : cat.id);
                   setPage(1);
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={`Categoría: ${cat.nombre}`}
-                accessibilityHint={`Filtra los muebles para mostrar sólo de categoría ${cat.nombre}`}
+                accessibilityLabel={`Categoría: ${cat.name}`}
+                accessibilityHint={`Filtra los muebles para mostrar sólo de categoría ${cat.name}`}
               >
                 <Text
                   style={[
@@ -358,7 +358,7 @@ export default function CatalogScreen() {
                       : { color: colors.text },
                   ]}
                 >
-                  {cat.nombre}
+                  {cat.name}
                 </Text>
               </Pressable>
             );
@@ -366,7 +366,7 @@ export default function CatalogScreen() {
         </ScrollView>
       </View>
 
-      {/* Filtros Activos & Contador */}
+      {/* Active filters & counter */}
       <View style={[styles.filterStatsRow, desktopContainerStyle]}>
         <Text style={[styles.resultsCount, { color: colors.textMuted }]}>
           {totalCount}{" "}
@@ -408,13 +408,13 @@ export default function CatalogScreen() {
         </Pressable>
       </View>
 
-      {/* Lista de Muebles o Estados */}
+      {/* Furniture list or states */}
       {loading && !refreshing ? (
         <ScrollView showsVerticalScrollIndicator={false}>
           <CatalogSkeleton columns={catalogColumns} />
         </ScrollView>
       ) : error ? (
-        <ErrorView message={error} onRetry={() => fetchMuebles(page)} />
+        <ErrorView message={error} onRetry={() => fetchFurniture(page)} />
       ) : (
         <FlatList
           key={`grid-${catalogColumns}`}
@@ -430,11 +430,11 @@ export default function CatalogScreen() {
             "__spacer" in item ? (
               <View style={styles.gridSpacer} pointerEvents="none" />
             ) : (
-              <MuebleCard
-                mueble={item}
+              <FurnitureCard
+                furniture={item}
                 isGridItem={catalogColumns > 1}
-                onPress={() => router.push(`/(app)/mueble/${item.id}`)}
-                onToggleFavorito={handleToggleFavorito}
+                onPress={() => router.push(`/(app)/furniture/${item.id}`)}
+                onToggleFavorite={handleToggleFavorite}
               />
             )
           }
@@ -456,7 +456,7 @@ export default function CatalogScreen() {
               actionLabel="Ver todo el catálogo"
               onAction={() => {
                 setSearch("");
-                setSelectedCategoria(null);
+                setSelectedCategory(null);
                 setOnlyInStock(false);
                 setPage(1);
               }}
@@ -474,7 +474,7 @@ export default function CatalogScreen() {
         />
       )}
 
-      {/* Modal de Ordenamiento */}
+      {/* Sort modal */}
       <Modal
         visible={showOrderModal}
         transparent

@@ -1,4 +1,4 @@
-// Panel exclusivo de staff para gestionar CRUD de muebles, categorías y proveedores desde una sola vista.
+// Staff-only panel to manage furniture, category and supplier CRUD from a single view.
 
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -28,24 +28,24 @@ import { AdminListSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
 import { useResponsive } from "../../../hooks/use-responsive";
-import { Categoria, Mueble, Proveedor } from "../../../types";
+import { Category, Furniture, Supplier } from "../../../types";
 import {
-  apiCreateCategoria,
-  apiCreateProveedor,
-  apiDeleteCategoria,
-  apiDeleteMueble,
-  apiDeleteProveedor,
-  apiGetCategorias,
-  apiGetMuebles,
-  apiGetProveedores,
-  apiUpdateCategoria,
-  apiUpdateProveedor,
+  apiCreateCategory,
+  apiCreateSupplier,
+  apiDeleteCategory,
+  apiDeleteFurniture,
+  apiDeleteSupplier,
+  apiGetCategories,
+  apiGetFurnitureList,
+  apiGetSuppliers,
+  apiUpdateCategory,
+  apiUpdateSupplier,
   resolveImageUrl,
 } from "../../../utils/api";
 import { getStoredPageSize } from "../../../utils/settingsStorage";
 import { getUser } from "../../../utils/tokenStorage";
 
-type AdminModule = "muebles" | "categorias" | "proveedores";
+type AdminModule = "furniture" | "categories" | "suppliers";
 
 export default function AdminScreen() {
   const router = useRouter();
@@ -53,7 +53,7 @@ export default function AdminScreen() {
   const colors = Colors[scheme];
   const { isMobile, contentMaxWidth } = useResponsive("content");
 
-  // En tablet/escritorio limita el ancho de cabecera, controles y listas; en móvil conserva el diseño original.
+  // On tablet/desktop it limits the width of the header, controls and lists; mobile keeps the original layout.
   const desktopContainerStyle = !isMobile
     ? {
         maxWidth: contentMaxWidth,
@@ -63,71 +63,71 @@ export default function AdminScreen() {
     : undefined;
 
   // ==========================================
-  // ESTADO DE AUTENTICACIÓN / STAFF GUARD
+  // AUTH STATE / STAFF GUARD
   // ==========================================
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isStaff, setIsStaff] = useState(false);
 
-  // Módulo seleccionado (3 botones principales)
-  const [modulo, setModulo] = useState<AdminModule>("muebles");
+  // Selected module (3 main buttons)
+  const [selectedModule, setSelectedModule] = useState<AdminModule>("furniture");
 
   // ==========================================
-  // ESTADOS DEL MÓDULO MUEBLES
+  // FURNITURE MODULE STATE
   // ==========================================
-  const [muebles, setMuebles] = useState<Mueble[]>([]);
-  const [loadingMuebles, setLoadingMuebles] = useState(false);
-  const [refreshingMuebles, setRefreshingMuebles] = useState(false);
-  const [mueblesSearch, setMueblesSearch] = useState("");
-  const [mueblesPage, setMueblesPage] = useState(1);
-  const [mueblesTotalPages, setMueblesTotalPages] = useState(1);
-  const [mueblesTotalCount, setMueblesTotalCount] = useState(0);
-  const [mueblesImages, setMueblesImages] = useState<
+  const [furnitureList, setFurnitureList] = useState<Furniture[]>([]);
+  const [loadingFurniture, setLoadingFurniture] = useState(false);
+  const [refreshingFurniture, setRefreshingFurniture] = useState(false);
+  const [furnitureSearch, setFurnitureSearch] = useState("");
+  const [furniturePage, setFurniturePage] = useState(1);
+  const [furnitureTotalPages, setFurnitureTotalPages] = useState(1);
+  const [furnitureTotalCount, setFurnitureTotalCount] = useState(0);
+  const [furnitureImages, setFurnitureImages] = useState<
     Record<number, string | null>
   >({});
 
   // ==========================================
-  // ESTADOS DEL MÓDULO CATEGORÍAS
+  // CATEGORIES MODULE STATE
   // ==========================================
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [loadingCategorias, setLoadingCategorias] = useState(false);
-  const [refreshingCategorias, setRefreshingCategorias] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [refreshingCategories, setRefreshingCategories] = useState(false);
 
-  // Modal Categoría
+  // Category modal
   const [catModalVisible, setCatModalVisible] = useState(false);
   const [catModalMode, setCatModalMode] = useState<"create" | "edit">("create");
   const [editingCatId, setEditingCatId] = useState<number | null>(null);
-  const [catNombre, setCatNombre] = useState("");
-  const [catDescripcion, setCatDescripcion] = useState("");
+  const [catName, setCatName] = useState("");
+  const [catDescription, setCatDescription] = useState("");
   const [submittingCat, setSubmittingCat] = useState(false);
   const [catFormError, setCatFormError] = useState<string | null>(null);
 
   // ==========================================
-  // ESTADOS DEL MÓDULO PROVEEDORES
+  // SUPPLIERS MODULE STATE
   // ==========================================
-  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
-  const [loadingProveedores, setLoadingProveedores] = useState(false);
-  const [refreshingProveedores, setRefreshingProveedores] = useState(false);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+  const [refreshingSuppliers, setRefreshingSuppliers] = useState(false);
 
-  // Modal Proveedor
-  const [provModalVisible, setProvModalVisible] = useState(false);
-  const [provModalMode, setProvModalMode] = useState<"create" | "edit">(
+  // Supplier modal
+  const [supplierModalVisible, setSupplierModalVisible] = useState(false);
+  const [supplierModalMode, setSupplierModalMode] = useState<"create" | "edit">(
     "create",
   );
-  const [editingProvId, setEditingProvId] = useState<number | null>(null);
-  const [provNombre, setProvNombre] = useState("");
-  const [provContacto, setProvContacto] = useState("");
-  const [provTelefono, setProvTelefono] = useState("");
-  const [provEmail, setProvEmail] = useState("");
-  const [submittingProv, setSubmittingProv] = useState(false);
-  const [provFormError, setProvFormError] = useState<string | null>(null);
+  const [editingSupplierId, setEditingSupplierId] = useState<number | null>(null);
+  const [supplierName, setSupplierName] = useState("");
+  const [supplierContactName, setSupplierContactName] = useState("");
+  const [supplierPhone, setSupplierPhone] = useState("");
+  const [supplierEmail, setSupplierEmail] = useState("");
+  const [submittingSupplier, setSubmittingSupplier] = useState(false);
+  const [supplierFormError, setSupplierFormError] = useState<string | null>(null);
 
-  // Error genérico por pestaña
+  // Generic error per tab
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // ==========================================
-  // VERIFICACIÓN DE ACCESO STAFF
+  // STAFF ACCESS CHECK
   // ==========================================
-  // Bloquea acceso directo por URL en Web aunque la pestaña esté oculta para clientes.
+  // Blocks direct URL access on Web even though the tab is hidden from customers.
   const verifyStaffAccess = useCallback(async () => {
     try {
       const user = await getUser();
@@ -146,92 +146,92 @@ export default function AdminScreen() {
   }, [router]);
 
   // ==========================================
-  // CARGA DE DATOS: MUEBLES
+  // DATA LOADING: FURNITURE
   // ==========================================
-  const fetchMuebles = useCallback(
-    async (pageToLoad = mueblesPage, isRefresh = false) => {
+  const fetchFurniture = useCallback(
+    async (pageToLoad = furniturePage, isRefresh = false) => {
       try {
-        if (!isRefresh) setLoadingMuebles(true);
+        if (!isRefresh) setLoadingFurniture(true);
         setErrorMsg(null);
         const storedSize = await getStoredPageSize();
 
-        const data = await apiGetMuebles({
+        const data = await apiGetFurnitureList({
           page: pageToLoad,
           page_size: storedSize,
-          search: mueblesSearch.trim() || undefined,
+          search: furnitureSearch.trim() || undefined,
         });
 
-        setMuebles(data.results || []);
-        setMueblesTotalCount(data.count || 0);
-        setMueblesTotalPages(data.total_pages || 1);
-        setMueblesPage(data.current_page || pageToLoad);
+        setFurnitureList(data.results || []);
+        setFurnitureTotalCount(data.count || 0);
+        setFurnitureTotalPages(data.total_pages || 1);
+        setFurniturePage(data.current_page || pageToLoad);
 
-        // Resolver URLs de imágenes para las miniaturas
+        // Resolve image URLs for the thumbnails
         const urlMap: Record<number, string | null> = {};
         await Promise.all(
           (data.results || []).map(async (m) => {
-            if (m.imagen) {
-              urlMap[m.id] = await resolveImageUrl(m.imagen);
+            if (m.image) {
+              urlMap[m.id] = await resolveImageUrl(m.image);
             } else {
               urlMap[m.id] = null;
             }
           }),
         );
-        setMueblesImages(urlMap);
+        setFurnitureImages(urlMap);
       } catch (err: any) {
         setErrorMsg(err.message || "Error al obtener los muebles.");
       } finally {
-        setLoadingMuebles(false);
-        setRefreshingMuebles(false);
+        setLoadingFurniture(false);
+        setRefreshingFurniture(false);
       }
     },
-    [mueblesPage, mueblesSearch],
+    [furniturePage, furnitureSearch],
   );
 
   // ==========================================
-  // CARGA DE DATOS: CATEGORÍAS
+  // DATA LOADING: CATEGORIES
   // ==========================================
-  const fetchCategorias = useCallback(async (isRefresh = false) => {
+  const fetchCategories = useCallback(async (isRefresh = false) => {
     try {
-      if (!isRefresh) setLoadingCategorias(true);
+      if (!isRefresh) setLoadingCategories(true);
       setErrorMsg(null);
-      const data = await apiGetCategorias();
-      setCategorias(data);
+      const data = await apiGetCategories();
+      setCategories(data);
     } catch (err: any) {
       setErrorMsg(err.message || "Error al cargar las categorías.");
     } finally {
-      setLoadingCategorias(false);
-      setRefreshingCategorias(false);
+      setLoadingCategories(false);
+      setRefreshingCategories(false);
     }
   }, []);
 
   // ==========================================
-  // CARGA DE DATOS: PROVEEDORES
+  // DATA LOADING: SUPPLIERS
   // ==========================================
-  const fetchProveedores = useCallback(async (isRefresh = false) => {
+  const fetchSuppliers = useCallback(async (isRefresh = false) => {
     try {
-      if (!isRefresh) setLoadingProveedores(true);
+      if (!isRefresh) setLoadingSuppliers(true);
       setErrorMsg(null);
-      const data = await apiGetProveedores();
-      setProveedores(data);
+      const data = await apiGetSuppliers();
+      setSuppliers(data);
     } catch (err: any) {
       setErrorMsg(err.message || "Error al cargar los proveedores.");
     } finally {
-      setLoadingProveedores(false);
-      setRefreshingProveedores(false);
+      setLoadingSuppliers(false);
+      setRefreshingSuppliers(false);
     }
   }, []);
 
-  // Carga inicial y al enfocar la pantalla
+  // Initial load and on screen focus
   useFocusEffect(
     useCallback(() => {
       let active = true;
       (async () => {
         const ok = await verifyStaffAccess();
         if (ok && active) {
-          if (modulo === "muebles") fetchMuebles(1);
-          if (modulo === "categorias") fetchCategorias();
-          if (modulo === "proveedores") fetchProveedores();
+          if (selectedModule === "furniture") fetchFurniture(1);
+          if (selectedModule === "categories") fetchCategories();
+          if (selectedModule === "suppliers") fetchSuppliers();
         }
       })();
       return () => {
@@ -239,29 +239,29 @@ export default function AdminScreen() {
       };
     }, [
       verifyStaffAccess,
-      modulo,
-      fetchMuebles,
-      fetchCategorias,
-      fetchProveedores,
+      selectedModule,
+      fetchFurniture,
+      fetchCategories,
+      fetchSuppliers,
     ]),
   );
 
-  // Al cambiar de pestaña manual
-  const handleSelectModulo = (newModulo: AdminModule) => {
-    setModulo(newModulo);
+  // When the tab is switched manually
+  const handleSelectModule = (newModule: AdminModule) => {
+    setSelectedModule(newModule);
     setErrorMsg(null);
-    if (newModulo === "muebles") fetchMuebles(1);
-    if (newModulo === "categorias") fetchCategorias();
-    if (newModulo === "proveedores") fetchProveedores();
+    if (newModule === "furniture") fetchFurniture(1);
+    if (newModule === "categories") fetchCategories();
+    if (newModule === "suppliers") fetchSuppliers();
   };
 
   // ==========================================
-  // ACCIONES CRUD: MUEBLES
+  // CRUD ACTIONS: FURNITURE
   // ==========================================
-  const handleDeleteMueble = async (mueble: Mueble) => {
+  const handleDeleteFurniture = async (furniture: Furniture) => {
     const ok = await dialog.confirm({
       title: "Eliminar Mueble",
-      message: `¿Estás seguro de que deseas eliminar permanentemente "${mueble.nombre}"?`,
+      message: `¿Estás seguro de que deseas eliminar permanentemente "${furniture.name}"?`,
       confirmText: "Eliminar",
       cancelText: "Cancelar",
       confirmStyle: "destructive",
@@ -269,9 +269,9 @@ export default function AdminScreen() {
     if (!ok) return;
 
     try {
-      await apiDeleteMueble(mueble.id);
+      await apiDeleteFurniture(furniture.id);
       dialog.alert({ title: "Éxito", message: "El mueble ha sido eliminado." });
-      fetchMuebles(mueblesPage);
+      fetchFurniture(furniturePage);
     } catch (err: any) {
       dialog.alert({
         title: "No se pudo eliminar",
@@ -281,29 +281,29 @@ export default function AdminScreen() {
   };
 
   // ==========================================
-  // ACCIONES CRUD: CATEGORÍAS
+  // CRUD ACTIONS: CATEGORIES
   // ==========================================
-  const handleOpenCreateCategoria = () => {
+  const handleOpenCreateCategory = () => {
     setCatModalMode("create");
     setEditingCatId(null);
-    setCatNombre("");
-    setCatDescripcion("");
+    setCatName("");
+    setCatDescription("");
     setCatFormError(null);
     setCatModalVisible(true);
   };
 
-  const handleOpenEditCategoria = (cat: Categoria) => {
+  const handleOpenEditCategory = (cat: Category) => {
     setCatModalMode("edit");
     setEditingCatId(cat.id);
-    setCatNombre(cat.nombre);
-    setCatDescripcion(cat.descripcion || "");
+    setCatName(cat.name);
+    setCatDescription(cat.description || "");
     setCatFormError(null);
     setCatModalVisible(true);
   };
 
-  const handleSaveCategoria = async () => {
+  const handleSaveCategory = async () => {
     setCatFormError(null);
-    if (!catNombre.trim()) {
+    if (!catName.trim()) {
       setCatFormError("El nombre de la categoría no puede estar vacío.");
       return;
     }
@@ -312,20 +312,20 @@ export default function AdminScreen() {
       setSubmittingCat(true);
       let successMsg = "";
       if (catModalMode === "create") {
-        await apiCreateCategoria({
-          nombre: catNombre.trim(),
-          descripcion: catDescripcion.trim() || undefined,
+        await apiCreateCategory({
+          name: catName.trim(),
+          description: catDescription.trim() || undefined,
         });
         successMsg = "Categoría creada exitosamente.";
       } else if (editingCatId) {
-        await apiUpdateCategoria(editingCatId, {
-          nombre: catNombre.trim(),
-          descripcion: catDescripcion.trim() || "",
+        await apiUpdateCategory(editingCatId, {
+          name: catName.trim(),
+          description: catDescription.trim() || "",
         });
         successMsg = "Categoría actualizada exitosamente.";
       }
       setCatModalVisible(false);
-      fetchCategorias();
+      fetchCategories();
       if (successMsg) {
         dialog.alert({ title: "Éxito", message: successMsg });
       }
@@ -336,15 +336,15 @@ export default function AdminScreen() {
     }
   };
 
-  // Advierte antes de borrar: en backend Categoría usa SET_NULL, así que los muebles no se pierden.
-  const handleDeleteCategoria = async (cat: Categoria) => {
-    const count = cat.muebles_count ?? 0;
+  // Warns before deleting: Category uses SET_NULL in the backend, so the furniture is not lost.
+  const handleDeleteCategory = async (cat: Category) => {
+    const count = cat.furniture_count ?? 0;
     const countText =
       count === 1 ? "1 mueble asociado" : `${count} muebles asociados`;
     const message =
       count > 0
         ? `Esta categoría tiene ${countText}. Si la eliminas, esos muebles quedarán sin categoría asignada.\n\n¿Deseas continuar?`
-        : `¿Estás seguro de que deseas eliminar la categoría "${cat.nombre}"?`;
+        : `¿Estás seguro de que deseas eliminar la categoría "${cat.name}"?`;
 
     const ok = await dialog.confirm({
       title: "Eliminar Categoría",
@@ -356,9 +356,9 @@ export default function AdminScreen() {
     if (!ok) return;
 
     try {
-      await apiDeleteCategoria(cat.id);
+      await apiDeleteCategory(cat.id);
       dialog.alert({ title: "Éxito", message: "Categoría eliminada." });
-      fetchCategorias();
+      fetchCategories();
     } catch (err: any) {
       dialog.alert({
         title: "No se pudo eliminar",
@@ -368,88 +368,88 @@ export default function AdminScreen() {
   };
 
   // ==========================================
-  // ACCIONES CRUD: PROVEEDORES
+  // CRUD ACTIONS: SUPPLIERS
   // ==========================================
-  const handleOpenCreateProveedor = () => {
-    setProvModalMode("create");
-    setEditingProvId(null);
-    setProvNombre("");
-    setProvContacto("");
-    setProvTelefono("");
-    setProvEmail("");
-    setProvFormError(null);
-    setProvModalVisible(true);
+  const handleOpenCreateSupplier = () => {
+    setSupplierModalMode("create");
+    setEditingSupplierId(null);
+    setSupplierName("");
+    setSupplierContactName("");
+    setSupplierPhone("");
+    setSupplierEmail("");
+    setSupplierFormError(null);
+    setSupplierModalVisible(true);
   };
 
-  const handleOpenEditProveedor = (prov: Proveedor) => {
-    setProvModalMode("edit");
-    setEditingProvId(prov.id);
-    setProvNombre(prov.nombre);
-    setProvContacto(prov.contacto || "");
-    setProvTelefono(prov.telefono || "");
-    setProvEmail(prov.email || "");
-    setProvFormError(null);
-    setProvModalVisible(true);
+  const handleOpenEditSupplier = (sup: Supplier) => {
+    setSupplierModalMode("edit");
+    setEditingSupplierId(sup.id);
+    setSupplierName(sup.name);
+    setSupplierContactName(sup.contact_name || "");
+    setSupplierPhone(sup.phone || "");
+    setSupplierEmail(sup.email || "");
+    setSupplierFormError(null);
+    setSupplierModalVisible(true);
   };
 
-  const handleSaveProveedor = async () => {
-    setProvFormError(null);
-    if (!provNombre.trim()) {
-      setProvFormError("El nombre del proveedor es obligatorio.");
+  const handleSaveSupplier = async () => {
+    setSupplierFormError(null);
+    if (!supplierName.trim()) {
+      setSupplierFormError("El nombre del proveedor es obligatorio.");
       return;
     }
-    if (!provContacto.trim() || !provTelefono.trim()) {
-      setProvFormError(
+    if (!supplierContactName.trim() || !supplierPhone.trim()) {
+      setSupplierFormError(
         "La persona de contacto y el teléfono son obligatorios.",
       );
       return;
     }
-    if (!/^\d{1,10}$/.test(provTelefono.trim())) {
-      setProvFormError("El teléfono no puede tener más de 10 dígitos.");
+    if (!/^\d{1,10}$/.test(supplierPhone.trim())) {
+      setSupplierFormError("El teléfono no puede tener más de 10 dígitos.");
       return;
     }
 
     try {
-      setSubmittingProv(true);
+      setSubmittingSupplier(true);
       let successMsg = "";
-      if (provModalMode === "create") {
-        await apiCreateProveedor({
-          nombre: provNombre.trim(),
-          contacto: provContacto.trim() || undefined,
-          telefono: provTelefono.trim() || undefined,
-          email: provEmail.trim() || undefined,
+      if (supplierModalMode === "create") {
+        await apiCreateSupplier({
+          name: supplierName.trim(),
+          contact_name: supplierContactName.trim() || undefined,
+          phone: supplierPhone.trim() || undefined,
+          email: supplierEmail.trim() || undefined,
         });
         successMsg = "Proveedor registrado exitosamente.";
-      } else if (editingProvId) {
-        await apiUpdateProveedor(editingProvId, {
-          nombre: provNombre.trim(),
-          contacto: provContacto.trim() || "",
-          telefono: provTelefono.trim() || "",
-          email: provEmail.trim() || "",
+      } else if (editingSupplierId) {
+        await apiUpdateSupplier(editingSupplierId, {
+          name: supplierName.trim(),
+          contact_name: supplierContactName.trim() || "",
+          phone: supplierPhone.trim() || "",
+          email: supplierEmail.trim() || "",
         });
         successMsg = "Proveedor actualizado exitosamente.";
       }
-      setProvModalVisible(false);
-      fetchProveedores();
+      setSupplierModalVisible(false);
+      fetchSuppliers();
       if (successMsg) {
         dialog.alert({ title: "Éxito", message: successMsg });
       }
     } catch (err: any) {
-      setProvFormError(err.message || "No se pudo guardar el proveedor.");
+      setSupplierFormError(err.message || "No se pudo guardar el proveedor.");
     } finally {
-      setSubmittingProv(false);
+      setSubmittingSupplier(false);
     }
   };
 
-  // Proveedor usa PROTECT en backend: si tiene muebles ligados responderá 409 Conflict.
-  const handleDeleteProveedor = async (prov: Proveedor) => {
-    const count = prov.muebles_count ?? 0;
+  // Supplier uses PROTECT in the backend: with linked furniture it answers 409 Conflict.
+  const handleDeleteSupplier = async (sup: Supplier) => {
+    const count = sup.furniture_count ?? 0;
     const countText =
       count === 1 ? "1 mueble asociado" : `${count} muebles asociados`;
     const message =
       count > 0
-        ? `El proveedor "${prov.nombre}" tiene ${countText}.\n\nNo se puede eliminar mientras tenga muebles en el catálogo.\n\n¿Deseas intentar eliminarlo?`
-        : `¿Estás seguro de que deseas eliminar permanentemente el proveedor "${prov.nombre}"?`;
+        ? `El proveedor "${sup.name}" tiene ${countText}.\n\nNo se puede eliminar mientras tenga muebles en el catálogo.\n\n¿Deseas intentar eliminarlo?`
+        : `¿Estás seguro de que deseas eliminar permanentemente el proveedor "${sup.name}"?`;
 
     const ok = await dialog.confirm({
       title: "Eliminar Proveedor",
@@ -461,9 +461,9 @@ export default function AdminScreen() {
     if (!ok) return;
 
     try {
-      await apiDeleteProveedor(prov.id);
+      await apiDeleteSupplier(sup.id);
       dialog.alert({ title: "Éxito", message: "Proveedor eliminado." });
-      fetchProveedores();
+      fetchSuppliers();
     } catch (err: any) {
       dialog.alert({
         title: "No se pudo eliminar",
@@ -472,7 +472,7 @@ export default function AdminScreen() {
     }
   };
 
-  // Helper para formato de precios
+  // Price formatting helper
   const formatPrice = (price: string | number) => {
     const num = typeof price === "number" ? price : parseFloat(price);
     return isNaN(num)
@@ -481,7 +481,7 @@ export default function AdminScreen() {
   };
 
   // ==========================================
-  // RENDER CONDICIONAL: AUTH CHECK
+  // CONDITIONAL RENDER: AUTH CHECK
   // ==========================================
   if (checkingAuth) {
     return (
@@ -495,18 +495,18 @@ export default function AdminScreen() {
   }
 
   if (!isStaff) {
-    return null; // Redirige por useEffect
+    return null; // Redirects via useEffect
   }
 
   // ==========================================
-  // RENDER DEL CONTENIDO
+  // CONTENT RENDER
   // ==========================================
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={["top", "left", "right"]}
     >
-      {/* Encabezado Superior */}
+      {/* Top header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View style={[styles.headerInner, desktopContainerStyle]}>
           <View style={styles.headerTitleRow}>
@@ -523,7 +523,7 @@ export default function AdminScreen() {
             <Badge label="STAFF" variant="warning" size="medium" />
           </View>
 
-          {/* 3 Botones Principales (Selector de Módulo) */}
+          {/* 3 main buttons (module selector) */}
           <View
             style={[
               styles.moduleSelector,
@@ -533,25 +533,25 @@ export default function AdminScreen() {
             <Pressable
               style={[
                 styles.moduleButton,
-                modulo === "muebles" && [
+                selectedModule === "furniture" && [
                   styles.moduleButtonActive,
                   { backgroundColor: colors.accent },
                 ],
               ]}
-              onPress={() => handleSelectModulo("muebles")}
+              onPress={() => handleSelectModule("furniture")}
               accessibilityRole="tab"
-              accessibilityState={{ selected: modulo === "muebles" }}
+              accessibilityState={{ selected: selectedModule === "furniture" }}
               accessibilityLabel="Módulo de muebles"
             >
               <Ionicons
-                name={modulo === "muebles" ? "cube" : "cube-outline"}
+                name={selectedModule === "furniture" ? "cube" : "cube-outline"}
                 size={18}
-                color={modulo === "muebles" ? "#FFFFFF" : colors.text}
+                color={selectedModule === "furniture" ? "#FFFFFF" : colors.text}
               />
               <Text
                 style={[
                   styles.moduleButtonText,
-                  { color: modulo === "muebles" ? "#FFFFFF" : colors.text },
+                  { color: selectedModule === "furniture" ? "#FFFFFF" : colors.text },
                 ]}
               >
                 Muebles
@@ -561,25 +561,25 @@ export default function AdminScreen() {
             <Pressable
               style={[
                 styles.moduleButton,
-                modulo === "categorias" && [
+                selectedModule === "categories" && [
                   styles.moduleButtonActive,
                   { backgroundColor: colors.accent },
                 ],
               ]}
-              onPress={() => handleSelectModulo("categorias")}
+              onPress={() => handleSelectModule("categories")}
               accessibilityRole="tab"
-              accessibilityState={{ selected: modulo === "categorias" }}
+              accessibilityState={{ selected: selectedModule === "categories" }}
               accessibilityLabel="Módulo de categorías"
             >
               <Ionicons
-                name={modulo === "categorias" ? "folder" : "folder-outline"}
+                name={selectedModule === "categories" ? "folder" : "folder-outline"}
                 size={18}
-                color={modulo === "categorias" ? "#FFFFFF" : colors.text}
+                color={selectedModule === "categories" ? "#FFFFFF" : colors.text}
               />
               <Text
                 style={[
                   styles.moduleButtonText,
-                  { color: modulo === "categorias" ? "#FFFFFF" : colors.text },
+                  { color: selectedModule === "categories" ? "#FFFFFF" : colors.text },
                 ]}
               >
                 Categorías
@@ -589,27 +589,27 @@ export default function AdminScreen() {
             <Pressable
               style={[
                 styles.moduleButton,
-                modulo === "proveedores" && [
+                selectedModule === "suppliers" && [
                   styles.moduleButtonActive,
                   { backgroundColor: colors.accent },
                 ],
               ]}
-              onPress={() => handleSelectModulo("proveedores")}
+              onPress={() => handleSelectModule("suppliers")}
               accessibilityRole="tab"
-              accessibilityState={{ selected: modulo === "proveedores" }}
+              accessibilityState={{ selected: selectedModule === "suppliers" }}
               accessibilityLabel="Módulo de proveedores"
             >
               <Ionicons
                 name={
-                  modulo === "proveedores" ? "business" : "business-outline"
+                  selectedModule === "suppliers" ? "business" : "business-outline"
                 }
                 size={18}
-                color={modulo === "proveedores" ? "#FFFFFF" : colors.text}
+                color={selectedModule === "suppliers" ? "#FFFFFF" : colors.text}
               />
               <Text
                 style={[
                   styles.moduleButtonText,
-                  { color: modulo === "proveedores" ? "#FFFFFF" : colors.text },
+                  { color: selectedModule === "suppliers" ? "#FFFFFF" : colors.text },
                 ]}
               >
                 Proveedores
@@ -619,26 +619,26 @@ export default function AdminScreen() {
         </View>
       </View>
 
-      {/* Vista de Error si falló alguna petición */}
+      {/* Error view if a request failed */}
       {errorMsg ? (
         <View style={[{ padding: 16 }, desktopContainerStyle]}>
           <ErrorView
             message={errorMsg}
             onRetry={() => {
-              if (modulo === "muebles") fetchMuebles(mueblesPage);
-              if (modulo === "categorias") fetchCategorias();
-              if (modulo === "proveedores") fetchProveedores();
+              if (selectedModule === "furniture") fetchFurniture(furniturePage);
+              if (selectedModule === "categories") fetchCategories();
+              if (selectedModule === "suppliers") fetchSuppliers();
             }}
           />
         </View>
       ) : null}
 
       {/* ======================================================== */}
-      {/* VISTA 1: MÓDULO MUEBLES                                   */}
+      {/* VIEW 1: FURNITURE MODULE                                 */}
       {/* ======================================================== */}
-      {modulo === "muebles" && (
+      {selectedModule === "furniture" && (
         <View style={styles.contentContainer}>
-          {/* Barra de Acciones y Búsqueda */}
+          {/* Actions and search bar */}
           <View style={[styles.actionsBar, desktopContainerStyle]}>
             <View
               style={[
@@ -655,16 +655,16 @@ export default function AdminScreen() {
                 style={[styles.searchInput, { color: colors.text }]}
                 placeholder="Buscar por nombre o descripción..."
                 placeholderTextColor={colors.textMuted}
-                value={mueblesSearch}
-                onChangeText={setMueblesSearch}
-                onSubmitEditing={() => fetchMuebles(1)}
+                value={furnitureSearch}
+                onChangeText={setFurnitureSearch}
+                onSubmitEditing={() => fetchFurniture(1)}
                 returnKeyType="search"
               />
-              {mueblesSearch ? (
+              {furnitureSearch ? (
                 <Pressable
                   onPress={() => {
-                    setMueblesSearch("");
-                    fetchMuebles(1);
+                    setFurnitureSearch("");
+                    fetchFurniture(1);
                   }}
                   hitSlop={8}
                   accessibilityRole="button"
@@ -681,7 +681,7 @@ export default function AdminScreen() {
 
             <Pressable
               style={[styles.createButton, { backgroundColor: colors.accent }]}
-              onPress={() => router.push("/(app)/mueble/form")}
+              onPress={() => router.push("/(app)/furniture/form")}
               accessibilityRole="button"
               accessibilityLabel="Nuevo mueble"
               accessibilityHint="Abre el formulario para registrar un nuevo mueble"
@@ -691,21 +691,21 @@ export default function AdminScreen() {
             </Pressable>
           </View>
 
-          {/* Contador de Muebles */}
+          {/* Furniture counter */}
           <View style={[styles.countRow, desktopContainerStyle]}>
             <Text style={[styles.countText, { color: colors.textMuted }]}>
-              {mueblesTotalCount}{" "}
-              {mueblesTotalCount === 1
+              {furnitureTotalCount}{" "}
+              {furnitureTotalCount === 1
                 ? "mueble encontrado"
                 : "muebles encontrados"}
             </Text>
           </View>
 
-          {loadingMuebles && !refreshingMuebles ? (
+          {loadingFurniture && !refreshingFurniture ? (
             <AdminListSkeleton />
           ) : (
             <FlatList
-              data={muebles}
+              data={furnitureList}
               keyExtractor={(item) => item.id.toString()}
               contentContainerStyle={[
                 styles.listContent,
@@ -713,10 +713,10 @@ export default function AdminScreen() {
               ]}
               refreshControl={
                 <RefreshControl
-                  refreshing={refreshingMuebles}
+                  refreshing={refreshingFurniture}
                   onRefresh={() => {
-                    setRefreshingMuebles(true);
-                    fetchMuebles(1, true);
+                    setRefreshingFurniture(true);
+                    fetchFurniture(1, true);
                   }}
                   colors={[colors.accent]}
                   tintColor={colors.accent}
@@ -726,16 +726,16 @@ export default function AdminScreen() {
                 <EmptyView
                   title="No se encontraron muebles"
                   description={
-                    mueblesSearch
+                    furnitureSearch
                       ? "Intenta con otro término de búsqueda."
                       : "Aún no hay muebles registrados en el catálogo."
                   }
                   actionLabel="+ Crear primer mueble"
-                  onAction={() => router.push("/(app)/mueble/form")}
+                  onAction={() => router.push("/(app)/furniture/form")}
                 />
               }
               renderItem={({ item }) => {
-                const imgUri = mueblesImages[item.id];
+                const imgUri = furnitureImages[item.id];
                 return (
                   <View
                     style={[
@@ -747,10 +747,10 @@ export default function AdminScreen() {
                     ]}
                   >
                     <Pressable
-                      style={styles.muebleItemMain}
-                      onPress={() => router.push(`/(app)/mueble/${item.id}`)}
+                      style={styles.furnitureItemMain}
+                      onPress={() => router.push(`/(app)/furniture/${item.id}`)}
                     >
-                      {/* En escritorio usa contain sobre backgroundElement para no recortar la miniatura del mueble. */}
+                      {/* On desktop uses contain over backgroundElement so the furniture thumbnail is not cropped. */}
                       <View
                         style={[
                           styles.thumbContainer,
@@ -772,34 +772,34 @@ export default function AdminScreen() {
                         )}
                       </View>
 
-                      <View style={styles.muebleItemInfo}>
+                      <View style={styles.furnitureItemInfo}>
                         <Text
                           style={[
-                            styles.muebleItemTitle,
+                            styles.furnitureItemTitle,
                             { color: colors.text },
                           ]}
                           numberOfLines={1}
                         >
-                          {item.nombre}
+                          {item.name}
                         </Text>
                         <Text
                           style={[
-                            styles.muebleItemCategory,
+                            styles.furnitureItemCategory,
                             { color: colors.textMuted },
                           ]}
                           numberOfLines={1}
                         >
-                          {item.categoria?.nombre || "Sin categoría"} •{" "}
-                          {item.proveedor?.nombre || "Proveedor"}
+                          {item.category?.name || "Sin categoría"} •{" "}
+                          {item.supplier?.name || "Proveedor"}
                         </Text>
-                        <View style={styles.muebleItemPriceRow}>
+                        <View style={styles.furnitureItemPriceRow}>
                           <Text
                             style={[
-                              styles.muebleItemPrice,
+                              styles.furnitureItemPrice,
                               { color: colors.accent },
                             ]}
                           >
-                            {formatPrice(item.precio)}
+                            {formatPrice(item.price)}
                           </Text>
                           <Badge
                             label={
@@ -819,7 +819,7 @@ export default function AdminScreen() {
                       </View>
                     </Pressable>
 
-                    {/* Acciones Editar y Eliminar */}
+                    {/* Edit and delete actions */}
                     <View
                       style={[
                         styles.itemActions,
@@ -832,10 +832,10 @@ export default function AdminScreen() {
                           { borderColor: colors.border },
                         ]}
                         onPress={() =>
-                          router.push(`/(app)/mueble/form?id=${item.id}`)
+                          router.push(`/(app)/furniture/form?id=${item.id}`)
                         }
                         accessibilityRole="button"
-                        accessibilityLabel={`Editar mueble ${item.nombre}`}
+                        accessibilityLabel={`Editar mueble ${item.name}`}
                       >
                         <Ionicons
                           name="create-outline"
@@ -857,9 +857,9 @@ export default function AdminScreen() {
                             backgroundColor: `${colors.danger}10`,
                           },
                         ]}
-                        onPress={() => handleDeleteMueble(item)}
+                        onPress={() => handleDeleteFurniture(item)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Eliminar mueble ${item.nombre}`}
+                        accessibilityLabel={`Eliminar mueble ${item.name}`}
                       >
                         <Ionicons
                           name="trash-outline"
@@ -881,9 +881,9 @@ export default function AdminScreen() {
               }}
               ListFooterComponent={
                 <Pagination
-                  page={mueblesPage}
-                  totalPages={mueblesTotalPages}
-                  onPageChange={(p) => fetchMuebles(p)}
+                  page={furniturePage}
+                  totalPages={furnitureTotalPages}
+                  onPageChange={(p) => fetchFurniture(p)}
                 />
               }
             />
@@ -892,15 +892,15 @@ export default function AdminScreen() {
       )}
 
       {/* ======================================================== */}
-      {/* VISTA 2: MÓDULO CATEGORÍAS                                */}
+      {/* VIEW 2: CATEGORIES MODULE                                */}
       {/* ======================================================== */}
-      {modulo === "categorias" && (
+      {selectedModule === "categories" && (
         <View style={styles.contentContainer}>
           <View style={[styles.actionsBar, desktopContainerStyle]}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.countText, { color: colors.textMuted }]}>
-                {categorias.length}{" "}
-                {categorias.length === 1
+                {categories.length}{" "}
+                {categories.length === 1
                   ? "categoría registrada"
                   : "categorías registradas"}
               </Text>
@@ -908,7 +908,7 @@ export default function AdminScreen() {
 
             <Pressable
               style={[styles.createButton, { backgroundColor: colors.accent }]}
-              onPress={handleOpenCreateCategoria}
+              onPress={handleOpenCreateCategory}
               accessibilityRole="button"
               accessibilityLabel="Nueva categoría"
             >
@@ -917,11 +917,11 @@ export default function AdminScreen() {
             </Pressable>
           </View>
 
-          {loadingCategorias && !refreshingCategorias ? (
+          {loadingCategories && !refreshingCategories ? (
             <AdminListSkeleton />
           ) : (
             <FlatList
-              data={categorias}
+              data={categories}
               keyExtractor={(item) => item.id.toString()}
               contentContainerStyle={[
                 styles.listContent,
@@ -929,10 +929,10 @@ export default function AdminScreen() {
               ]}
               refreshControl={
                 <RefreshControl
-                  refreshing={refreshingCategorias}
+                  refreshing={refreshingCategories}
                   onRefresh={() => {
-                    setRefreshingCategorias(true);
-                    fetchCategorias(true);
+                    setRefreshingCategories(true);
+                    fetchCategories(true);
                   }}
                   colors={[colors.accent]}
                   tintColor={colors.accent}
@@ -943,11 +943,11 @@ export default function AdminScreen() {
                   title="No hay categorías"
                   description="Crea la primera categoría para organizar los muebles del catálogo."
                   actionLabel="+ Crear categoría"
-                  onAction={handleOpenCreateCategoria}
+                  onAction={handleOpenCreateCategory}
                 />
               }
               renderItem={({ item }) => {
-                const count = item.muebles_count ?? 0;
+                const count = item.furniture_count ?? 0;
                 return (
                   <View
                     style={[
@@ -958,21 +958,21 @@ export default function AdminScreen() {
                       },
                     ]}
                   >
-                    <View style={styles.catProvHeader}>
+                    <View style={styles.catSupplierHeader}>
                       <View style={{ flex: 1, marginRight: 8 }}>
                         <Text
                           style={[styles.cardItemTitle, { color: colors.text }]}
                         >
-                          {item.nombre}
+                          {item.name}
                         </Text>
-                        {item.descripcion ? (
+                        {item.description ? (
                           <Text
                             style={[
                               styles.cardItemDesc,
                               { color: colors.textMuted },
                             ]}
                           >
-                            {item.descripcion}
+                            {item.description}
                           </Text>
                         ) : (
                           <Text
@@ -991,7 +991,7 @@ export default function AdminScreen() {
                       />
                     </View>
 
-                    {/* Acciones Editar y Eliminar */}
+                    {/* Edit and delete actions */}
                     <View
                       style={[
                         styles.itemActions,
@@ -1003,9 +1003,9 @@ export default function AdminScreen() {
                           styles.actionBtn,
                           { borderColor: colors.border },
                         ]}
-                        onPress={() => handleOpenEditCategoria(item)}
+                        onPress={() => handleOpenEditCategory(item)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Editar categoría ${item.nombre}`}
+                        accessibilityLabel={`Editar categoría ${item.name}`}
                       >
                         <Ionicons
                           name="create-outline"
@@ -1027,9 +1027,9 @@ export default function AdminScreen() {
                             backgroundColor: `${colors.danger}10`,
                           },
                         ]}
-                        onPress={() => handleDeleteCategoria(item)}
+                        onPress={() => handleDeleteCategory(item)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Eliminar categoría ${item.nombre}`}
+                        accessibilityLabel={`Eliminar categoría ${item.name}`}
                       >
                         <Ionicons
                           name="trash-outline"
@@ -1055,15 +1055,15 @@ export default function AdminScreen() {
       )}
 
       {/* ======================================================== */}
-      {/* VISTA 3: MÓDULO PROVEEDORES                               */}
+      {/* VIEW 3: SUPPLIERS MODULE                                 */}
       {/* ======================================================== */}
-      {modulo === "proveedores" && (
+      {selectedModule === "suppliers" && (
         <View style={styles.contentContainer}>
           <View style={[styles.actionsBar, desktopContainerStyle]}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.countText, { color: colors.textMuted }]}>
-                {proveedores.length}{" "}
-                {proveedores.length === 1
+                {suppliers.length}{" "}
+                {suppliers.length === 1
                   ? "proveedor registrado"
                   : "proveedores registrados"}
               </Text>
@@ -1071,7 +1071,7 @@ export default function AdminScreen() {
 
             <Pressable
               style={[styles.createButton, { backgroundColor: colors.accent }]}
-              onPress={handleOpenCreateProveedor}
+              onPress={handleOpenCreateSupplier}
               accessibilityRole="button"
               accessibilityLabel="Nuevo proveedor"
             >
@@ -1080,11 +1080,11 @@ export default function AdminScreen() {
             </Pressable>
           </View>
 
-          {loadingProveedores && !refreshingProveedores ? (
+          {loadingSuppliers && !refreshingSuppliers ? (
             <AdminListSkeleton />
           ) : (
             <FlatList
-              data={proveedores}
+              data={suppliers}
               keyExtractor={(item) => item.id.toString()}
               contentContainerStyle={[
                 styles.listContent,
@@ -1092,10 +1092,10 @@ export default function AdminScreen() {
               ]}
               refreshControl={
                 <RefreshControl
-                  refreshing={refreshingProveedores}
+                  refreshing={refreshingSuppliers}
                   onRefresh={() => {
-                    setRefreshingProveedores(true);
-                    fetchProveedores(true);
+                    setRefreshingSuppliers(true);
+                    fetchSuppliers(true);
                   }}
                   colors={[colors.accent]}
                   tintColor={colors.accent}
@@ -1106,11 +1106,11 @@ export default function AdminScreen() {
                   title="No hay proveedores"
                   description="Registra proveedores para asociarlos a los muebles del inventario."
                   actionLabel="+ Registrar proveedor"
-                  onAction={handleOpenCreateProveedor}
+                  onAction={handleOpenCreateSupplier}
                 />
               }
               renderItem={({ item }) => {
-                const count = item.muebles_count ?? 0;
+                const count = item.furniture_count ?? 0;
                 return (
                   <View
                     style={[
@@ -1121,17 +1121,17 @@ export default function AdminScreen() {
                       },
                     ]}
                   >
-                    <View style={styles.catProvHeader}>
+                    <View style={styles.catSupplierHeader}>
                       <View style={{ flex: 1, marginRight: 8 }}>
                         <Text
                           style={[styles.cardItemTitle, { color: colors.text }]}
                         >
-                          {item.nombre}
+                          {item.name}
                         </Text>
 
-                        {/* Datos de contacto */}
-                        {item.contacto ? (
-                          <View style={styles.provInfoRow}>
+                        {/* Contact details */}
+                        {item.contact_name ? (
+                          <View style={styles.supplierInfoRow}>
                             <Ionicons
                               name="person-outline"
                               size={14}
@@ -1139,17 +1139,17 @@ export default function AdminScreen() {
                             />
                             <Text
                               style={[
-                                styles.provInfoText,
+                                styles.supplierInfoText,
                                 { color: colors.textMuted },
                               ]}
                             >
-                              {item.contacto}
+                              {item.contact_name}
                             </Text>
                           </View>
                         ) : null}
 
-                        {item.telefono ? (
-                          <View style={styles.provInfoRow}>
+                        {item.phone ? (
+                          <View style={styles.supplierInfoRow}>
                             <Ionicons
                               name="call-outline"
                               size={14}
@@ -1157,17 +1157,17 @@ export default function AdminScreen() {
                             />
                             <Text
                               style={[
-                                styles.provInfoText,
+                                styles.supplierInfoText,
                                 { color: colors.textMuted },
                               ]}
                             >
-                              {item.telefono}
+                              {item.phone}
                             </Text>
                           </View>
                         ) : null}
 
                         {item.email ? (
-                          <View style={styles.provInfoRow}>
+                          <View style={styles.supplierInfoRow}>
                             <Ionicons
                               name="mail-outline"
                               size={14}
@@ -1175,7 +1175,7 @@ export default function AdminScreen() {
                             />
                             <Text
                               style={[
-                                styles.provInfoText,
+                                styles.supplierInfoText,
                                 { color: colors.textMuted },
                               ]}
                             >
@@ -1190,7 +1190,7 @@ export default function AdminScreen() {
                       />
                     </View>
 
-                    {/* Acciones Editar y Eliminar */}
+                    {/* Edit and delete actions */}
                     <View
                       style={[
                         styles.itemActions,
@@ -1202,9 +1202,9 @@ export default function AdminScreen() {
                           styles.actionBtn,
                           { borderColor: colors.border },
                         ]}
-                        onPress={() => handleOpenEditProveedor(item)}
+                        onPress={() => handleOpenEditSupplier(item)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Editar proveedor ${item.nombre}`}
+                        accessibilityLabel={`Editar proveedor ${item.name}`}
                       >
                         <Ionicons
                           name="create-outline"
@@ -1226,9 +1226,9 @@ export default function AdminScreen() {
                             backgroundColor: `${colors.danger}10`,
                           },
                         ]}
-                        onPress={() => handleDeleteProveedor(item)}
+                        onPress={() => handleDeleteSupplier(item)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Eliminar proveedor ${item.nombre}`}
+                        accessibilityLabel={`Eliminar proveedor ${item.name}`}
                       >
                         <Ionicons
                           name="trash-outline"
@@ -1254,7 +1254,7 @@ export default function AdminScreen() {
       )}
 
       {/* ======================================================== */}
-      {/* MODAL: FORMULARIO DE CATEGORÍA                           */}
+      {/* MODAL: CATEGORY FORM                                    */}
       {/* ======================================================== */}
       <Modal
         visible={catModalVisible}
@@ -1331,8 +1331,8 @@ export default function AdminScreen() {
                 ]}
                 placeholder="Ej. Salas y Sofás"
                 placeholderTextColor={colors.textMuted}
-                value={catNombre}
-                onChangeText={setCatNombre}
+                value={catName}
+                onChangeText={setCatName}
                 autoCapitalize="words"
               />
 
@@ -1356,8 +1356,8 @@ export default function AdminScreen() {
                 ]}
                 placeholder="Breve detalle sobre los muebles de esta categoría..."
                 placeholderTextColor={colors.textMuted}
-                value={catDescripcion}
-                onChangeText={setCatDescripcion}
+                value={catDescription}
+                onChangeText={setCatDescription}
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
@@ -1371,7 +1371,7 @@ export default function AdminScreen() {
                     opacity: submittingCat ? 0.7 : 1,
                   },
                 ]}
-                onPress={handleSaveCategoria}
+                onPress={handleSaveCategory}
                 disabled={submittingCat}
                 accessibilityRole="button"
                 accessibilityLabel={
@@ -1396,13 +1396,13 @@ export default function AdminScreen() {
       </Modal>
 
       {/* ======================================================== */}
-      {/* MODAL: FORMULARIO DE PROVEEDOR                           */}
+      {/* MODAL: SUPPLIER FORM                                    */}
       {/* ======================================================== */}
       <Modal
-        visible={provModalVisible}
+        visible={supplierModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setProvModalVisible(false)}
+        onRequestClose={() => setSupplierModalVisible(false)}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -1410,7 +1410,7 @@ export default function AdminScreen() {
         >
           <Pressable
             style={StyleSheet.absoluteFill}
-            onPress={() => setProvModalVisible(false)}
+            onPress={() => setSupplierModalVisible(false)}
             accessibilityRole="button"
             accessibilityLabel="Cerrar modal de proveedor"
           />
@@ -1424,12 +1424,12 @@ export default function AdminScreen() {
           >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitleText, { color: colors.text }]}>
-                {provModalMode === "create"
+                {supplierModalMode === "create"
                   ? "Nuevo Proveedor"
                   : "Editar Proveedor"}
               </Text>
               <Pressable
-                onPress={() => setProvModalVisible(false)}
+                onPress={() => setSupplierModalVisible(false)}
                 hitSlop={8}
                 accessibilityRole="button"
                 accessibilityLabel="Cerrar"
@@ -1442,7 +1442,7 @@ export default function AdminScreen() {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {provFormError ? (
+              {supplierFormError ? (
                 <View
                   style={[
                     styles.inlineErrorBox,
@@ -1455,7 +1455,7 @@ export default function AdminScreen() {
                   <Text
                     style={[styles.inlineErrorText, { color: colors.danger }]}
                   >
-                    {provFormError}
+                    {supplierFormError}
                   </Text>
                 </View>
               ) : null}
@@ -1473,8 +1473,8 @@ export default function AdminScreen() {
                 ]}
                 placeholder="Ej. Mobiliaria Nórdica de México"
                 placeholderTextColor={colors.textMuted}
-                value={provNombre}
-                onChangeText={setProvNombre}
+                value={supplierName}
+                onChangeText={setSupplierName}
                 autoCapitalize="words"
               />
 
@@ -1497,8 +1497,8 @@ export default function AdminScreen() {
                 ]}
                 placeholder="Ej. Ing. Carlos Mendoza"
                 placeholderTextColor={colors.textMuted}
-                value={provContacto}
-                onChangeText={setProvContacto}
+                value={supplierContactName}
+                onChangeText={setSupplierContactName}
                 autoCapitalize="words"
               />
 
@@ -1521,8 +1521,8 @@ export default function AdminScreen() {
                 ]}
                 placeholder="Ej. 4491234567"
                 placeholderTextColor={colors.textMuted}
-                value={provTelefono}
-                onChangeText={setProvTelefono}
+                value={supplierPhone}
+                onChangeText={setSupplierPhone}
                 keyboardType="phone-pad"
                 maxLength={10}
               />
@@ -1546,8 +1546,8 @@ export default function AdminScreen() {
                 ]}
                 placeholder="Ej. ventas@proveedor.com"
                 placeholderTextColor={colors.textMuted}
-                value={provEmail}
-                onChangeText={setProvEmail}
+                value={supplierEmail}
+                onChangeText={setSupplierEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -1557,23 +1557,23 @@ export default function AdminScreen() {
                   styles.confirmButton,
                   {
                     backgroundColor: colors.accent,
-                    opacity: submittingProv ? 0.7 : 1,
+                    opacity: submittingSupplier ? 0.7 : 1,
                   },
                 ]}
-                onPress={handleSaveProveedor}
-                disabled={submittingProv}
+                onPress={handleSaveSupplier}
+                disabled={submittingSupplier}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  provModalMode === "create"
+                  supplierModalMode === "create"
                     ? "Registrar proveedor"
                     : "Guardar cambios de proveedor"
                 }
               >
-                {submittingProv ? (
+                {submittingSupplier ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <Text style={styles.confirmButtonText}>
-                    {provModalMode === "create"
+                    {supplierModalMode === "create"
                       ? "Registrar Proveedor"
                       : "Guardar Cambios"}
                   </Text>
@@ -1698,7 +1698,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
   },
-  muebleItemMain: {
+  furnitureItemMain: {
     flexDirection: "row",
     padding: 12,
     alignItems: "center",
@@ -1716,24 +1716,24 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  muebleItemInfo: {
+  furnitureItemInfo: {
     flex: 1,
   },
-  muebleItemTitle: {
+  furnitureItemTitle: {
     fontSize: 15,
     fontWeight: "700",
     marginBottom: 2,
   },
-  muebleItemCategory: {
+  furnitureItemCategory: {
     fontSize: 12,
     marginBottom: 6,
   },
-  muebleItemPriceRow: {
+  furnitureItemPriceRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  muebleItemPrice: {
+  furnitureItemPrice: {
     fontSize: 15,
     fontWeight: "800",
   },
@@ -1757,7 +1757,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
-  catProvHeader: {
+  catSupplierHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
@@ -1772,13 +1772,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  provInfoRow: {
+  supplierInfoRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     marginTop: 4,
   },
-  provInfoText: {
+  supplierInfoText: {
     fontSize: 12,
   },
   modalBackdrop: {

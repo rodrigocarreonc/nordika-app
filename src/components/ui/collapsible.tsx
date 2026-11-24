@@ -1,4 +1,4 @@
-// Panel desplegable reutilizable de la plantilla base de Expo con animación de entrada.
+// Reusable collapsible panel from Expo's base template with an enter animation.
 
 import { SymbolView } from "expo-symbols";
 import { PropsWithChildren, useState } from "react";

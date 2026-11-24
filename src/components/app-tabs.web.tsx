@@ -1,4 +1,4 @@
-// Barra de pestañas Web de la plantilla base de Expo Router.
+// Web tab bar from Expo Router's base template.
 
 import {
   Tabs,

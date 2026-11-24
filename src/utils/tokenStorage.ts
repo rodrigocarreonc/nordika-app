@@ -1,4 +1,4 @@
-// Persistencia segura de sesión (token y perfil): usa SecureStore en móvil y localStorage en Web.
+// Secure session storage (token and profile): SecureStore on mobile and localStorage on Web.
 
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
@@ -7,7 +7,7 @@ import { User } from "../types";
 const TOKEN_KEY = "nordika_auth_token";
 const USER_KEY = "nordika_auth_user";
 
-// SecureStore no existe en navegador; este guard evita errores en Web y en SSR de Expo.
+// SecureStore doesn't exist in the browser; this guard avoids errors on Web and in Expo SSR.
 function isWebStorageAvailable(): boolean {
   return Platform.OS === "web" && typeof localStorage !== "undefined";
 }
@@ -27,7 +27,7 @@ export async function getToken(): Promise<string | null> {
   return await SecureStore.getItemAsync(TOKEN_KEY);
 }
 
-// Limpia tanto el token como el perfil cacheado para evitar mostrar datos de una sesión anterior.
+// Clears both the token and the cached profile to avoid showing data from a previous session.
 export async function deleteToken(): Promise<void> {
   if (isWebStorageAvailable()) {
     localStorage.removeItem(TOKEN_KEY);

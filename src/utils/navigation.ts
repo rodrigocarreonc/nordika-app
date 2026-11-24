@@ -1,10 +1,10 @@
-// Utilidad de navegación segura para evitar advertencias GO_BACK cuando no existe historial previo.
+// Safe navigation helper that avoids GO_BACK warnings when there is no previous history.
 
 import { useRouter } from "expo-router";
 
 export type RouterInstance = ReturnType<typeof useRouter>;
 
-// Si el usuario entró directo por enlace o recarga en Web sin stack previo, redirige al fallback.
+// If the user came in through a link or a Web reload with no previous stack, redirects to the fallback.
 export function safeBack(router: RouterInstance, fallback: string = "/") {
   if (router.canGoBack()) {
     router.back();

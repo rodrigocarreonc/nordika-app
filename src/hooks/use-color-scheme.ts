@@ -1,3 +1,3 @@
-// Re-exporta useColorScheme nativo para iOS y Android (en Web se resuelve con .web.ts).
+// Re-exports the native useColorScheme for iOS and Android (Web resolves to .web.ts).
 
 export { useColorScheme } from "react-native";

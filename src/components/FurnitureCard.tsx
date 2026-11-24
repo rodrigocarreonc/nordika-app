@@ -1,4 +1,4 @@
-// Tarjeta de producto del catálogo con foto, semáforo de stock, precio y toggle optimista de favorito.
+// Catalog product card with photo, stock indicator, price and an optimistic favorite toggle.
 
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -12,53 +12,53 @@ import {
 } from "react-native";
 import { Colors } from "../constants/theme";
 import { useResponsive } from "../hooks/use-responsive";
-import { Mueble } from "../types";
+import { Furniture } from "../types";
 import { resolveImageUrl } from "../utils/api";
 import { Badge } from "./Badge";
 
-interface MuebleCardProps {
-  mueble: Mueble;
+interface FurnitureCardProps {
+  furniture: Furniture;
   onPress: () => void;
-  onToggleFavorito?: (mueble: Mueble) => void;
-  isFavorito?: boolean;
+  onToggleFavorite?: (furniture: Furniture) => void;
+  isFavorite?: boolean;
   isGridItem?: boolean;
 }
 
-export const MuebleCard: React.FC<MuebleCardProps> = ({
-  mueble,
+export const FurnitureCard: React.FC<FurnitureCardProps> = ({
+  furniture,
   onPress,
-  onToggleFavorito,
-  isFavorito = false,
+  onToggleFavorite,
+  isFavorite = false,
   isGridItem = false,
 }) => {
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
   const { isMobile } = useResponsive("catalog");
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const computedFav = isFavorito || !!mueble.is_favorito;
-  // Estado optimista ligado al id del mueble para dar respuesta instantánea al tocar el corazon
-  // sin arrastrar el estado si FlatList recicla la tarjeta para otro producto.
+  const computedFav = isFavorite || !!furniture.is_favorite;
+  // Optimistic state tied to the furniture id to respond instantly when the heart is tapped
+  // without carrying the state over if FlatList recycles the card for another product.
   const [localFav, setLocalFav] = useState<{ id: number; val: boolean } | null>(
     null,
   );
   const favState =
-    localFav && localFav.id === mueble.id ? localFav.val : computedFav;
+    localFav && localFav.id === furniture.id ? localFav.val : computedFav;
 
   useEffect(() => {
     let isMounted = true;
-    resolveImageUrl(mueble.imagen).then((url) => {
+    resolveImageUrl(furniture.image).then((url) => {
       if (isMounted) setImageUri(url);
     });
     return () => {
       isMounted = false;
     };
-  }, [mueble.imagen]);
+  }, [furniture.image]);
 
   const handleHeartPress = (e: any) => {
     e.stopPropagation?.();
-    setLocalFav({ id: mueble.id, val: !favState });
-    if (onToggleFavorito) {
-      onToggleFavorito(mueble);
+    setLocalFav({ id: furniture.id, val: !favState });
+    if (onToggleFavorite) {
+      onToggleFavorite(furniture);
     }
   };
 
@@ -80,7 +80,7 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
     <View
       style={[
         styles.card,
-        // En cuadrícula multi-columna ocupa todo el ancho de su celda para alinear filas.
+        // In a multi-column grid it fills its cell width so rows line up.
         isGridItem && styles.cardGrid,
         {
           backgroundColor: colors.card,
@@ -98,10 +98,10 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
         ]}
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel={`${mueble.nombre}, precio ${formatPrice(mueble.precio)}`}
+        accessibilityLabel={`${furniture.name}, precio ${formatPrice(furniture.price)}`}
         accessibilityHint="Toca para abrir la ficha detallada"
       >
-        {/* En tablet/escritorio usamos proporción 4:3 con contain para evitar recortes agresivos de la foto. */}
+        {/* On tablet/desktop a 4:3 ratio with contain avoids aggressive photo cropping. */}
         <View
           style={[
             isMobile ? styles.imageContainer : styles.imageContainerDesktop,
@@ -135,11 +135,11 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
             </View>
           )}
 
-          {/* Badge de Categoría */}
-          {mueble.categoria?.nombre ? (
+          {/* Category badge */}
+          {furniture.category?.name ? (
             <View style={styles.categoryBadgeContainer}>
               <Badge
-                label={mueble.categoria.nombre}
+                label={furniture.category.name}
                 variant="info"
                 size="small"
               />
@@ -149,13 +149,13 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
 
         <View style={styles.content}>
           <View style={styles.stockRow}>
-            {getStockBadge(mueble.stock)}
-            {mueble.proveedor?.nombre ? (
+            {getStockBadge(furniture.stock)}
+            {furniture.supplier?.name ? (
               <Text
-                style={[styles.proveedorText, { color: colors.textMuted }]}
+                style={[styles.supplierText, { color: colors.textMuted }]}
                 numberOfLines={1}
               >
-                {mueble.proveedor.nombre}
+                {furniture.supplier.name}
               </Text>
             ) : null}
           </View>
@@ -164,12 +164,12 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
             style={[styles.title, { color: colors.text }]}
             numberOfLines={2}
           >
-            {mueble.nombre}
+            {furniture.name}
           </Text>
 
           <View style={styles.priceRow}>
             <Text style={[styles.price, { color: colors.accent }]}>
-              {formatPrice(mueble.precio)}
+              {formatPrice(furniture.price)}
             </Text>
             <Text style={[styles.currency, { color: colors.textMuted }]}>
               MXN
@@ -178,7 +178,7 @@ export const MuebleCard: React.FC<MuebleCardProps> = ({
         </View>
       </Pressable>
 
-      {/* Botón de Favorito Flotante (hermano del botón de tarjeta para evitar <button> anidado en Web) */}
+      {/* Floating favorite button (sibling of the card button to avoid a nested <button> on Web) */}
       <Pressable
         style={[styles.favoriteButton, { backgroundColor: colors.card }]}
         onPress={handleHeartPress}
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  proveedorText: {
+  supplierText: {
     fontSize: 11,
     fontWeight: "500",
     flex: 1,

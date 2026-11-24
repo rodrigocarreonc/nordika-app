@@ -1,8 +1,8 @@
-// Tokens visuales compartidos (paletas claro/oscuro, tipografía y espaciado) para toda la app.
+// Shared visual tokens (light/dark palettes, typography and spacing) for the whole app.
 
 import { Platform } from "react-native";
 
-// Paleta clara con acento verde nórdico y superficies blancas sobre fondo gris suave.
+// Light palette with a Nordic green accent and white surfaces on a soft gray background.
 const light = {
   text: "#0F172A",
   textSecondary: "#64748B",
@@ -17,7 +17,7 @@ const light = {
   tabIconSelected: "#0F766E",
   border: "#E2E8F0",
   primary: "#1E293B",
-  onPrimary: "#FFFFFF", // texto e íconos sobre fondo primary
+  onPrimary: "#FFFFFF", // text and icons on a primary background
   secondary: "#D97706",
   accent: "#0F766E",
   success: "#16A34A",
@@ -26,7 +26,7 @@ const light = {
   inputBg: "#FFFFFF",
 };
 
-// Paleta oscura con contraste invertido en primary/onPrimary para mantener legibilidad en botones.
+// Dark palette with inverted primary/onPrimary contrast to keep buttons readable.
 const dark = {
   text: "#F8FAFC",
   textSecondary: "#94A3B8",
@@ -41,7 +41,7 @@ const dark = {
   tabIconSelected: "#2DD4BF",
   border: "#334155",
   primary: "#F8FAFC",
-  onPrimary: "#0F172A", // primary es casi blanco en oscuro: texto oscuro
+  onPrimary: "#0F172A", // primary is almost white in dark mode: dark text
   secondary: "#F59E0B",
   accent: "#2DD4BF",
   success: "#22C55E",
@@ -50,7 +50,7 @@ const dark = {
   inputBg: "#1E293B",
 };
 
-// Fallback `unspecified` a light evita pantallas sin tema cuando el SO no reporta esquema.
+// The `unspecified` fallback to light avoids unthemed screens when the OS doesn't report a scheme.
 export const Colors = {
   light,
   dark,
@@ -60,7 +60,7 @@ export const Colors = {
 export type ThemeColors = typeof light;
 export type ThemeColor = keyof typeof light;
 
-// Fuentes nativas por plataforma para evitar cargar tipografias externas pesadas.
+// Native fonts per platform to avoid loading heavy external typefaces.
 export const Fonts = Platform.select({
   ios: {
     sans: "system-ui",

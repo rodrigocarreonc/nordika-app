@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Script interactivo de la plantilla de Expo para reiniciar /src a una app en blanco.
- * Permite mover los directorios actuales a /example o borrarlos antes de crear una base limpia.
+ * Interactive script from the Expo template that resets /src to a blank app.
+ * It lets you move the current directories to /example or delete them before creating a clean base.
  */
 
 const fs = require("fs");
@@ -15,7 +15,7 @@ const exampleDir = "example";
 const newAppDir = "src/app";
 const exampleDirPath = path.join(root, exampleDir);
 
-// Plantillas mínimas para regenerar la pantalla inicial y el layout raíz tras el reinicio.
+// Minimal templates to regenerate the home screen and root layout after the reset.
 const indexContent = `import { Text, View, StyleSheet } from "react-native";
 
 export default function Index() {
@@ -47,7 +47,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-// Mueve o elimina los directorios existentes según la confirmación del usuario y crea src/app limpio.
+// Moves or deletes the existing directories based on the user's answer and creates a clean src/app.
 const moveDirectories = async (userInput) => {
   try {
     if (userInput === "y") {

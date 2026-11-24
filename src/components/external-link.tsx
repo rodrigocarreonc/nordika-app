@@ -1,4 +1,4 @@
-// Enlace externo que abre una pestaña en Web o el navegador integrado (in-app browser) en móvil.
+// External link that opens a tab on Web or the in-app browser on mobile.
 
 import { Href, Link } from "expo-router";
 import {
@@ -19,7 +19,7 @@ export function ExternalLink({ href, ...rest }: Props) {
       href={href}
       onPress={async (event) => {
         if (process.env.EXPO_OS !== "web") {
-          // En nativo intercepta el enlace para abrirlo dentro de la app en lugar de salir al navegador.
+          // On native it intercepts the link to open it inside the app instead of leaving to the browser.
           event.preventDefault();
           await openBrowserAsync(href, {
             presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,

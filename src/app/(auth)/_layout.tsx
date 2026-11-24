@@ -1,4 +1,4 @@
-// Stack público de autenticación (login y registro) sin cabecera nativa.
+// Public authentication stack (login and sign-up) without a native header.
 
 import { Stack } from "expo-router";
 

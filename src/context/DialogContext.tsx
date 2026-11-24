@@ -1,5 +1,5 @@
-// Proveedor global de diálogos (confirm, alert y botones personalizados) uniforme entre Web y móvil.
-// Reemplaza Alert.alert de React Native porque no funciona de forma consistente en Expo Web.
+// Global dialog provider (confirm, alert and custom buttons) consistent across Web and mobile.
+// Replaces React Native's Alert.alert because it doesn't work consistently on Expo Web.
 
 import React, {
   createContext,
@@ -57,10 +57,10 @@ interface DialogContextValue {
 
 const DialogContext = createContext<DialogContextValue | null>(null);
 
-// Referencia a nivel de modulo para disparar diálogos desde helpers fuera del arbol React.
+// Module-level reference to trigger dialogs from helpers outside the React tree.
 let globalHandler: DialogContextValue | null = null;
 
-// Fachada imperativa con respaldo a window.confirm/alert en Web si el provider aún no se monto.
+// Imperative facade that falls back to window.confirm/alert on Web if the provider isn't mounted yet.
 export const dialog = {
   confirm: (options: ConfirmOptions): Promise<boolean> => {
     if (globalHandler) return globalHandler.confirm(options);
@@ -111,7 +111,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({
   const resolverRef = useRef<PendingDialog | null>(null);
   const lastClosedAtRef = useRef<number>(0);
 
-  // Cierra cualquier promesa pendiente antes de abrir otro diálogo para evitar awaits colgados.
+  // Settles any pending promise before opening another dialog to avoid hanging awaits.
   const resolvePendingDialog = useCallback(() => {
     const pending = resolverRef.current;
     if (!pending) return;
@@ -123,7 +123,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  // En iOS/Android esperar ~280ms tras cerrar un Modal evita que el siguiente quede congelado o invisible.
+  // On iOS/Android, waiting ~280ms after closing a Modal keeps the next one from freezing or staying invisible.
   const waitNativeModalDismiss = useCallback(async () => {
     if (Platform.OS === "web") return;
     const elapsed = Date.now() - lastClosedAtRef.current;
@@ -200,7 +200,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({
           title: options.title,
           message: options.message,
           confirmText: options.buttonText ?? "Aceptar",
-          cancelText: undefined, // alerta informativa con un solo boton
+          cancelText: undefined, // informational alert with a single button
           confirmStyle: "default",
           onConfirm: async () => {
             try {
@@ -265,7 +265,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({
     [confirm, showAlert, showDialog],
   );
 
-  // Registra el handler global mientras el provider vive y libera promesas al desmontar.
+  // Registers the global handler while the provider is alive and settles promises on unmount.
   useEffect(() => {
     globalHandler = contextValue;
     return () => {

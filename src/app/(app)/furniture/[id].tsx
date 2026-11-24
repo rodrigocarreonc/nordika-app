@@ -1,4 +1,4 @@
-// Ficha de detalle de mueble: permite apartar a clientes, marcar favoritos y editar/eliminar al staff.
+// Furniture detail screen: customers can reserve and mark favorites; staff can edit/delete.
 
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -18,22 +18,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge } from "../../../components/Badge";
 import { ErrorView } from "../../../components/ErrorView";
 import { ImageViewerModal } from "../../../components/ImageViewerModal";
-import { MuebleDetailSkeleton } from "../../../components/Skeleton";
+import { FurnitureDetailSkeleton } from "../../../components/Skeleton";
 import { Colors } from "../../../constants/theme";
 import { dialog } from "../../../context/DialogContext";
 import { useResponsive } from "../../../hooks/use-responsive";
-import { Mueble } from "../../../types";
+import { Furniture } from "../../../types";
 import {
-  apiCrearApartado,
-  apiDeleteMueble,
-  apiGetMueble,
-  apiToggleFavorito,
+  apiCreateReservation,
+  apiDeleteFurniture,
+  apiGetFurniture,
+  apiToggleFavorite,
   resolveImageUrl,
 } from "../../../utils/api";
 import { safeBack } from "../../../utils/navigation";
 import { getUser } from "../../../utils/tokenStorage";
 
-export default function MuebleDetailsScreen() {
+export default function FurnitureDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const scheme = useColorScheme() ?? "light";
@@ -41,34 +41,34 @@ export default function MuebleDetailsScreen() {
   const { isMobile, isTablet, isDesktop, contentMaxWidth } =
     useResponsive("content");
 
-  const muebleId = Number(id);
+  const furnitureId = Number(id);
 
-  const [mueble, setMueble] = useState<Mueble | null>(null);
+  const [furniture, setFurniture] = useState<Furniture | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favLoading, setFavLoading] = useState(false);
-  const [cantidadApartar, setCantidadApartar] = useState(1);
-  const [apartando, setApartando] = useState(false);
+  const [reserveQuantity, setReserveQuantity] = useState(1);
+  const [reserving, setReserving] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
 
   const fetchDetails = useCallback(async () => {
-    if (!muebleId) return;
+    if (!furnitureId) return;
     try {
       setLoading(true);
       setError(null);
-      const data = await apiGetMueble(muebleId);
-      setMueble(data);
-      setImageUri(await resolveImageUrl(data.imagen));
+      const data = await apiGetFurniture(furnitureId);
+      setFurniture(data);
+      setImageUri(await resolveImageUrl(data.image));
     } catch (err: any) {
       setError(err.message || "Error al obtener detalles del mueble.");
     } finally {
       setLoading(false);
     }
-  }, [muebleId]);
+  }, [furnitureId]);
 
-  // Recarga al volver a la pantalla (p. ej. después de editar el mueble).
+  // Reloads when returning to the screen (e.g. after editing the furniture).
   useFocusEffect(
     useCallback(() => {
       getUser().then((u) => {
@@ -79,14 +79,14 @@ export default function MuebleDetailsScreen() {
   );
 
   const handleToggleFav = async () => {
-    if (!mueble) return;
+    if (!furniture) return;
     try {
       setFavLoading(true);
-      const res = await apiToggleFavorito(mueble.id);
-      setMueble({
-        ...mueble,
-        is_favorito: res.is_favorito,
-        favoritos_count: res.total_favoritos,
+      const res = await apiToggleFavorite(furniture.id);
+      setFurniture({
+        ...furniture,
+        is_favorite: res.is_favorite,
+        favorites_count: res.favorites_count,
       });
     } catch (err: any) {
       dialog.alert({
@@ -98,12 +98,12 @@ export default function MuebleDetailsScreen() {
     }
   };
 
-  // El backend bloquea con 409 si hay apartados pendientes/vendidos y limpia los rechazados/cancelados.
+  // The backend blocks with 409 if there are pending/sold reservations and cleans up rejected/cancelled ones.
   const handleDelete = async () => {
-    if (!mueble) return;
+    if (!furniture) return;
     const ok = await dialog.confirm({
       title: "Eliminar Mueble",
-      message: `¿Estás seguro de que deseas eliminar "${mueble.nombre}"? Esta acción no se puede deshacer.`,
+      message: `¿Estás seguro de que deseas eliminar "${furniture.name}"? Esta acción no se puede deshacer.`,
       confirmText: "Eliminar",
       cancelText: "Cancelar",
       confirmStyle: "destructive",
@@ -111,7 +111,7 @@ export default function MuebleDetailsScreen() {
     if (!ok) return;
 
     try {
-      await apiDeleteMueble(mueble.id);
+      await apiDeleteFurniture(furniture.id);
       await dialog.alert({
         title: "Éxito",
         message: "El mueble ha sido eliminado.",
@@ -125,25 +125,25 @@ export default function MuebleDetailsScreen() {
     }
   };
 
-  // Crea el apartado, actualiza el stock en pantalla con la respuesta y ofrece ir a Mis Apartados.
-  const handleApartar = async () => {
-    if (!mueble) return;
+  // Creates the reservation, updates the on-screen stock from the response and offers to go to Mis Apartados.
+  const handleReserve = async () => {
+    if (!furniture) return;
     try {
-      setApartando(true);
-      const apartado = await apiCrearApartado(mueble.id, cantidadApartar);
-      setMueble({ ...mueble, stock: apartado.mueble.stock });
-      setCantidadApartar(1);
-      const vence = new Date(apartado.expira_en).toLocaleString("es-MX", {
+      setReserving(true);
+      const reservation = await apiCreateReservation(furniture.id, reserveQuantity);
+      setFurniture({ ...furniture, stock: reservation.furniture.stock });
+      setReserveQuantity(1);
+      const expiresAt = new Date(reservation.expires_at).toLocaleString("es-MX", {
         dateStyle: "medium",
         timeStyle: "short",
       });
       dialog.show({
         title: "Mueble apartado",
-        message: `Tu apartado ${apartado.codigo} quedó pendiente de revisión.\n\nTienes 5 días para concretarlo: vence el ${vence}. Si no se concreta antes, se cancelará automáticamente.`,
+        message: `Tu apartado ${reservation.code} quedó pendiente de revisión.\n\nTienes 5 días para concretarlo: vence el ${expiresAt}. Si no se concreta antes, se cancelará automáticamente.`,
         buttons: [
           {
             text: "Ver mis apartados",
-            onPress: () => router.navigate("/(app)/(tabs)/apartados"),
+            onPress: () => router.navigate("/(app)/(tabs)/reservations"),
           },
           {
             text: "Aceptar",
@@ -157,7 +157,7 @@ export default function MuebleDetailsScreen() {
         message: err.message || "Intenta de nuevo.",
       });
     } finally {
-      setApartando(false);
+      setReserving(false);
     }
   };
 
@@ -168,21 +168,21 @@ export default function MuebleDetailsScreen() {
       : `$${num.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
   };
 
-  // Solo skeleton la primera vez; al recargar se mantiene el contenido visible.
-  if (loading && !mueble) {
+  // Skeleton only the first time; reloads keep the content visible.
+  if (loading && !furniture) {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: colors.background }]}
         edges={["top", "left", "right"]}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
-          <MuebleDetailSkeleton />
+          <FurnitureDetailSkeleton />
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  if (error || !mueble) {
+  if (error || !furniture) {
     return (
       <ErrorView
         message={error || "Mueble no encontrado"}
@@ -191,7 +191,7 @@ export default function MuebleDetailsScreen() {
     );
   }
 
-  // En tablet/escritorio acotamos el ancho de lectura y ajustamos la altura del hero para evitar zoom excesivo.
+  // On tablet/desktop the reading width is narrowed and the hero height adjusted to avoid excessive zoom.
   const desktopContainerStyle = !isMobile
     ? {
         maxWidth: contentMaxWidth,
@@ -206,7 +206,7 @@ export default function MuebleDetailsScreen() {
       style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={["top", "left", "right"]}
     >
-      {/* Barra superior de navegación con separador completo y contenido centrado en escritorio */}
+      {/* Top navigation bar with a full divider and centered content on desktop */}
       <View
         style={[styles.navBarWrapper, { borderBottomColor: colors.border }]}
       >
@@ -233,14 +233,14 @@ export default function MuebleDetailsScreen() {
 
           {isStaff ? (
             <View style={styles.navRightActions}>
-              {/* Botón Editar (Solo Staff) */}
+              {/* Edit button (staff only) */}
               <Pressable
                 style={[
                   styles.navButton,
                   { backgroundColor: colors.card, borderColor: colors.border },
                 ]}
                 onPress={() =>
-                  router.push(`/(app)/mueble/form?id=${mueble.id}`)
+                  router.push(`/(app)/furniture/form?id=${furniture.id}`)
                 }
                 accessibilityRole="button"
                 accessibilityLabel="Editar mueble"
@@ -249,7 +249,7 @@ export default function MuebleDetailsScreen() {
                 <Ionicons name="create-outline" size={19} color={colors.text} />
               </Pressable>
 
-              {/* Botón Eliminar (Solo Staff) */}
+              {/* Delete button (staff only) */}
               <Pressable
                 style={[
                   styles.navButton,
@@ -284,7 +284,7 @@ export default function MuebleDetailsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Imagen Principal Hero: en escritorio usa contain sobre fondo neutro para mostrar el mueble íntegro */}
+        {/* Main hero image: on desktop uses contain on a neutral background to show the whole piece */}
         <View
           style={[
             styles.heroImageContainer,
@@ -313,7 +313,7 @@ export default function MuebleDetailsScreen() {
                 contentFit={isMobile ? "cover" : "contain"}
                 transition={300}
               />
-              {/* Indicador visual discreto para comunicar que la foto se puede ampliar */}
+              {/* Subtle visual hint that the photo can be enlarged */}
               <View style={styles.expandBadge} pointerEvents="none">
                 <Ionicons name="expand-outline" size={18} color="#FFFFFF" />
               </View>
@@ -341,7 +341,7 @@ export default function MuebleDetailsScreen() {
             </View>
           )}
 
-          {/* Botón de Favorito Flotante (hermano del disparador de pantalla completa para no anidar botones en Web) */}
+          {/* Floating favorite button (sibling of the full-screen trigger to avoid nested buttons on Web) */}
           <Pressable
             style={[
               styles.heroFavoriteButton,
@@ -351,7 +351,7 @@ export default function MuebleDetailsScreen() {
             disabled={favLoading}
             accessibilityRole="button"
             accessibilityLabel={
-              mueble.is_favorito ? "Quitar de favoritos" : "Agregar a favoritos"
+              furniture.is_favorite ? "Quitar de favoritos" : "Agregar a favoritos"
             }
             accessibilityHint="Guarda o quita este mueble de tu lista de favoritos"
           >
@@ -359,15 +359,15 @@ export default function MuebleDetailsScreen() {
               <ActivityIndicator size="small" color={colors.accent} />
             ) : (
               <Ionicons
-                name={mueble.is_favorito ? "heart" : "heart-outline"}
+                name={furniture.is_favorite ? "heart" : "heart-outline"}
                 size={24}
-                color={mueble.is_favorito ? colors.danger : colors.icon}
+                color={furniture.is_favorite ? colors.danger : colors.icon}
               />
             )}
           </Pressable>
         </View>
 
-        {/* Información del Producto */}
+        {/* Product information */}
         <View
           style={[
             styles.infoCard,
@@ -375,24 +375,24 @@ export default function MuebleDetailsScreen() {
             { backgroundColor: colors.card, borderColor: colors.border },
           ]}
         >
-          {/* Categoría & Proveedor */}
+          {/* Category & supplier */}
           <View style={styles.tagsRow}>
-            {mueble.categoria?.nombre ? (
+            {furniture.category?.name ? (
               <Badge
-                label={mueble.categoria.nombre}
+                label={furniture.category.name}
                 variant="info"
                 size="medium"
               />
             ) : null}
-            {mueble.stock > 3 ? (
+            {furniture.stock > 3 ? (
               <Badge
-                label={`En stock (${mueble.stock})`}
+                label={`En stock (${furniture.stock})`}
                 variant="success"
                 size="medium"
               />
-            ) : mueble.stock > 0 ? (
+            ) : furniture.stock > 0 ? (
               <Badge
-                label={`Últimas ${mueble.stock} unidades`}
+                label={`Últimas ${furniture.stock} unidades`}
                 variant="warning"
                 size="medium"
               />
@@ -401,23 +401,23 @@ export default function MuebleDetailsScreen() {
             )}
           </View>
 
-          {/* Título */}
+          {/* Title */}
           <Text style={[styles.title, { color: colors.text }]}>
-            {mueble.nombre}
+            {furniture.name}
           </Text>
 
-          {/* Precio */}
+          {/* Price */}
           <View style={styles.priceRow}>
             <Text style={[styles.price, { color: colors.accent }]}>
-              {formatPrice(mueble.precio)}
+              {formatPrice(furniture.price)}
             </Text>
             <Text style={[styles.currency, { color: colors.textMuted }]}>
               MXN
             </Text>
           </View>
 
-          {/* Proveedor */}
-          {mueble.proveedor?.nombre ? (
+          {/* Supplier */}
+          {furniture.supplier?.name ? (
             <View
               style={[
                 styles.supplierBox,
@@ -440,39 +440,39 @@ export default function MuebleDetailsScreen() {
                   Proveedor asociado
                 </Text>
                 <Text style={[styles.supplierName, { color: colors.text }]}>
-                  {mueble.proveedor.nombre}
+                  {furniture.supplier.name}
                 </Text>
-                {mueble.proveedor.contacto ? (
+                {furniture.supplier.contact_name ? (
                   <Text
                     style={[
                       styles.supplierContact,
                       { color: colors.textMuted },
                     ]}
                   >
-                    Contacto: {mueble.proveedor.contacto} (
-                    {mueble.proveedor.telefono || mueble.proveedor.email})
+                    Contacto: {furniture.supplier.contact_name} (
+                    {furniture.supplier.phone || furniture.supplier.email})
                   </Text>
                 ) : null}
               </View>
             </View>
           ) : null}
 
-          {/* Descripción */}
+          {/* Description */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Descripción del Producto
             </Text>
             <Text style={[styles.description, { color: colors.textMuted }]}>
-              {mueble.descripcion ||
+              {furniture.description ||
                 "Este artículo cuenta con los más altos estándares de carpintería y diseño nórdico."}
             </Text>
           </View>
 
-          {/* Apartar piezas */}
-          {!isStaff && mueble.stock > 0 ? (
+          {/* Reserve pieces */}
+          {!isStaff && furniture.stock > 0 ? (
             <View
               style={[
-                styles.apartarCard,
+                styles.reserveCard,
                 { backgroundColor: colors.backgroundElement },
               ]}
             >
@@ -485,8 +485,8 @@ export default function MuebleDetailsScreen() {
                       borderColor: colors.border,
                     },
                   ]}
-                  onPress={() => setCantidadApartar((c) => Math.max(1, c - 1))}
-                  disabled={cantidadApartar <= 1}
+                  onPress={() => setReserveQuantity((c) => Math.max(1, c - 1))}
+                  disabled={reserveQuantity <= 1}
                   accessibilityRole="button"
                   accessibilityLabel="Disminuir cantidad"
                   accessibilityHint="Resta una pieza a apartar"
@@ -494,7 +494,7 @@ export default function MuebleDetailsScreen() {
                   <Ionicons name="remove" size={18} color={colors.text} />
                 </Pressable>
                 <Text style={[styles.stepperValue, { color: colors.text }]}>
-                  {cantidadApartar}
+                  {reserveQuantity}
                 </Text>
                 <Pressable
                   style={[
@@ -505,9 +505,9 @@ export default function MuebleDetailsScreen() {
                     },
                   ]}
                   onPress={() =>
-                    setCantidadApartar((c) => Math.min(mueble.stock, c + 1))
+                    setReserveQuantity((c) => Math.min(furniture.stock, c + 1))
                   }
-                  disabled={cantidadApartar >= mueble.stock}
+                  disabled={reserveQuantity >= furniture.stock}
                   accessibilityRole="button"
                   accessibilityLabel="Aumentar cantidad"
                   accessibilityHint="Suma una pieza a apartar"
@@ -517,16 +517,16 @@ export default function MuebleDetailsScreen() {
               </View>
               <Pressable
                 style={[
-                  styles.apartarButton,
+                  styles.reserveButton,
                   { backgroundColor: colors.accent },
                 ]}
-                onPress={handleApartar}
-                disabled={apartando}
+                onPress={handleReserve}
+                disabled={reserving}
                 accessibilityRole="button"
                 accessibilityLabel="Apartar mueble"
                 accessibilityHint="Crea una reserva por las piezas seleccionadas"
               >
-                {apartando ? (
+                {reserving ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <>
@@ -536,31 +536,31 @@ export default function MuebleDetailsScreen() {
                       color="#FFFFFF"
                       style={{ marginRight: 6 }}
                     />
-                    <Text style={styles.apartarButtonText}>Apartar</Text>
+                    <Text style={styles.reserveButtonText}>Apartar</Text>
                   </>
                 )}
               </Pressable>
             </View>
           ) : null}
 
-          {/* Datos de auditoría */}
+          {/* Audit data */}
           <View style={styles.auditRow}>
             <Text style={[styles.auditText, { color: colors.textMuted }]}>
               Registrado el:{" "}
-              {new Date(mueble.creado_en).toLocaleDateString("es-MX")}
+              {new Date(furniture.created_at).toLocaleDateString("es-MX")}
             </Text>
             <Text style={[styles.auditText, { color: colors.textMuted }]}>
-              Favoritos: {mueble.favoritos_count || 0}
+              Favoritos: {furniture.favorites_count || 0}
             </Text>
           </View>
         </View>
       </ScrollView>
 
-      {/* Visor en pantalla completa al pulsar la foto del mueble */}
+      {/* Full-screen viewer when the furniture photo is tapped */}
       <ImageViewerModal
         visible={showFullscreenImage}
         imageUri={imageUri}
-        title={mueble.nombre}
+        title={furniture.name}
         onClose={() => setShowFullscreenImage(false)}
       />
     </SafeAreaView>
@@ -732,7 +732,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
-  apartarCard: {
+  reserveCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
     minWidth: 24,
     textAlign: "center",
   },
-  apartarButton: {
+  reserveButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 10,
   },
-  apartarButtonText: {
+  reserveButtonText: {
     color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 14,

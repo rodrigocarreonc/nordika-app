@@ -1,4 +1,4 @@
-// Pantalla de perfil y ajustes: edición de cuenta, paginación, tema, alta de clientes (staff) y baja de cuenta.
+// Profile and settings screen: account editing, pagination, theme, customer creation (staff) and account deletion.
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -25,7 +25,7 @@ import { useResponsive } from "../../../hooks/use-responsive";
 import { User } from "../../../types";
 import {
   apiChangePassword,
-  apiCrearCliente,
+  apiCreateCustomer,
   apiDeleteAccount,
   apiGetMe,
   apiLogout,
@@ -47,7 +47,7 @@ export default function SettingsScreen() {
   const colors = Colors[scheme];
   const { isMobile, contentMaxWidth } = useResponsive("content");
 
-  // En tablet/escritorio limita el ancho de cabecera y tarjetas para mejorar la lectura; en móvil se mantiene intacto.
+  // On tablet/desktop it limits the header and card width for readability; mobile stays unchanged.
   const desktopContainerStyle = !isMobile
     ? {
         maxWidth: contentMaxWidth,
@@ -56,16 +56,16 @@ export default function SettingsScreen() {
       }
     : undefined;
 
-  // Datos del usuario
+  // User data
   const [user, setUser] = useState<Partial<User> | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
-  // Ajustes de la app
+  // App settings
   const [themePreference, setThemePreference] = useState<
     "light" | "dark" | "system"
   >("system");
   const [pageSize, setPageSize] = useState<number>(10);
-  // Modal para editar perfil
+  // Edit profile modal
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editFirstName, setEditFirstName] = useState("");
   const [editLastName, setEditLastName] = useState("");
@@ -73,7 +73,7 @@ export default function SettingsScreen() {
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  // Modal para agregar nuevo cliente (Solo Admin)
+  // Add new customer modal (admin only)
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [clientUsername, setClientUsername] = useState("");
   const [clientEmail, setClientEmail] = useState("");
@@ -85,8 +85,8 @@ export default function SettingsScreen() {
   const [creatingClient, setCreatingClient] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
 
-  // Modal de cuenta: cambiar contraseña o eliminar cuenta
-  // El modo se mantiene al cerrar para que el contenido no cambie durante el fade
+  // Account modal: change password or delete account
+  // The mode is kept on close so the content doesn't change during the fade
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [accountAction, setAccountAction] = useState<"password" | "delete">(
     "password",
@@ -99,7 +99,7 @@ export default function SettingsScreen() {
   const [accountError, setAccountError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Muestra primero el perfil cacheado para evitar parpadeo y luego sincroniza contra /me/.
+    // Shows the cached profile first to avoid flicker, then syncs against /me/.
     getUser().then((u) => {
       if (u) {
         setUser(u);
@@ -120,7 +120,7 @@ export default function SettingsScreen() {
       .catch(() => {})
       .finally(() => setLoadingUser(false));
 
-    // Cargar ajustes guardados
+    // Load saved settings
     getStoredTheme().then(setThemePreference);
     getStoredPageSize().then(setPageSize);
   }, []);
@@ -190,7 +190,7 @@ export default function SettingsScreen() {
 
     try {
       setCreatingClient(true);
-      await apiCrearCliente({
+      await apiCreateCustomer({
         username: trimmedUsername,
         email: trimmedEmail,
         password: clientPassword,
@@ -261,7 +261,7 @@ export default function SettingsScreen() {
       setAccountError("Escribe tu contraseña para confirmar.");
       return;
     }
-    // El diálogo vive en la raíz: si este Modal sigue abierto lo tapa
+    // The dialog lives at the root: if this Modal is still open it covers it
     setShowAccountModal(false);
     const ok = await dialog.confirm({
       title: "Eliminar Cuenta",
@@ -280,7 +280,7 @@ export default function SettingsScreen() {
       await apiDeleteAccount(currentPassword);
       router.replace("/(auth)/login");
     } catch (e: any) {
-      // Reabre el modal para mostrar el error (p. ej. contraseña incorrecta)
+      // Reopens the modal to show the error (e.g. wrong password)
       setAccountError(e.message || "No se pudo eliminar la cuenta.");
       setShowAccountModal(true);
     } finally {
@@ -323,7 +323,7 @@ export default function SettingsScreen() {
         contentContainerStyle={[styles.scrollContent, desktopContainerStyle]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Tarjeta de Perfil: muestra skeleton mientras se consulta el perfil inicial sin caché local */}
+        {/* Profile card: shows a skeleton while the initial profile loads without a local cache */}
         {loadingUser && !user ? (
           <SettingsProfileSkeleton style={styles.profileSkeleton} />
         ) : (
@@ -432,7 +432,7 @@ export default function SettingsScreen() {
           </View>
         )}
 
-        {/* Sección: Paginación Configurable */}
+        {/* Section: configurable pagination */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionHeaderText, { color: colors.textMuted }]}>
             PAGINACIÓN CONFIGURABLE
@@ -492,7 +492,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Sección: Tema Visual */}
+        {/* Section: visual theme */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionHeaderText, { color: colors.textMuted }]}>
             APARIENCIA
@@ -552,7 +552,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Sección: Administración (Solo Staff) */}
+        {/* Section: administration (staff only) */}
         {user?.is_staff ? (
           <>
             <View style={styles.sectionHeader}>
@@ -604,7 +604,7 @@ export default function SettingsScreen() {
           </>
         ) : null}
 
-        {/* Sección: Cuenta (eliminar cuenta, solo clientes) */}
+        {/* Section: account (delete account, customers only) */}
         {!user?.is_staff && (
           <>
             <View style={styles.sectionHeader}>
@@ -650,7 +650,7 @@ export default function SettingsScreen() {
           </>
         )}
 
-        {/* Botón de Logout */}
+        {/* Logout button */}
         <Pressable
           style={[
             styles.logoutButton,
@@ -676,7 +676,7 @@ export default function SettingsScreen() {
         </Pressable>
       </ScrollView>
 
-      {/* Modal para Editar Perfil (se cierra al hacer clic fuera) */}
+      {/* Edit profile modal (closes when clicking outside) */}
       <Modal
         visible={showEditProfileModal}
         transparent
@@ -822,7 +822,7 @@ export default function SettingsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Modal para Agregar Nuevo Cliente (se cierra al hacer clic fuera) */}
+      {/* Add new customer modal (closes when clicking outside) */}
       <Modal
         visible={showAddClientModal}
         transparent
@@ -1068,7 +1068,7 @@ export default function SettingsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Modal de Cuenta: cambiar contraseña o eliminar cuenta */}
+      {/* Account modal: change password or delete account */}
       <Modal
         visible={showAccountModal}
         transparent

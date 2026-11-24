@@ -1,23 +1,45 @@
-// Cliente HTTP centralizado: adjunta Token, maneja 401/errores y agrupa todos los endpoints REST.
+// Central HTTP client: attaches the Token, handles 401/errors and groups every REST endpoint.
 
 import { router } from "expo-router";
 import {
-  Apartado,
   AuthResponse,
-  Categoria,
-  Mueble,
-  MuebleFilterParams,
+  Category,
+  Furniture,
+  FurnitureFilterParams,
   PaginatedResponse,
-  Proveedor,
+  Reservation,
+  ReservationStatus,
+  Supplier,
   User,
 } from "../types";
 import { deleteToken, getToken, saveToken, saveUser } from "./tokenStorage";
 
-// Se fija en build desde EXPO_PUBLIC_API_URL (.env) y recorta '/' final para evitar dobles barras.
+// Set at build time from EXPO_PUBLIC_API_URL (.env); trailing '/' is trimmed to avoid double slashes.
 const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
-if (!API_URL) throw new Error("Falta EXPO_PUBLIC_API_URL en .env");
+if (!API_URL) throw new Error("Missing EXPO_PUBLIC_API_URL in .env");
 
-// Error tipado que conserva código HTTP y payload crudo para decidir acciones por status (ej. 409).
+// Spanish labels for API field names, used when an error message is tied to a field.
+const FIELD_LABELS: Record<string, string> = {
+  name: "Nombre",
+  description: "Descripción",
+  price: "Precio",
+  stock: "Stock",
+  image: "Imagen",
+  category_id: "Categoría",
+  supplier_id: "Proveedor",
+  contact_name: "Contacto",
+  phone: "Teléfono",
+  email: "Correo",
+  quantity: "Cantidad",
+  furniture_id: "Mueble",
+  username: "Usuario",
+  password: "Contraseña",
+  password_confirm: "Confirmar contraseña",
+  first_name: "Nombre",
+  last_name: "Apellido",
+};
+
+// Typed error that keeps the HTTP status and raw payload to decide actions by status (e.g. 409).
 export class ApiError extends Error {
   status: number;
   data: any;
@@ -31,7 +53,7 @@ export class ApiError extends Error {
 }
 
 /**
- * Ejecuta peticiones HTTP al backend inyectando el Token y normalizando los mensajes de error.
+ * Sends HTTP requests to the backend, injecting the Token and normalizing error messages.
  */
 async function request<T>(
   endpoint: string,
@@ -47,7 +69,7 @@ async function request<T>(
     ...(options.headers as Record<string, string>),
   };
 
-  // Para FormData se omite Content-Type para que fetch genere automáticamente el boundary multipart.
+  // Content-Type is omitted for FormData so fetch generates the multipart boundary itself.
   if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
@@ -87,13 +109,13 @@ async function request<T>(
   }
 
   if (!response.ok) {
-    // Ante 401 (token revocado o vencido) se cierra la sesión local, excepto durante el propio login.
+    // On 401 (revoked or expired token) the local session is closed, except during login itself.
     if (response.status === 401 && !endpoint.includes("/api-token-auth/")) {
       await deleteToken();
       router.replace("/(auth)/login");
     }
 
-    // Extrae un mensaje legible desde los distintos formatos de error de DRF (detail, non_field_errors o por campo).
+    // Pulls a readable message out of DRF's error formats (detail, non_field_errors or per field).
     let errorMessage = `Error del servidor (${response.status})`;
     if (responseData) {
       if (typeof responseData === "string") {
@@ -108,7 +130,8 @@ async function request<T>(
         const firstKey = Object.keys(responseData)[0];
         if (firstKey) {
           const val = responseData[firstKey];
-          errorMessage = `${firstKey}: ${Array.isArray(val) ? val[0] : val}`;
+          const label = FIELD_LABELS[firstKey] ?? firstKey;
+          errorMessage = `${label}: ${Array.isArray(val) ? val[0] : val}`;
         }
       }
     }
@@ -119,10 +142,10 @@ async function request<T>(
 }
 
 // ==========================================
-// SERVICIOS DE AUTENTICACIÓN
+// AUTHENTICATION SERVICES
 // ==========================================
 
-// Inicia sesión y persiste token y perfil para restaurar la sesión al reabrir la app.
+// Logs in and stores the token and profile to restore the session when the app reopens.
 export async function apiLogin(
   username: string,
   password: string,
@@ -190,7 +213,7 @@ export async function apiChangePassword(
     method: "POST",
     body: JSON.stringify({ current_password, new_password }),
   });
-  // El backend rota el token: sin guardarlo, la siguiente petición daría 401
+  // The backend rotates the token: without saving it, the next request would get a 401
   await saveToken(data.token);
 }
 
@@ -206,13 +229,13 @@ export async function apiLogout(): Promise<void> {
   try {
     await request("/logout/", { method: "POST" });
   } catch {
-    // Si falla en backend, de todas formas limpiar token local
+    // If the backend call fails, the local token is cleared anyway
   } finally {
     await deleteToken();
   }
 }
 
-export async function apiCrearCliente(data: {
+export async function apiCreateCustomer(data: {
   username: string;
   email: string;
   password: string;
@@ -220,222 +243,222 @@ export async function apiCrearCliente(data: {
   first_name?: string;
   last_name?: string;
 }): Promise<User> {
-  return await request<User>("/users/crear_cliente/", {
+  return await request<User>("/users/create_customer/", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
 // ==========================================
-// CATÁLOGO DE MUEBLES (CRUD, FILTROS, FAVORITOS)
+// FURNITURE CATALOG (CRUD, FILTERS, FAVORITES)
 // ==========================================
 
-export async function apiGetMuebles(
-  params: MuebleFilterParams = {},
-): Promise<PaginatedResponse<Mueble>> {
+export async function apiGetFurnitureList(
+  params: FurnitureFilterParams = {},
+): Promise<PaginatedResponse<Furniture>> {
   const query = new URLSearchParams();
 
   if (params.page) query.append("page", params.page.toString());
   if (params.page_size) query.append("page_size", params.page_size.toString());
   if (params.search) query.append("search", params.search);
-  if (params.categoria) query.append("categoria", params.categoria.toString());
-  if (params.proveedor) query.append("proveedor", params.proveedor.toString());
-  if (params.precio_min !== undefined)
-    query.append("precio_min", params.precio_min.toString());
-  if (params.precio_max !== undefined)
-    query.append("precio_max", params.precio_max.toString());
-  if (params.en_stock !== undefined)
-    query.append("en_stock", params.en_stock ? "true" : "false");
+  if (params.category) query.append("category", params.category.toString());
+  if (params.supplier) query.append("supplier", params.supplier.toString());
+  if (params.price_min !== undefined)
+    query.append("price_min", params.price_min.toString());
+  if (params.price_max !== undefined)
+    query.append("price_max", params.price_max.toString());
+  if (params.in_stock !== undefined)
+    query.append("in_stock", params.in_stock ? "true" : "false");
   if (params.ordering) query.append("ordering", params.ordering);
 
   const qs = query.toString();
-  return await request<PaginatedResponse<Mueble>>(
-    `/muebles/${qs ? `?${qs}` : ""}`,
+  return await request<PaginatedResponse<Furniture>>(
+    `/furniture/${qs ? `?${qs}` : ""}`,
   );
 }
 
-export async function apiGetMueble(id: number): Promise<Mueble> {
-  return await request<Mueble>(`/muebles/${id}/`);
+export async function apiGetFurniture(id: number): Promise<Furniture> {
+  return await request<Furniture>(`/furniture/${id}/`);
 }
 
-// Acepta FormData cuando el formulario adjunta imagen o JSON plano cuando no hay archivo.
-export async function apiCreateMueble(
+// Accepts FormData when the form attaches an image, or plain JSON when there is no file.
+export async function apiCreateFurniture(
   data: FormData | Record<string, any>,
-): Promise<Mueble> {
+): Promise<Furniture> {
   const isFormData =
     typeof FormData !== "undefined" && data instanceof FormData;
-  return await request<Mueble>("/muebles/", {
+  return await request<Furniture>("/furniture/", {
     method: "POST",
     body: isFormData ? data : JSON.stringify(data),
   });
 }
 
-export async function apiUpdateMueble(
+export async function apiUpdateFurniture(
   id: number,
   data: FormData | Record<string, any>,
-): Promise<Mueble> {
+): Promise<Furniture> {
   const isFormData =
     typeof FormData !== "undefined" && data instanceof FormData;
-  return await request<Mueble>(`/muebles/${id}/`, {
+  return await request<Furniture>(`/furniture/${id}/`, {
     method: "PATCH",
     body: isFormData ? data : JSON.stringify(data),
   });
 }
 
-export async function apiDeleteMueble(id: number): Promise<void> {
-  await request(`/muebles/${id}/`, {
+export async function apiDeleteFurniture(id: number): Promise<void> {
+  await request(`/furniture/${id}/`, {
     method: "DELETE",
   });
 }
 
-export async function apiToggleFavorito(
-  muebleId: number,
-): Promise<{ is_favorito: boolean; total_favoritos: number; detail: string }> {
+export async function apiToggleFavorite(
+  furnitureId: number,
+): Promise<{ is_favorite: boolean; favorites_count: number; detail: string }> {
   return await request<{
-    is_favorito: boolean;
-    total_favoritos: number;
+    is_favorite: boolean;
+    favorites_count: number;
     detail: string;
-  }>(`/muebles/${muebleId}/toggle_favorito/`, { method: "POST" });
+  }>(`/furniture/${furnitureId}/toggle_favorite/`, { method: "POST" });
 }
 
-export async function apiGetMisFavoritos(
+export async function apiGetMyFavorites(
   params: { page?: number; page_size?: number } = {},
-): Promise<PaginatedResponse<Mueble>> {
+): Promise<PaginatedResponse<Furniture>> {
   const query = new URLSearchParams();
   if (params.page) query.append("page", params.page.toString());
   if (params.page_size) query.append("page_size", params.page_size.toString());
   const qs = query.toString();
-  return await request<PaginatedResponse<Mueble>>(
-    `/muebles/mis_favoritos/${qs ? `?${qs}` : ""}`,
+  return await request<PaginatedResponse<Furniture>>(
+    `/furniture/my_favorites/${qs ? `?${qs}` : ""}`,
   );
 }
 
-export async function apiGetDestacados(): Promise<Mueble[]> {
-  return await request<Mueble[]>("/muebles/destacados/");
+export async function apiGetFeatured(): Promise<Furniture[]> {
+  return await request<Furniture[]>("/furniture/featured/");
 }
 
 // ==========================================
-// APARTADOS
+// RESERVATIONS
 // ==========================================
 
-export async function apiGetApartados(
+export async function apiGetReservations(
   params: {
     page?: number;
     page_size?: number;
-    estado?: Apartado["estado"];
-    historial?: boolean;
+    status?: ReservationStatus;
+    history?: boolean;
   } = {},
-): Promise<PaginatedResponse<Apartado>> {
+): Promise<PaginatedResponse<Reservation>> {
   const query = new URLSearchParams();
   if (params.page) query.append("page", params.page.toString());
   if (params.page_size) query.append("page_size", params.page_size.toString());
-  if (params.estado) query.append("estado", params.estado);
-  if (params.historial !== undefined)
-    query.append("historial", params.historial.toString());
+  if (params.status) query.append("status", params.status);
+  if (params.history !== undefined)
+    query.append("history", params.history.toString());
   const qs = query.toString();
-  return await request<PaginatedResponse<Apartado>>(
-    `/apartados/${qs ? `?${qs}` : ""}`,
+  return await request<PaginatedResponse<Reservation>>(
+    `/reservations/${qs ? `?${qs}` : ""}`,
   );
 }
 
-export async function apiCrearApartado(
-  muebleId: number,
-  cantidad: number,
-): Promise<Apartado> {
-  return await request<Apartado>("/apartados/", {
+export async function apiCreateReservation(
+  furnitureId: number,
+  quantity: number,
+): Promise<Reservation> {
+  return await request<Reservation>("/reservations/", {
     method: "POST",
-    body: JSON.stringify({ mueble_id: muebleId, cantidad }),
+    body: JSON.stringify({ furniture_id: furnitureId, quantity }),
   });
 }
 
-export async function apiAceptarApartado(id: number): Promise<Apartado> {
-  return await request<Apartado>(`/apartados/${id}/aceptar/`, {
+export async function apiAcceptReservation(id: number): Promise<Reservation> {
+  return await request<Reservation>(`/reservations/${id}/accept/`, {
     method: "POST",
   });
 }
 
-export async function apiRechazarApartado(id: number): Promise<Apartado> {
-  return await request<Apartado>(`/apartados/${id}/rechazar/`, {
+export async function apiRejectReservation(id: number): Promise<Reservation> {
+  return await request<Reservation>(`/reservations/${id}/reject/`, {
     method: "POST",
   });
 }
 
 // ==========================================
-// CATEGORÍAS Y PROVEEDORES (sin paginar: el backend devuelve la lista completa)
+// CATEGORIES AND SUPPLIERS (unpaginated: the backend returns the full list)
 // ==========================================
 
-export async function apiGetCategorias(): Promise<Categoria[]> {
-  return await request<Categoria[]>("/categorias/");
+export async function apiGetCategories(): Promise<Category[]> {
+  return await request<Category[]>("/categories/");
 }
 
-export async function apiCreateCategoria(data: {
-  nombre: string;
-  descripcion?: string;
-}): Promise<Categoria> {
-  return await request<Categoria>("/categorias/", {
+export async function apiCreateCategory(data: {
+  name: string;
+  description?: string;
+}): Promise<Category> {
+  return await request<Category>("/categories/", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function apiUpdateCategoria(
+export async function apiUpdateCategory(
   id: number,
-  data: Partial<{ nombre: string; descripcion: string }>,
-): Promise<Categoria> {
-  return await request<Categoria>(`/categorias/${id}/`, {
+  data: Partial<{ name: string; description: string }>,
+): Promise<Category> {
+  return await request<Category>(`/categories/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
 }
 
-export async function apiDeleteCategoria(id: number): Promise<void> {
-  await request(`/categorias/${id}/`, {
+export async function apiDeleteCategory(id: number): Promise<void> {
+  await request(`/categories/${id}/`, {
     method: "DELETE",
   });
 }
 
-export async function apiGetProveedores(): Promise<Proveedor[]> {
-  return await request<Proveedor[]>("/proveedores/");
+export async function apiGetSuppliers(): Promise<Supplier[]> {
+  return await request<Supplier[]>("/suppliers/");
 }
 
-export async function apiCreateProveedor(data: {
-  nombre: string;
-  contacto?: string;
-  telefono?: string;
+export async function apiCreateSupplier(data: {
+  name: string;
+  contact_name?: string;
+  phone?: string;
   email?: string;
-}): Promise<Proveedor> {
-  return await request<Proveedor>("/proveedores/", {
+}): Promise<Supplier> {
+  return await request<Supplier>("/suppliers/", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function apiUpdateProveedor(
+export async function apiUpdateSupplier(
   id: number,
   data: Partial<{
-    nombre: string;
-    contacto: string;
-    telefono: string;
+    name: string;
+    contact_name: string;
+    phone: string;
     email: string;
   }>,
-): Promise<Proveedor> {
-  return await request<Proveedor>(`/proveedores/${id}/`, {
+): Promise<Supplier> {
+  return await request<Supplier>(`/suppliers/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
 }
 
-export async function apiDeleteProveedor(id: number): Promise<void> {
-  await request(`/proveedores/${id}/`, {
+export async function apiDeleteSupplier(id: number): Promise<void> {
+  await request(`/suppliers/${id}/`, {
     method: "DELETE",
   });
 }
 
 // ==========================================
-// HELPER PARA URLs DE IMÁGENES
+// IMAGE URL HELPER
 // ==========================================
 
-// Convierte rutas relativas (/media/...) en URLs absolutas usando API_URL para que Image las cargue.
+// Turns relative paths (/media/...) into absolute URLs using API_URL so Image can load them.
 export async function resolveImageUrl(
   imageUrl: string | null | undefined,
 ): Promise<string | null> {

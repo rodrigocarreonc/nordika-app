@@ -1,4 +1,4 @@
-// Variante Web del ícono animado de la plantilla de Expo (sin overlay de splash nativo).
+// Web variant of the Expo template's animated icon (without the native splash overlay).
 
 import { Image } from "expo-image";
 import { StyleSheet, View } from "react-native";
